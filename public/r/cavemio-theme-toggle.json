@@ -1,0 +1,83 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-theme-toggle",
+  "title": "Theme Toggle",
+  "description": "Switch between a sun and crescent moon inside one circular button.",
+  "files": [
+    {
+      "path": "registry/components/theme-toggle.tsx",
+      "content": "\"use client\";\n\nimport { useId, useState, type ComponentPropsWithoutRef } from \"react\";\n\nimport { useThemeWipe } from \"./use-theme-wipe\";\n\nexport type ThemeToggleMode = \"light\" | \"dark\";\n\nexport interface ThemeToggleProps extends Omit<\n  ComponentPropsWithoutRef<\"button\">,\n  \"children\"\n> {\n  theme?: ThemeToggleMode;\n  defaultTheme?: ThemeToggleMode;\n  onThemeChange?: (theme: ThemeToggleMode) => void;\n  size?: number;\n  /** Opt in to a document reveal. onThemeChange must apply the theme synchronously. */\n  pageTransition?: \"none\" | \"circular\";\n}\n\nconst morph =\n  \"origin-center [transform-box:view-box] transition-[transform,opacity] duration-[420ms] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none\";\n\nexport function ThemeToggle({\n  theme,\n  defaultTheme = \"light\",\n  onThemeChange,\n  size = 48,\n  pageTransition = \"none\",\n  disabled,\n  className = \"\",\n  style,\n  onClick,\n  type = \"button\",\n  \"aria-label\": label,\n  ...props\n}: ThemeToggleProps) {\n  const [localTheme, setLocalTheme] = useState(defaultTheme);\n  const currentTheme = theme ?? localTheme;\n  const wipe = useThemeWipe();\n  const dark = currentTheme === \"dark\";\n  const maskId = `theme-toggle-${useId().replaceAll(\":\", \"\")}`;\n\n  return (\n    <button\n      {...props}\n      type={type}\n      disabled={disabled}\n      aria-label={label ?? `Switch to ${dark ? \"light\" : \"dark\"} mode`}\n      aria-pressed={dark}\n      data-theme-toggle={currentTheme}\n      className={`inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-white p-0 text-black transition-[background-color,color,scale] duration-200 hover:scale-[1.04] active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 data-[theme-toggle=dark]:bg-black data-[theme-toggle=dark]:text-white motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100 ${pageTransition === \"circular\" ? \"hover:scale-100! active:scale-100!\" : \"\"} ${className}`}\n      style={{\n        width: size,\n        height: size,\n        minWidth: 44,\n        minHeight: 44,\n        ...style,\n      }}\n      onClick={(event) => {\n        onClick?.(event);\n        if (event.defaultPrevented) return;\n        wipe(\n          event.currentTarget,\n          currentTheme,\n          pageTransition,\n          (next) => {\n            if (theme === undefined) setLocalTheme(next);\n            onThemeChange?.(next);\n          },\n          props.nonce,\n        );\n      }}\n    >\n      <svg\n        aria-hidden=\"true\"\n        focusable=\"false\"\n        viewBox=\"0 0 32 32\"\n        className=\"size-2/3 overflow-visible\"\n      >\n        <defs>\n          <mask\n            id={maskId}\n            maskUnits=\"userSpaceOnUse\"\n            x=\"0\"\n            y=\"0\"\n            width=\"32\"\n            height=\"32\"\n          >\n            <rect width=\"32\" height=\"32\" fill=\"white\" />\n            <circle\n              data-theme-toggle-cutout=\"\"\n              cx=\"36\"\n              cy=\"-4\"\n              r=\"8\"\n              fill=\"black\"\n              className={morph}\n              style={{\n                transform: dark\n                  ? \"translate(-16px, 16px)\"\n                  : \"translate(0px, 0px)\",\n              }}\n            />\n          </mask>\n        </defs>\n        <g mask={`url(#${maskId})`}>\n          <circle\n            cx=\"16\"\n            cy=\"16\"\n            r=\"7.5\"\n            fill=\"currentColor\"\n            className={morph}\n            style={{ transform: dark ? \"scale(1.2)\" : \"scale(1)\" }}\n          />\n        </g>\n        <g\n          data-theme-toggle-rays=\"\"\n          stroke=\"currentColor\"\n          strokeWidth=\"1.5\"\n          strokeLinecap=\"round\"\n          className={morph}\n          style={{\n            opacity: dark ? 0 : 1,\n            transform: dark\n              ? \"rotate(45deg) scale(0.5)\"\n              : \"rotate(0deg) scale(1)\",\n          }}\n        >\n          {Array.from({ length: 8 }, (_, index) => (\n            <line\n              key={index}\n              x1=\"16\"\n              y1=\"2\"\n              x2=\"16\"\n              y2=\"6\"\n              transform={`rotate(${index * 45} 16 16)`}\n            />\n          ))}\n        </g>\n      </svg>\n    </button>\n  );\n}\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/use-theme-wipe.ts",
+      "content": "\"use client\";\n\nimport { useEffect, useRef } from \"react\";\nimport { flushSync } from \"react-dom\";\n\ntype Mode = \"light\" | \"dark\";\ntype ActiveWipe = { mode: Mode; cancel: () => void };\n\n// A document can have only one view transition, even with several toggles.\nconst activeWipes = new WeakMap<Document, ActiveWipe>();\nconst styles = `\nhtml[data-theme-wipe]::view-transition { pointer-events: none; }\nhtml[data-theme-wipe]::view-transition-group(*) { animation: none; }\nhtml[data-theme-wipe]::view-transition-old(root),\nhtml[data-theme-wipe]::view-transition-new(root) {\n  animation: none;\n  mix-blend-mode: normal;\n}`;\n\nexport function useThemeWipe() {\n  const owned = useRef<ActiveWipe | null>(null);\n  useEffect(() => () => owned.current?.cancel(), []);\n\n  return (\n    origin: HTMLElement,\n    current: Mode,\n    effect: \"none\" | \"circular\",\n    change: (mode: Mode) => void,\n    nonce?: string,\n  ) => {\n    const doc = origin.ownerDocument;\n    const win = doc.defaultView;\n    const previous = activeWipes.get(doc);\n    const mode = (previous?.mode ?? current) === \"dark\" ? \"light\" : \"dark\";\n    previous?.cancel();\n    let applied = false;\n    const apply = () => {\n      if (applied) return;\n      applied = true;\n      flushSync(() => change(mode));\n    };\n    const reduced = win?.matchMedia(\"(prefers-reduced-motion: reduce)\");\n    if (\n      effect === \"none\" ||\n      previous ||\n      !win ||\n      reduced?.matches ||\n      doc.visibilityState === \"hidden\" ||\n      !doc.startViewTransition ||\n      // Do not interrupt a router-owned transition on browsers exposing it.\n      (doc as Document & { activeViewTransition?: ViewTransition | null })\n        .activeViewTransition\n    ) {\n      apply();\n      return;\n    }\n\n    const root = doc.documentElement;\n    const bounds = origin.getBoundingClientRect();\n    const x = bounds.left + bounds.width / 2;\n    const y = bounds.top + bounds.height / 2;\n    const radius = Math.hypot(\n      Math.max(x, win.innerWidth - x),\n      Math.max(y, win.innerHeight - y),\n    );\n    // Ship scoped transition CSS with the helper, not the app's stylesheet.\n    const sheet = doc.createElement(\"style\");\n    if (nonce) sheet.nonce = nonce;\n    sheet.textContent = styles;\n    doc.head.append(sheet);\n    if (!sheet.sheet) {\n      sheet.remove();\n      apply();\n      return;\n    }\n    const oldAttribute = root.getAttribute(\"data-theme-wipe\");\n    let cancelled = false;\n    let transition: ViewTransition | undefined;\n    let animation: Animation | undefined;\n    const cleanup = () => {\n      animation?.cancel();\n      sheet.remove();\n      reduced?.removeEventListener(\"change\", settle);\n      win.removeEventListener(\"resize\", settle);\n      doc.removeEventListener(\"visibilitychange\", visibility);\n      if (activeWipes.get(doc) === run) {\n        activeWipes.delete(doc);\n        if (oldAttribute === null) root.removeAttribute(\"data-theme-wipe\");\n        else root.setAttribute(\"data-theme-wipe\", oldAttribute);\n      }\n      if (owned.current === run) owned.current = null;\n    };\n    const run: ActiveWipe = {\n      mode,\n      cancel() {\n        cancelled = true;\n        transition?.skipTransition();\n        cleanup();\n      },\n    };\n    function settle() {\n      run.cancel();\n      apply();\n    }\n    function visibility() {\n      if (doc.visibilityState === \"hidden\") settle();\n    }\n    owned.current = run;\n    activeWipes.set(doc, run);\n    root.setAttribute(\"data-theme-wipe\", \"\");\n    reduced?.addEventListener(\"change\", settle);\n    win.addEventListener(\"resize\", settle);\n    doc.addEventListener(\"visibilitychange\", visibility);\n\n    try {\n      transition = doc.startViewTransition(() => {\n        if (!cancelled) apply();\n      });\n      if (cancelled) transition.skipTransition();\n      void transition.ready\n        .then(() => {\n          if (cancelled) return;\n          animation = root.animate(\n            {\n              clipPath: [\n                `circle(0px at ${x}px ${y}px)`,\n                `circle(${radius}px at ${x}px ${y}px)`,\n              ],\n            },\n            {\n              duration: 620,\n              easing: \"cubic-bezier(0.65, 0, 0.35, 1)\",\n              pseudoElement: \"::view-transition-new(root)\",\n            },\n          );\n        })\n        .catch(() => {\n          if (!cancelled) settle();\n        });\n      void transition.finished.then(cleanup, cleanup);\n    } catch {\n      settle();\n    }\n  };\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "meta": {
+    "cavemio": {
+      "component": "theme-toggle",
+      "exportName": "ThemeToggle",
+      "usage": "\"use client\";\n\nimport { useState } from \"react\";\nimport { ThemeToggle } from \"@/components/theme-toggle\";\n\n// Your CSS must define light/dark colors for this attribute.\nexport function AppearanceToggle() {\n  const [theme, setTheme] = useState<\"light\" | \"dark\">(\"light\");\n  return (\n    <ThemeToggle\n      theme={theme}\n      pageTransition=\"circular\"\n      onThemeChange={(next) => {\n        document.documentElement.dataset.theme = next;\n        setTheme(next);\n      }}\n    />\n  );\n}",
+      "accessibility": "Native button with a destination label, pressed state, keyboard activation, visible focus, disabled behavior, and live reduced-motion support.",
+      "previewNote": "Optional pageTransition=\"circular\" reveals the new page theme from the button while the icon morphs. Apply your theme class, data attribute, or synchronous React state inside onThemeChange; the component does not define colors or persist preferences. Without the option, only the icon animates. Unsupported browsers, reduced motion, hidden documents, and failed captures switch immediately. Resize or enabling reduced motion settles an active wipe; repeated activation keeps the latest choice. An iframe only animates its own document. Deferred provider updates and router transitions need app coordination; use pageTransition=\"none\" until integrated. With a strict style CSP, pass an allowed nonce. The demo starts with the wipe enabled. Use the With wipe and Without wipe tabs to compare. On the website, the demo changes the entire site theme and stays synchronized with the header.",
+      "categories": [
+        "interactions"
+      ],
+      "documentation": {
+        "props": [
+          {
+            "name": "theme",
+            "type": "\"light\" | \"dark\"",
+            "description": "Controlled appearance; pair with onThemeChange."
+          },
+          {
+            "name": "defaultTheme",
+            "type": "\"light\" | \"dark\"",
+            "description": "Initial uncontrolled appearance. Defaults to light."
+          },
+          {
+            "name": "onThemeChange",
+            "type": "(theme: \"light\" | \"dark\") => void",
+            "description": "Receives the next appearance when activated. The host owns document theme and persistence."
+          },
+          {
+            "name": "pageTransition",
+            "type": "\"none\" | \"circular\"",
+            "description": "Defaults to none. Circular opts into a 620ms document reveal and keeps button scale stable. onThemeChange must apply theme styles synchronously; reduced motion or unavailable transitions switch immediately."
+          },
+          {
+            "name": "size",
+            "type": "number",
+            "description": "Button diameter in pixels. Defaults to 48, with a minimum 44px hit area."
+          },
+          {
+            "name": "disabled",
+            "type": "boolean",
+            "description": "Disables pointer and keyboard activation."
+          },
+          {
+            "name": "className / style",
+            "type": "string / CSSProperties",
+            "description": "Customize the button surface and dimensions."
+          },
+          {
+            "name": "aria-label",
+            "type": "string",
+            "description": "Override the default destination label. Native button props are forwarded."
+          },
+          {
+            "name": "nonce",
+            "type": "string",
+            "description": "Optional CSP nonce for the temporary transition stylesheet. Use your server-generated allowed style nonce."
+          }
+        ],
+        "useCases": [],
+        "features": [],
+        "states": []
+      }
+    }
+  },
+  "type": "registry:component"
+}
