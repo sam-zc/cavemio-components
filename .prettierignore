@@ -7,3 +7,7 @@ public/previews
 bun.lock
 next-env.d.ts
 public/catalog.json
+playwright-report
+test-results
+output/playwright
+output/import-lint.json

@@ -11,4 +11,6 @@ test-results/
 playwright-report/
 debug-storybook.log
 output/playwright/
+public/demos/
+output/import-lint.json
 .playwright-cli/
