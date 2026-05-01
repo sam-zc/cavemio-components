@@ -476,7 +476,7 @@ export function PillSelect({
               width: w,
               height: h,
               borderRadius: expanded ? 16 : pill.height / 2,
-              // The pill's own hairline, the whole way: it is the same surface.
+              // The pill's own cavemio, the whole way: it is the same surface.
               boxShadow: "inset 0 0 0 1px var(--border)",
               transition: reduced
                 ? "none"

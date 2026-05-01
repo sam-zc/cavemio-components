@@ -29,7 +29,7 @@ export interface FieldProps {
 
 export type FieldSize = "sm" | "md";
 
-/** The surface of a text control: a hairline that darkens on hover and turns to the ring on focus. */
+/** The surface of a text control: a thin line that darkens on hover and turns to the ring on focus. */
 export function fieldSurface({
   invalid,
   disabled,
