@@ -1,0 +1,1287 @@
+{
+  "modes": 418,
+  "scenes": [
+    {
+      "slug": "button",
+      "canonical": ["button.tsx"]
+    },
+    {
+      "slug": "button-group",
+      "canonical": [
+        "button-group.tsx",
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx"
+      ]
+    },
+    {
+      "slug": "split-button",
+      "canonical": [
+        "imported-ui-interaction-motion.ts",
+        "split-button.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "copy-button",
+      "canonical": ["copy-button.tsx"]
+    },
+    {
+      "slug": "action-button",
+      "canonical": [
+        "action-button.tsx",
+        "imported-ui-interaction-motion.ts",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "expanding-button-group",
+      "canonical": [
+        "expanding-button-group.tsx",
+        "imported-ui-interaction-motion.ts",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "floating-button-group",
+      "canonical": [
+        "floating-button-group.tsx",
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx"
+      ]
+    },
+    {
+      "slug": "icon-morph",
+      "canonical": [
+        "icon-morph.tsx",
+        "imported-ui-interaction-motion.ts",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "input",
+      "canonical": ["input.tsx"]
+    },
+    {
+      "slug": "textarea",
+      "canonical": ["imported-ui-interaction-motion.ts", "textarea.tsx"]
+    },
+    {
+      "slug": "password-input",
+      "canonical": ["password-input.tsx"]
+    },
+    {
+      "slug": "search-input",
+      "canonical": [
+        "imported-ui-interaction-motion.ts",
+        "input.tsx",
+        "search-input.tsx"
+      ]
+    },
+    {
+      "slug": "select",
+      "canonical": ["select.tsx"]
+    },
+    {
+      "slug": "multi-select",
+      "canonical": [
+        "floating.ts",
+        "imported-field.tsx",
+        "imported-ui-interaction-motion.ts",
+        "multi-select.tsx",
+        "number-roll.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "date-picker",
+      "canonical": [
+        "date-picker.tsx",
+        "floating.ts",
+        "imported-field.tsx",
+        "imported-ui-interaction-motion.ts",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "checkbox",
+      "canonical": ["checkbox.tsx"]
+    },
+    {
+      "slug": "radio-group",
+      "canonical": ["imported-ui-interaction-motion.ts", "radio-group.tsx"]
+    },
+    {
+      "slug": "switch",
+      "canonical": ["switch.tsx"]
+    },
+    {
+      "slug": "slider",
+      "canonical": ["slider.tsx"]
+    },
+    {
+      "slug": "segmented-control",
+      "canonical": ["segmented-control.tsx"]
+    },
+    {
+      "slug": "tooltip",
+      "canonical": [
+        "button.tsx",
+        "floating.ts",
+        "imported-ui-interaction-motion.ts",
+        "tooltip.tsx"
+      ]
+    },
+    {
+      "slug": "popover",
+      "canonical": [
+        "button.tsx",
+        "floating.ts",
+        "imported-ui-interaction-motion.ts",
+        "input.tsx",
+        "popover.tsx"
+      ]
+    },
+    {
+      "slug": "hover-card",
+      "canonical": [
+        "avatar.tsx",
+        "button.tsx",
+        "floating.ts",
+        "hover-card.tsx",
+        "imported-ui-interaction-motion.ts"
+      ]
+    },
+    {
+      "slug": "dropdown-menu",
+      "canonical": [
+        "button.tsx",
+        "dropdown-menu.tsx",
+        "floating.ts",
+        "imported-ui-interaction-motion.ts",
+        "menu-list.tsx"
+      ]
+    },
+    {
+      "slug": "context-menu",
+      "canonical": [
+        "context-menu.tsx",
+        "floating.ts",
+        "imported-ui-interaction-motion.ts",
+        "menu-list.tsx"
+      ]
+    },
+    {
+      "slug": "dialog",
+      "canonical": [
+        "button.tsx",
+        "dialog.tsx",
+        "imported-ui-interaction-motion.ts",
+        "modal.ts"
+      ]
+    },
+    {
+      "slug": "sheet",
+      "canonical": [
+        "button.tsx",
+        "checkbox.tsx",
+        "imported-ui-interaction-motion.ts",
+        "modal.ts",
+        "sheet.tsx",
+        "slider.tsx"
+      ]
+    },
+    {
+      "slug": "badge",
+      "canonical": [
+        "badge.tsx",
+        "button.tsx",
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "avatar",
+      "canonical": ["avatar.tsx"]
+    },
+    {
+      "slug": "spinner",
+      "canonical": ["spinner.tsx"]
+    },
+    {
+      "slug": "progress",
+      "canonical": [
+        "button.tsx",
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "progress.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "skeleton",
+      "canonical": [
+        "button.tsx",
+        "imported-ui-interaction-motion.ts",
+        "skeleton.tsx"
+      ]
+    },
+    {
+      "slug": "empty-state",
+      "canonical": [
+        "empty-state.tsx",
+        "imported-ui-interaction-motion.ts",
+        "status-button.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "alert",
+      "canonical": [
+        "alert.tsx",
+        "button.tsx",
+        "imported-ui-interaction-motion.ts"
+      ]
+    },
+    {
+      "slug": "kbd",
+      "canonical": ["kbd.tsx"]
+    },
+    {
+      "slug": "tabs",
+      "canonical": [
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "tabs.tsx"
+      ]
+    },
+    {
+      "slug": "accordion",
+      "canonical": ["accordion.tsx"]
+    },
+    {
+      "slug": "collapsible",
+      "canonical": [
+        "accordion.tsx",
+        "collapsible.tsx",
+        "imported-ui-interaction-motion.ts",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "breadcrumb",
+      "canonical": ["breadcrumb.tsx", "imported-ui-interaction-motion.ts"]
+    },
+    {
+      "slug": "pagination",
+      "canonical": [
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "pagination.tsx"
+      ]
+    },
+    {
+      "slug": "toggle-group",
+      "canonical": ["imported-ui-interaction-motion.ts", "toggle-group.tsx"]
+    },
+    {
+      "slug": "steps",
+      "canonical": [
+        "button.tsx",
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "steps.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "text-morph",
+      "canonical": ["text-morph.tsx"]
+    },
+    {
+      "slug": "status-button",
+      "canonical": ["status-button.tsx"]
+    },
+    {
+      "slug": "number-roll",
+      "canonical": ["number-roll.tsx"]
+    },
+    {
+      "slug": "pricing-toggle",
+      "canonical": ["pricing-toggle.tsx"]
+    },
+    {
+      "slug": "waitlist-field",
+      "canonical": ["waitlist-field.tsx"]
+    },
+    {
+      "slug": "code-input",
+      "canonical": ["code-input.tsx"]
+    },
+    {
+      "slug": "steps-form",
+      "canonical": [
+        "number-roll.tsx",
+        "status-button.tsx",
+        "steps-form.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "date-range-picker",
+      "canonical": [
+        "date-range-picker.tsx",
+        "number-roll.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "morphing-nav",
+      "canonical": ["morphing-nav.tsx"]
+    },
+    {
+      "slug": "feature-tabs",
+      "canonical": ["feature-tabs.tsx"]
+    },
+    {
+      "slug": "scroll-story",
+      "canonical": ["number-roll.tsx", "scroll-story.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "stats-band",
+      "canonical": ["number-roll.tsx", "stats-band.tsx"]
+    },
+    {
+      "slug": "announcement-pill",
+      "canonical": ["announcement-pill.tsx"]
+    },
+    {
+      "slug": "testimonials",
+      "canonical": ["testimonials.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "faq-accordion",
+      "canonical": ["faq-accordion.tsx"]
+    },
+    {
+      "slug": "logo-marquee",
+      "canonical": ["logo-marquee.tsx"]
+    },
+    {
+      "slug": "expanding-gallery",
+      "canonical": [
+        "expanding-gallery.tsx",
+        "gallery-viewer.tsx",
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "card-deck",
+      "canonical": [
+        "card-deck.tsx",
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx"
+      ]
+    },
+    {
+      "slug": "workflow-canvas",
+      "canonical": [
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "text-morph.tsx",
+        "workflow-canvas.tsx",
+        "workflow-connections.tsx",
+        "workflow-inspector.tsx",
+        "workflow-status.tsx"
+      ]
+    },
+    {
+      "slug": "image-compare",
+      "canonical": [
+        "image-compare.tsx",
+        "imported-ui-interaction-motion.ts",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "magnifying-dock",
+      "canonical": [
+        "imported-ui-interaction-motion.ts",
+        "magnifying-dock.tsx",
+        "number-roll.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "hold-to-confirm",
+      "canonical": ["hold-to-confirm.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "swipe-actions",
+      "canonical": [
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "swipe-actions.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "drop-zone",
+      "canonical": [
+        "drop-zone-file-row.tsx",
+        "drop-zone.tsx",
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "drop-zone-membrane",
+      "canonical": [
+        "drop-zone-membrane.tsx",
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "wheel-picker",
+      "canonical": [
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "text-morph.tsx",
+        "wheel-picker.tsx"
+      ]
+    },
+    {
+      "slug": "morphing-chart",
+      "canonical": [
+        "imported-ui-interaction-motion.ts",
+        "morphing-chart.tsx",
+        "number-roll.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "range-ruler",
+      "canonical": [
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "range-ruler.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "ratio-balancer",
+      "canonical": [
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "ratio-balancer.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "split-pane",
+      "canonical": [
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "split-pane.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "tag-input",
+      "canonical": [
+        "number-roll.tsx",
+        "status-button.tsx",
+        "tag-input.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "avatar-cropper",
+      "canonical": [
+        "avatar-cropper.tsx",
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "status-button.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "week-calendar",
+      "canonical": ["number-roll.tsx", "text-morph.tsx", "week-calendar.tsx"]
+    },
+    {
+      "slug": "inline-edit",
+      "canonical": ["inline-edit.tsx", "number-roll.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "combobox",
+      "canonical": [
+        "combobox.tsx",
+        "number-roll.tsx",
+        "status-button.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "cron-input",
+      "canonical": [
+        "cron-input.tsx",
+        "imported-pill-select.tsx",
+        "number-roll.tsx",
+        "status-button.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "time-range-picker",
+      "canonical": [
+        "number-roll.tsx",
+        "text-morph.tsx",
+        "time-brush.tsx",
+        "time-range-parse.ts",
+        "time-range-picker.tsx"
+      ]
+    },
+    {
+      "slug": "json-inspector",
+      "canonical": [
+        "json-inspector.tsx",
+        "number-roll.tsx",
+        "status-button.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "stepper-input",
+      "canonical": ["number-roll.tsx", "stepper-input.tsx"]
+    },
+    {
+      "slug": "sparkline",
+      "canonical": ["sparkline.tsx"]
+    },
+    {
+      "slug": "privacy-mask",
+      "canonical": ["privacy-mask.tsx"]
+    },
+    {
+      "slug": "data-table",
+      "canonical": ["data-table.tsx", "number-roll.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "kanban-board",
+      "canonical": [
+        "imported-ui-interaction-motion.ts",
+        "kanban-board.tsx",
+        "number-roll.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "filter-bar",
+      "canonical": [
+        "data-table.tsx",
+        "filter-bar.tsx",
+        "number-roll.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "tree-view",
+      "canonical": ["text-morph.tsx", "tree-view.tsx", "use-row-motion.ts"]
+    },
+    {
+      "slug": "doc-comments",
+      "canonical": ["doc-comments.tsx", "number-roll.tsx", "status-button.tsx"]
+    },
+    {
+      "slug": "api-keys",
+      "canonical": [
+        "api-keys.tsx",
+        "confirm-action.tsx",
+        "number-roll.tsx",
+        "relative-time.tsx",
+        "status-button.tsx",
+        "use-row-motion.ts"
+      ]
+    },
+    {
+      "slug": "team-members",
+      "canonical": [
+        "confirm-action.tsx",
+        "number-roll.tsx",
+        "relative-time.tsx",
+        "status-button.tsx",
+        "tag-input.tsx",
+        "team-members.tsx",
+        "team-role-menu.tsx",
+        "text-morph.tsx",
+        "use-row-motion.ts"
+      ]
+    },
+    {
+      "slug": "settings-form",
+      "canonical": [
+        "number-roll.tsx",
+        "settings-form.tsx",
+        "status-button.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "auth-card",
+      "canonical": [
+        "auth-card.tsx",
+        "code-input.tsx",
+        "number-roll.tsx",
+        "status-button.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "webhooks",
+      "canonical": [
+        "confirm-action.tsx",
+        "imported-pill-select.tsx",
+        "number-roll.tsx",
+        "relative-time.tsx",
+        "status-button.tsx",
+        "text-morph.tsx",
+        "use-row-motion.ts",
+        "webhook-deliveries.tsx",
+        "webhook-wire.tsx",
+        "webhooks.tsx"
+      ]
+    },
+    {
+      "slug": "domain-connect",
+      "canonical": [
+        "confirm-action.tsx",
+        "domain-connect.tsx",
+        "number-roll.tsx",
+        "status-button.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "log-stream",
+      "canonical": ["log-stream.tsx", "number-roll.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "csv-import",
+      "canonical": [
+        "csv-import.tsx",
+        "csv-mapper.tsx",
+        "imported-pill-select.tsx",
+        "number-roll.tsx",
+        "status-button.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "notification-inbox",
+      "canonical": [
+        "notification-inbox.tsx",
+        "number-roll.tsx",
+        "relative-time.tsx",
+        "status-button.tsx",
+        "text-morph.tsx",
+        "use-row-motion.ts"
+      ]
+    },
+    {
+      "slug": "integrations",
+      "canonical": [
+        "confirm-action.tsx",
+        "integrations.tsx",
+        "number-roll.tsx",
+        "status-button.tsx",
+        "use-row-motion.ts"
+      ]
+    },
+    {
+      "slug": "status-bars",
+      "canonical": [
+        "number-roll.tsx",
+        "relative-time.tsx",
+        "status-bars.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "command-palette",
+      "canonical": ["command-palette.tsx"]
+    },
+    {
+      "slug": "toast-stack",
+      "canonical": ["text-morph.tsx", "toast-stack.tsx"]
+    },
+    {
+      "slug": "live-activity",
+      "canonical": ["live-activity.tsx", "number-roll.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "live-cursors",
+      "canonical": ["live-cursors.tsx", "number-roll.tsx"]
+    },
+    {
+      "slug": "live-map",
+      "canonical": ["live-map.tsx", "number-roll.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "theme-toggle",
+      "canonical": ["theme-toggle.tsx"]
+    },
+    {
+      "slug": "pricing-calculator",
+      "canonical": [
+        "number-roll.tsx",
+        "pricing-calculator.tsx",
+        "pricing-toggle.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "comparison-table",
+      "canonical": ["comparison-table.tsx", "pricing-toggle.tsx"]
+    },
+    {
+      "slug": "onboarding-checklist",
+      "canonical": [
+        "number-roll.tsx",
+        "onboarding-checklist.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "sortable-list",
+      "canonical": [
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "sortable-list.tsx"
+      ]
+    },
+    {
+      "slug": "changelog-timeline",
+      "canonical": [
+        "changelog-timeline.tsx",
+        "number-roll.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "changelog-trace",
+      "canonical": ["changelog-trace.tsx", "number-roll.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "changelog-scrubber",
+      "canonical": [
+        "changelog-scrubber.tsx",
+        "number-roll.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "cookie-banner",
+      "canonical": ["cookie-banner.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "newsletter-footer",
+      "canonical": [
+        "newsletter-footer.tsx",
+        "number-roll.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "prompt-composer",
+      "canonical": [
+        "attachment-chip.tsx",
+        "mode-switcher.tsx",
+        "prompt-composer.tsx"
+      ]
+    },
+    {
+      "slug": "agent-composer",
+      "canonical": [
+        "agent-composer.tsx",
+        "model-picker.tsx",
+        "number-roll.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "mention-menu",
+      "canonical": ["mention-menu.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "attachment-chip",
+      "canonical": ["attachment-chip.tsx"]
+    },
+    {
+      "slug": "mode-switcher",
+      "canonical": ["mode-switcher.tsx"]
+    },
+    {
+      "slug": "model-picker",
+      "canonical": ["model-picker.tsx"]
+    },
+    {
+      "slug": "voice-input",
+      "canonical": ["number-roll.tsx", "text-morph.tsx", "voice-input.tsx"]
+    },
+    {
+      "slug": "voice-note",
+      "canonical": ["number-roll.tsx", "voice-note.tsx"]
+    },
+    {
+      "slug": "thinking-indicator",
+      "canonical": [
+        "number-roll.tsx",
+        "text-morph.tsx",
+        "thinking-indicator.tsx"
+      ]
+    },
+    {
+      "slug": "thinking-trace",
+      "canonical": ["thinking-trace.tsx"]
+    },
+    {
+      "slug": "tool-call",
+      "canonical": ["tool-call.tsx"]
+    },
+    {
+      "slug": "clarifying-question",
+      "canonical": [
+        "clarifying-question.tsx",
+        "number-roll.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "approval-card",
+      "canonical": ["approval-card.tsx", "number-roll.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "plan",
+      "canonical": ["number-roll.tsx", "plan.tsx"]
+    },
+    {
+      "slug": "web-research",
+      "canonical": ["web-research.tsx"]
+    },
+    {
+      "slug": "command-output",
+      "canonical": ["command-output.tsx", "number-roll.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "task-progress",
+      "canonical": ["number-roll.tsx", "task-progress.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "task-log",
+      "canonical": ["task-log.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "streaming-answer",
+      "canonical": ["streaming-answer.tsx"]
+    },
+    {
+      "slug": "code-block",
+      "canonical": ["code-block.tsx", "status-button.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "citation",
+      "canonical": ["citation.tsx"]
+    },
+    {
+      "slug": "response-versions",
+      "canonical": ["number-roll.tsx", "response-versions.tsx"]
+    },
+    {
+      "slug": "selection-actions",
+      "canonical": ["selection-actions.tsx"]
+    },
+    {
+      "slug": "inline-rewrite",
+      "canonical": ["inline-rewrite.tsx", "number-roll.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "diff-review",
+      "canonical": ["diff-review.tsx", "number-roll.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "action-receipt",
+      "canonical": ["action-receipt.tsx", "number-roll.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "chat-notice",
+      "canonical": [
+        "chat-notice.tsx",
+        "number-roll.tsx",
+        "status-button.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "usage-meter",
+      "canonical": ["number-roll.tsx", "text-morph.tsx", "usage-meter.tsx"]
+    },
+    {
+      "slug": "usage-limits",
+      "canonical": ["number-roll.tsx", "usage-limits.tsx"]
+    },
+    {
+      "slug": "chat-scroll",
+      "canonical": ["chat-scroll.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "message-edit",
+      "canonical": ["message-edit.tsx", "number-roll.tsx"]
+    },
+    {
+      "slug": "chat-history",
+      "canonical": ["chat-history.tsx"]
+    },
+    {
+      "slug": "earnings-chart",
+      "canonical": ["earnings-chart.tsx", "number-roll.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "steps-chart",
+      "canonical": ["number-roll.tsx", "steps-chart.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "revenue-chart",
+      "canonical": ["number-roll.tsx", "revenue-chart.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "area-chart",
+      "canonical": ["area-chart.tsx", "number-roll.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "trend-chart",
+      "canonical": [
+        "number-roll.tsx",
+        "text-morph.tsx",
+        "time-brush.tsx",
+        "trend-chart.tsx"
+      ]
+    },
+    {
+      "slug": "combo-chart",
+      "canonical": ["combo-chart.tsx", "number-roll.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "stage-bars",
+      "canonical": ["number-roll.tsx", "stage-bars.tsx"]
+    },
+    {
+      "slug": "activity-rings",
+      "canonical": ["activity-rings.tsx", "number-roll.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "donut-chart",
+      "canonical": [
+        "donut-chart.tsx",
+        "number-roll.tsx",
+        "segmented-control.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "activity-heatmap",
+      "canonical": [
+        "activity-heatmap.tsx",
+        "number-roll.tsx",
+        "segmented-control.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "live-line-chart",
+      "canonical": ["live-line-chart.tsx", "number-roll.tsx", "text-morph.tsx"]
+    },
+    {
+      "slug": "agent-playback",
+      "canonical": [
+        "agent-playback.tsx",
+        "prompt-composer.tsx",
+        "streaming-answer.tsx",
+        "thinking-trace.tsx",
+        "tool-call.tsx",
+        "web-research.tsx"
+      ]
+    },
+    {
+      "slug": "wallet",
+      "canonical": [
+        "copy-button.tsx",
+        "faces.tsx",
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "status-button.tsx",
+        "text-morph.tsx",
+        "use-row-motion.ts",
+        "wallet.tsx"
+      ]
+    },
+    {
+      "slug": "pricing-plans",
+      "canonical": [
+        "faces.tsx",
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "pricing-plans.tsx",
+        "pricing-toggle.tsx",
+        "status-button.tsx",
+        "stepper-input.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "booking",
+      "canonical": [
+        "booking.tsx",
+        "faces.tsx",
+        "imported-ui-interaction-motion.ts",
+        "input.tsx",
+        "number-roll.tsx",
+        "status-button.tsx",
+        "text-morph.tsx",
+        "textarea.tsx"
+      ]
+    },
+    {
+      "slug": "cart",
+      "canonical": [
+        "cart.tsx",
+        "faces.tsx",
+        "imported-ui-interaction-motion.ts",
+        "input.tsx",
+        "number-roll.tsx",
+        "status-button.tsx",
+        "stepper-input.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "referral",
+      "canonical": [
+        "copy-button.tsx",
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "referral.tsx",
+        "status-button.tsx",
+        "tag-input.tsx",
+        "text-morph.tsx",
+        "use-row-motion.ts"
+      ]
+    },
+    {
+      "slug": "feedback",
+      "canonical": [
+        "faces.tsx",
+        "feedback.tsx",
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "status-button.tsx",
+        "text-morph.tsx",
+        "textarea.tsx"
+      ]
+    },
+    {
+      "slug": "buy-box",
+      "canonical": [
+        "buy-box.tsx",
+        "faces.tsx",
+        "imported-ui-interaction-motion.ts",
+        "input.tsx",
+        "number-roll.tsx",
+        "status-button.tsx",
+        "stepper-input.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "checkout",
+      "canonical": [
+        "checkout.tsx",
+        "imported-ui-interaction-motion.ts",
+        "input.tsx",
+        "number-roll.tsx",
+        "select.tsx",
+        "status-button.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "order-status",
+      "canonical": [
+        "copy-button.tsx",
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "order-status.tsx",
+        "status-button.tsx",
+        "text-morph.tsx",
+        "use-row-motion.ts"
+      ]
+    },
+    {
+      "slug": "subscription",
+      "canonical": [
+        "faces.tsx",
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "segmented-control.tsx",
+        "status-button.tsx",
+        "subscription.tsx",
+        "text-morph.tsx",
+        "textarea.tsx"
+      ]
+    },
+    {
+      "slug": "file-share",
+      "canonical": [
+        "copy-button.tsx",
+        "faces.tsx",
+        "file-share.tsx",
+        "imported-ui-interaction-motion.ts",
+        "input.tsx",
+        "number-roll.tsx",
+        "segmented-control.tsx",
+        "status-button.tsx",
+        "switch.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "poll",
+      "canonical": [
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "poll.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "cookie-consent",
+      "canonical": [
+        "cookie-consent.tsx",
+        "cookie-crumb.tsx",
+        "imported-ui-interaction-motion.ts",
+        "status-button.tsx",
+        "switch.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "create-password",
+      "canonical": [
+        "create-password.tsx",
+        "hide-chameleon.tsx",
+        "imported-ui-interaction-motion.ts",
+        "password-input.tsx",
+        "status-button.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "verify-code",
+      "canonical": [
+        "cast-sprite.ts",
+        "code-input.tsx",
+        "coo-pigeon.tsx",
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "status-button.tsx",
+        "text-morph.tsx",
+        "verify-code.tsx"
+      ]
+    },
+    {
+      "slug": "delete-workspace",
+      "canonical": [
+        "boo-ghost.tsx",
+        "cast-sprite.ts",
+        "delete-workspace.tsx",
+        "hold-to-confirm.tsx",
+        "imported-ui-interaction-motion.ts",
+        "input.tsx",
+        "status-button.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "terms",
+      "canonical": [
+        "cast-sprite.ts",
+        "imported-ui-interaction-motion.ts",
+        "status-button.tsx",
+        "terms.tsx"
+      ]
+    },
+    {
+      "slug": "not-found",
+      "canonical": [
+        "cast-sprite.ts",
+        "fetch-dog.tsx",
+        "imported-ui-interaction-motion.ts",
+        "input.tsx",
+        "not-found.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "waitlist",
+      "canonical": [
+        "copy-button.tsx",
+        "imported-ui-interaction-motion.ts",
+        "input.tsx",
+        "number-roll.tsx",
+        "status-button.tsx",
+        "text-morph.tsx",
+        "waitlist.tsx"
+      ]
+    },
+    {
+      "slug": "storage",
+      "canonical": [
+        "cast-sprite.ts",
+        "imported-ui-interaction-motion.ts",
+        "number-roll.tsx",
+        "status-button.tsx",
+        "storage.tsx",
+        "text-morph.tsx"
+      ]
+    },
+    {
+      "slug": "username",
+      "canonical": [
+        "imported-ui-interaction-motion.ts",
+        "input.tsx",
+        "status-button.tsx",
+        "text-morph.tsx",
+        "username.tsx"
+      ]
+    }
+  ],
+  "assets": [
+    "/demos/cavemio/demos/stillform/images/nori-campaign.webp",
+    "/demos/cavemio/demos/stillform/images/sola-campaign.webp",
+    "/demos/cavemio/demos/stillform/images/sola-packshot.webp",
+    "/demos/cavemio/demos/stillform/images/tempo-campaign.webp",
+    "/demos/cavemio/previews/card/kept.webp",
+    "/demos/cavemio/previews/card/stillform.webp",
+    "/demos/cavemio/ui-assets/avatar-cropper/fernhill-logo.png",
+    "/demos/cavemio/ui-assets/avatar-cropper/priya-full.webp",
+    "/demos/cavemio/ui-assets/avatar-cropper/priya.webp",
+    "/demos/cavemio/ui-assets/avatar-cropper/theo.webp",
+    "/demos/cavemio/ui-assets/voice-note/maya.mp3",
+    "/demos/cavemio/ui-assets/voice-note/pricing.mp3"
+  ]
+}
