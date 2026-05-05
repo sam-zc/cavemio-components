@@ -1,0 +1,714 @@
+{
+  "button": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { Button } from \"../custom/compositions/button\";\n\n\nexport function Demo() {\nconst [value, setValue] = useState(false);\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><div className=\"flex flex-wrap items-center gap-3\"><Button onClick={() => setValue(!value)}>{value ? \"Saved\" : \"Save changes\"}</Button><Button variant=\"secondary\">Secondary</Button><Button variant=\"outline\">Outline</Button><Button disabled>Disabled</Button></div></div></div>;\n}\n",
+    "animations": []
+  },
+  "button-group": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { ButtonGroup } from \"../custom/compositions/button-group\";\n\n\nexport function Demo() {\nconst [value, setValue] = useState(\"grid\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ButtonGroup items={[{id:\"grid\",label:\"Grid\",active:value===\"grid\",onClick:()=>setValue(\"grid\")},{id:\"list\",label:\"List\",active:value===\"list\",onClick:()=>setValue(\"list\")},{id:\"columns\",label:\"Columns\",active:value===\"columns\",onClick:()=>setValue(\"columns\")}]} /></div></div>;\n}\n",
+    "animations": []
+  },
+  "split-button": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { SplitButton } from \"../custom/compositions/split-button\";\n\n\nexport function Demo() {\nconst [message, setMessage] = useState(\"\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><SplitButton label=\"Save changes\" onClick={() => setMessage(\"Changes saved\")} menuItems={[{id:\"draft\",label:\"Save as draft\",onSelect:()=>setMessage(\"Draft saved\")},{id:\"export\",label:\"Export backup\",onSelect:()=>setMessage(\"Backup prepared\")}]} /><p role=\"status\" className=\"imported-demo-feedback\">{message}</p></div></div>;\n}\n",
+    "animations": []
+  },
+  "copy-button": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { CopyButton } from \"../custom/compositions/copy-button\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><CopyButton text=\"npx shadcn add @cavemio/button\" showLabel /></div></div>;\n}\n",
+    "animations": []
+  },
+  "action-button": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { ActionButton } from \"../custom/compositions/action-button\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ActionButton labels={{idle:\"Save changes\",pending:\"Saving…\",success:\"Saved\",error:\"Try again\"}} action={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }} /></div></div>;\n}\n",
+    "animations": []
+  },
+  "expanding-button-group": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { ExpandingButtonGroup } from \"../custom/compositions/expanding-button-group\";\nimport { Download, Link2, Trash2 } from \"lucide-react\";\n\nexport function Demo() {\nconst [message, setMessage] = useState(\"\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ExpandingButtonGroup items={[{id:\"download\",label:\"Download\",icon:<Download size={14}/>,confirmLabel:\"Saved\"},{id:\"link\",label:\"Copy link\",icon:<Link2 size={14}/>,confirmLabel:\"Copied\"},{id:\"delete\",label:\"Delete\",icon:<Trash2 size={14}/>,tone:\"danger\",confirm:\"Delete?\",onClick:()=>setMessage(\"Removed from this demo\")}]} /><p role=\"status\" className=\"imported-demo-feedback\">{message}</p></div></div>;\n}\n",
+    "animations": []
+  },
+  "floating-button-group": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { FloatingButtonGroup } from \"../custom/compositions/floating-button-group\";\nimport { MousePointer, Hand, Square } from \"lucide-react\";\n\nexport function Demo() {\nconst [value, setValue] = useState(100);\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><FloatingButtonGroup dock=\"inline\" tools={[{id:\"select\",label:\"Select\",icon:<MousePointer size={14}/>,shortcut:\"V\"},{id:\"hand\",label:\"Hand\",icon:<Hand size={14}/>,shortcut:\"H\"},{id:\"frame\",label:\"Frame\",icon:<Square size={14}/>,shortcut:\"F\"}]} zoomValue={value} onZoomChange={setValue} /></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "icon-morph": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { IconMorphButton } from \"../custom/compositions/icon-morph\";\nimport { Play, Pause } from \"lucide-react\";\n\nexport function Demo() {\nconst [value, setValue] = useState(false);\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><IconMorphButton label=\"Toggle playback\" active={value} onActiveChange={setValue} from={<Play size={16}/>} to={<Pause size={16}/>} /></div></div>;\n}\n",
+    "animations": []
+  },
+  "input": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Input } from \"../custom/compositions/input\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Input label=\"Email\" type=\"email\" placeholder=\"you@example.com\" hint=\"We’ll send the receipt here.\" clearable /><Input label=\"Workspace\" defaultValue=\"Cavemio\" /></div></div>;\n}\n",
+    "animations": []
+  },
+  "textarea": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Textarea } from \"../custom/compositions/textarea\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Textarea label=\"Bio\" placeholder=\"Tell your story…\" maxLength={160} /></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "password-input": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { PasswordInput } from \"../custom/compositions/password-input\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><PasswordInput label=\"New password\" strength autoComplete=\"new-password\" /></div></div>;\n}\n",
+    "animations": []
+  },
+  "search-input": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { SearchInput } from \"../custom/compositions/search-input\";\n\n\nexport function Demo() {\nconst [value, setValue] = useState(\"\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><SearchInput placeholder=\"Search components\" onSearch={setValue} /><p role=\"status\">{value ? \"Searching for \"+value : \"Start typing to search\"}</p></div></div>;\n}\n",
+    "animations": []
+  },
+  "multi-select": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { MultiSelect } from \"../custom/compositions/multi-select\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><MultiSelect label=\"Status\" defaultValue={[\"open\"]} options={[{value:\"open\",label:\"Open\"},{value:\"pending\",label:\"Pending\"},{value:\"closed\",label:\"Closed\"}]} /></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "date-picker": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { DatePicker } from \"../custom/compositions/date-picker\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><DatePicker label=\"Due date\" /></div></div>;\n}\n",
+    "animations": []
+  },
+  "checkbox": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Checkbox } from \"../custom/compositions/checkbox\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Checkbox label=\"Email me about new components\" description=\"A short update when something new ships.\" defaultChecked /><Checkbox label=\"Include source files\" /></div></div>;\n}\n",
+    "animations": []
+  },
+  "radio-group": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { RadioGroup } from \"../custom/compositions/radio-group\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><RadioGroup label=\"Plan\" variant=\"cards\" defaultValue=\"team\" options={[{value:\"personal\",label:\"Personal\",description:\"For your own projects\",aside:\"Free\"},{value:\"team\",label:\"Team\",description:\"Build together\",aside:\"$24\"}]} /></div></div>;\n}\n",
+    "animations": []
+  },
+  "switch": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Switch } from \"../custom/compositions/switch\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Switch label=\"Weekly digest\" description=\"A summary every Monday.\" labelPosition=\"start\" defaultChecked /></div></div>;\n}\n",
+    "animations": []
+  },
+  "slider": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Slider } from \"../custom/compositions/slider\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Slider label=\"Volume\" defaultValue={60} /><Slider label=\"Price\" min={0} max={200} step={5} defaultValue={[40,120]} format={v=>\"$\"+v} /></div></div>;\n}\n",
+    "animations": []
+  },
+  "segmented-control": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { SegmentedControl } from \"../custom/compositions/segmented-control\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><SegmentedControl label=\"View\" defaultValue=\"week\" options={[{value:\"day\",label:\"Day\"},{value:\"week\",label:\"Week\"},{value:\"month\",label:\"Month\"}]} /></div></div>;\n}\n",
+    "animations": []
+  },
+  "tooltip": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Tooltip } from \"../custom/compositions/tooltip\";\nimport { Archive } from \"lucide-react\";\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Tooltip content=\"Archive\" shortcut=\"E\"><button className=\"imported-demo-button\" aria-label=\"Archive\"><Archive size={16}/></button></Tooltip></div></div>;\n}\n",
+    "animations": []
+  },
+  "popover": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { Popover } from \"../custom/compositions/popover\";\n\n\nexport function Demo() {\nconst [value, setValue] = useState(\"Cavemio\");const [message, setMessage] = useState(\"\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Popover label=\"Rename\" trigger={<button className=\"imported-demo-button\">Rename project</button>}>{({close})=><form onSubmit={e=>{e.preventDefault();setMessage(\"Renamed to \"+value);close();}} className=\"grid gap-3 p-2\"><label>Project name<input aria-label=\"Project name\" className=\"imported-demo-input\" value={value} onChange={e=>setValue(e.target.value)}/></label><button className=\"imported-demo-button\">Save</button></form>}</Popover><p role=\"status\" className=\"imported-demo-feedback\">{message}</p></div></div>;\n}\n",
+    "animations": []
+  },
+  "hover-card": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { HoverCard } from \"../custom/compositions/hover-card\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><HoverCard content={<div className=\"p-4\"><strong>Ada Okafor</strong><p>Product designer · Building with Cavemio.</p></div>}><a href=\"#preview\" className=\"underline\">@ada</a></HoverCard></div></div>;\n}\n",
+    "animations": []
+  },
+  "dropdown-menu": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { DropdownMenu } from \"../custom/compositions/dropdown-menu\";\n\n\nexport function Demo() {\nconst [message, setMessage] = useState(\"\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><DropdownMenu trigger={<button className=\"imported-demo-button\">More actions</button>} items={[{id:\"rename\",label:\"Rename\",shortcut:\"F2\",onSelect:()=>setMessage(\"Rename selected\")},{type:\"separator\"},{id:\"delete\",label:\"Delete\",destructive:true,onSelect:()=>setMessage(\"Delete selected\")}]} /><p role=\"status\" className=\"imported-demo-feedback\">{message}</p></div></div>;\n}\n",
+    "animations": []
+  },
+  "context-menu": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { ContextMenu } from \"../custom/compositions/context-menu\";\n\n\nexport function Demo() {\nconst [message, setMessage] = useState(\"\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ContextMenu items={[{id:\"open\",label:\"Open\",onSelect:()=>setMessage(\"Opened project\")},{id:\"delete\",label:\"Delete\",destructive:true,onSelect:()=>setMessage(\"Removed project\")}]}><div className=\"imported-demo-card\">Right-click this project card</div></ContextMenu><p role=\"status\" className=\"imported-demo-feedback\">{message}</p></div></div>;\n}\n",
+    "animations": []
+  },
+  "dialog": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { Dialog } from \"../custom/compositions/dialog\";\n\n\nexport function Demo() {\nconst [message, setMessage] = useState(\"\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Dialog trigger={<button className=\"imported-demo-button\">Delete project</button>} title=\"Delete this project?\" description=\"This is a local preview. Try the dialog and its keyboard controls.\" footer={({close})=><><button className=\"imported-demo-button\" onClick={close}>Cancel</button><button className=\"imported-demo-button\" onClick={()=>{setMessage(\"Project removed in this demo\");close();}}>Delete</button></>} /><p role=\"status\" className=\"imported-demo-feedback\">{message}</p></div></div>;\n}\n",
+    "animations": []
+  },
+  "sheet": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Sheet } from \"../custom/compositions/sheet\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Sheet trigger={<button className=\"imported-demo-button\">Open filters</button>} side=\"right\" title=\"Filters\"><div className=\"grid gap-4 p-6\"><label><input type=\"checkbox\"/> Only open projects</label><label><input type=\"checkbox\"/> Assigned to me</label></div></Sheet></div></div>;\n}\n",
+    "animations": []
+  },
+  "badge": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { Badge } from \"../custom/compositions/badge\";\n\n\nexport function Demo() {\nconst [value, setValue] = useState(3);\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><div className=\"flex flex-wrap items-center gap-3\"><Badge tone=\"success\" dot>Paid</Badge><Badge tone=\"warning\" dot>Pending</Badge><Badge tone=\"primary\" count={value}/><button className=\"imported-demo-button\" onClick={()=>setValue(value+1)}>Add notification</button></div></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-ping"]
+  },
+  "avatar": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Avatar, AvatarGroup } from \"../custom/compositions/avatar\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Avatar name=\"Ada Okafor\" status=\"online\"/><AvatarGroup people={[{name:\"Ada Okafor\"},{name:\"Kai Morgan\"},{name:\"Maya Chen\"},{name:\"Noor Ali\"},{name:\"Leo Park\"}]} max={3}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "spinner": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Spinner } from \"../custom/compositions/spinner\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><div className=\"flex items-center gap-8\"><Spinner/><Spinner variant=\"dots\" size=\"md\" label=\"Writing a reply\"/></div></div></div>;\n}\n",
+    "animations": ["ui-bounce", "ui-blink"]
+  },
+  "progress": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { Progress } from \"../custom/compositions/progress\";\n\n\nexport function Demo() {\nconst [value, setValue] = useState(40);\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Progress label=\"Uploading brief.pdf\" doneLabel=\"Uploaded\" value={value}/><Progress variant=\"ring\" value={value}/><button className=\"imported-demo-button\" onClick={()=>setValue(value>=100?0:Math.min(100,value+20))}>Advance progress</button></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-indeterminate"]
+  },
+  "skeleton": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { Skeleton, SkeletonSwap } from \"../custom/compositions/skeleton\";\n\n\nexport function Demo() {\nconst [value, setValue] = useState(false);\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><SkeletonSwap loading={!value} fallback={<div className=\"grid gap-3\"><Skeleton shape=\"circle\"/><Skeleton width=\"80%\"/><Skeleton width=\"60%\"/></div>}><div className=\"imported-demo-card\"><strong>Project ready</strong><p>Your workspace has finished loading.</p></div></SkeletonSwap><button className=\"imported-demo-button\" onClick={()=>setValue(!value)}>{value?\"Show loading\":\"Load content\"}</button></div></div>;\n}\n",
+    "animations": ["ui-skeleton"]
+  },
+  "empty-state": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { EmptyState } from \"../custom/compositions/empty-state\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><EmptyState scene=\"inbox\" title=\"No projects yet\" description=\"Start one and invite your team.\" action={{label:\"Create project\",pendingLabel:\"Creating\",successLabel:\"Created\",onAction:async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}} /></div></div>;\n}\n",
+    "animations": ["ui-empty-in", "ui-empty-out"]
+  },
+  "alert": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { Alert } from \"../custom/compositions/alert\";\n\n\nexport function Demo() {\nconst [message, setMessage] = useState(\"\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Alert tone=\"warning\" title=\"Your card expires soon\" action={<button onClick={()=>setMessage(\"Billing details opened\")}>Update</button>} onDismiss={()=>setMessage(\"Alert dismissed\")}>Update your payment details to keep your plan.</Alert><p role=\"status\" className=\"imported-demo-feedback\">{message}</p></div></div>;\n}\n",
+    "animations": []
+  },
+  "tabs": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Tabs } from \"../custom/compositions/tabs\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Tabs label=\"Settings\" items={[{value:\"general\",label:\"General\",content:<p className=\"p-5\">Your workspace settings.</p>},{value:\"billing\",label:\"Billing\",content:<p className=\"p-5\">Your next invoice is on November 1.</p>},{value:\"members\",label:\"Members\",count:8,content:<p className=\"p-5\">8 people build here together.</p>}]} /></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "accordion": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Accordion } from \"../custom/compositions/accordion\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Accordion items={[{value:\"shipping\",title:\"When does it ship?\",content:\"Orders ship within two working days.\"},{value:\"returns\",title:\"Can I return an order?\",content:\"You have 30 days to return your order.\"}]} /></div></div>;\n}\n",
+    "animations": []
+  },
+  "collapsible": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Collapsible } from \"../custom/compositions/collapsible\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><div className=\"imported-demo-card\"><p>Project overview</p><Collapsible labels={{closed:\"Show details\",open:\"Show less\"}}><p className=\"mt-4\">Editable source, shared motion primitives, accessible controls, and local previews.</p></Collapsible></div></div></div>;\n}\n",
+    "animations": []
+  },
+  "breadcrumb": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Breadcrumb } from \"../custom/compositions/breadcrumb\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Breadcrumb items={[{label:\"Projects\",href:\"#preview\"},{label:\"Cavemio\",href:\"#preview\"},{label:\"Assets\"}]} /></div></div>;\n}\n",
+    "animations": []
+  },
+  "pagination": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { Pagination } from \"../custom/compositions/pagination\";\n\n\nexport function Demo() {\nconst [value, setValue] = useState(1);\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Pagination page={value} pageCount={12} onPageChange={setValue}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "toggle-group": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { ToggleGroup } from \"../custom/compositions/toggle-group\";\nimport { Bold, Italic } from \"lucide-react\";\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ToggleGroup label=\"Format\" defaultValue={[\"bold\"]} options={[{value:\"bold\",label:\"Bold\",icon:<Bold/>,iconOnly:true},{value:\"italic\",label:\"Italic\",icon:<Italic/>,iconOnly:true}]} /></div></div>;\n}\n",
+    "animations": []
+  },
+  "steps": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { Steps } from \"../custom/compositions/steps\";\n\n\nexport function Demo() {\nconst [value, setValue] = useState(1);\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Steps current={value} steps={[{label:\"Cart\"},{label:\"Details\"},{label:\"Payment\"},{label:\"Done\"}]}/><button className=\"imported-demo-button\" onClick={()=>setValue((value+1)%4)}>Next step</button></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-pop-in"]
+  },
+  "status-button": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { StatusButton } from \"../custom/compositions/status-button\";\n\n\nexport function Demo() {\nconst [value,setValue]=useState<\"idle\"|\"pending\"|\"success\"|\"error\">(\"idle\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><StatusButton status={value} onClick={()=>{setValue(\"pending\");window.setTimeout(()=>setValue(\"success\"),650);}} onReset={()=>setValue(\"idle\")}/></div></div>;\n}\n",
+    "animations": []
+  },
+  "pricing-toggle": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { Price, PricingToggle } from \"../custom/compositions/pricing-toggle\";\n\n\nexport function Demo() {\nconst [value, setValue] = useState(\"monthly\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><PricingToggle value={value} onValueChange={setValue}/><Price amount={value===\"yearly\"?23:29} note={value===\"yearly\"?\"$276 billed yearly\":\"Billed monthly\"}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-note-in"]
+  },
+  "waitlist-field": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { WaitlistField } from \"../custom/compositions/waitlist-field\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><WaitlistField onSubmit={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-scan", "ui-fade-in"]
+  },
+  "code-input": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { CodeInput } from \"../custom/compositions/code-input\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><CodeInput groups={[3,3]} onComplete={async code=>code===\"123456\"} onResend={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/><p className=\"text-xs text-muted-foreground\">Use 123456 to try verification.</p></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-blink", "ui-sheen"]
+  },
+  "steps-form": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { StepsForm } from \"../custom/compositions/steps-form\";\n\n\nexport function Demo() {\nconst [value, setValue] = useState(\"Cavemio\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><StepsForm steps={[{id:\"name\",label:\"Workspace\",title:\"Name your workspace\",content:<input className=\"imported-demo-input\" aria-label=\"Workspace name\" value={value} onChange={e=>setValue(e.target.value)}/>,validate:()=>value.trim()?null:\"Give it a name.\"},{id:\"plan\",label:\"Plan\",title:\"Pick your plan\",content:<p>Free · All components and editable source.</p>}]} onSubmit={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }} submitLabels={{idle:\"Create workspace\",pending:\"Creating\",success:\"Created\"}} done={<p>Your workspace is ready.</p>}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "date-range-picker": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { DateRangePicker } from \"../custom/compositions/date-range-picker\";\n\n\nexport function Demo() {\nconst [value,setValue]=useState<{start:Date;end:Date}>({start:new Date(\"2026-10-01\"),end:new Date(\"2026-10-27\")});\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><DateRangePicker value={value} onValueChange={setValue}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "morphing-nav": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\nimport * as React from \"react\";\n\nimport { MorphingNav } from \"../custom/compositions/morphing-nav\";\n\nexport function Demo() {\n  return (\n    <div className=\"cavemio-demo imported-demo imported-demo-compact\">\n      <div className=\"imported-demo-stage\">\n        <MorphingNav\n          items={[\n            {\n              id: \"product\",\n              label: \"Product\",\n              content: (\n                <div className=\"grid gap-3 p-6\">\n                  <strong>Build with Cavemio</strong>\n                  <p>Editable React components.</p>\n                </div>\n              ),\n            },\n            {\n              id: \"resources\",\n              label: \"Resources\",\n              content: (\n                <div className=\"p-6\">\n                  Documentation, examples, and installation guides.\n                </div>\n              ),\n            },\n            { id: \"pricing\", label: \"Pricing\", href: \"#preview\" },\n          ]}\n        />\n      </div>\n    </div>\n  );\n}\n",
+    "animations": ["ui-pop-in"]
+  },
+  "feature-tabs": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { FeatureTabs } from \"../custom/compositions/feature-tabs\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><FeatureTabs tabs={[{id:\"plan\",label:\"Plan\",content:<div className=\"imported-demo-card\"><h3>Start with a plan.</h3><p>Keep every next step in view.</p></div>},{id:\"ship\",label:\"Ship\",content:<div className=\"imported-demo-card\"><h3>Ready for the world.</h3><p>Make the final details count.</p></div>}]}/></div></div>;\n}\n",
+    "animations": ["ui-progress"]
+  },
+  "scroll-story": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { ScrollStory } from \"../custom/compositions/scroll-story\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ScrollStory steps={[{title:\"Pick a component\",body:\"Start with editable source.\",visual:<div className=\"imported-demo-card\">01 · Choose</div>},{title:\"Make it yours\",body:\"Bring your own content and theme.\",visual:<div className=\"imported-demo-card\">02 · Customize</div>},{title:\"Go live\",body:\"Ship the interaction.\",visual:<div className=\"imported-demo-card\">03 · Publish</div>}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "stats-band": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { StatsBand } from \"../custom/compositions/stats-band\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><StatsBand stats={[{value:12480,label:\"Teams shipping\",format:{notation:\"compact\"},suffix:\"+\"},{value:99.98,label:\"Uptime\",suffix:\"%\"}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "announcement-pill": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { AnnouncementPill } from \"../custom/compositions/announcement-pill\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><AnnouncementPill more=\"Read the changelog\" card={<div className=\"p-5\"><strong>New components</strong><p>More ways to build with motion.</p></div>}>The library just got bigger</AnnouncementPill></div></div>;\n}\n",
+    "animations": []
+  },
+  "testimonials": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Testimonials } from \"../custom/compositions/testimonials\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Testimonials items={[{quote:\"The small details made our product feel complete.\",name:\"Ada Okafor\",role:\"Product designer\"},{quote:\"Editable source makes it easy to make it our own.\",name:\"Kai Morgan\",role:\"Independent developer\"}]}/></div></div>;\n}\n",
+    "animations": ["ui-fade-in", "ui-ring-fill"]
+  },
+  "faq-accordion": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { FaqAccordion } from \"../custom/compositions/faq-accordion\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><FaqAccordion defaultOpen={[0]} items={[{question:\"Can I use these in a client project?\",answer:\"Yes. Components are MIT licensed; retain the included notices.\"},{question:\"Can I edit the source?\",answer:\"Every component is copied into your project so you can customize it.\"}]}/></div></div>;\n}\n",
+    "animations": []
+  },
+  "logo-marquee": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { LogoMarquee } from \"../custom/compositions/logo-marquee\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><LogoMarquee logos={[\"Acme\",\"Orbit\",\"Layers\",\"North\",\"Studio\"].map(name=><span key={name} className=\"px-8 text-xl font-semibold tracking-tight\">{name}</span>)}/></div></div>;\n}\n",
+    "animations": []
+  },
+  "expanding-gallery": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { ExpandingGallery } from \"../custom/compositions/expanding-gallery\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ExpandingGallery label=\"Color studies\" images={[{id:\"a\",src:\"/lifecycle/study-warm.svg\",alt:\"Warm geometric color study\",title:\"Afternoon study\",width:1200,height:800},{id:\"b\",src:\"/lifecycle/study-cool.svg\",alt:\"Cool geometric color study\",title:\"Quiet morning\",width:1200,height:800}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "card-deck": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { CardDeck } from \"../custom/compositions/card-deck\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><CardDeck items={[{id:\"capture\",title:\"Catch the little things.\"},{id:\"connect\",title:\"Follow the thread.\"},{id:\"share\",title:\"Make something together.\"}]} getLabel={card=>card.title} renderCard={card=><div className=\"p-8\"><h3>{card.title}</h3><p className=\"mt-6\">Drag a card or use the arrows.</p></div>}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "workflow-canvas": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { WorkflowCanvas } from \"../custom/compositions/workflow-canvas\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><WorkflowCanvas width={460} height={180} nodes={[{id:\"input\",title:\"Receive brief\",x:20,y:50,status:\"complete\"},{id:\"draft\",title:\"Create draft\",x:270,y:50,status:\"running\",detail:\"Preparing a first draft.\"}]} edges={[{id:\"input-draft\",from:\"input\",to:\"draft\"}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "image-compare": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { ImageCompare } from \"../custom/compositions/image-compare\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ImageCompare before={{src:\"/lifecycle/study-warm.svg\",alt:\"Warm color study\"}} after={{src:\"/lifecycle/study-cool.svg\",alt:\"Cool color study\"}} beforeLabel=\"Before\" afterLabel=\"After\"/></div></div>;\n}\n",
+    "animations": []
+  },
+  "magnifying-dock": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { MagnifyingDock } from \"../custom/compositions/magnifying-dock\";\nimport { Inbox, CalendarDays, NotebookPen } from \"lucide-react\";\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><MagnifyingDock items={[{id:\"inbox\",label:\"Inbox\",icon:<Inbox/>,badge:3,content:<div className=\"p-5\">Three new messages.</div>},{id:\"calendar\",label:\"Calendar\",icon:<CalendarDays/>,content:<div className=\"p-5\">Design review · 2:00 PM</div>},{id:\"notes\",label:\"Notes\",icon:<NotebookPen/>,content:<div className=\"p-5\">A good idea starts here.</div>}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "hold-to-confirm": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { HoldToConfirm } from \"../custom/compositions/hold-to-confirm\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><HoldToConfirm labels={{idle:\"Hold to archive\",pending:\"Archiving\",success:\"Archived\"}} onConfirm={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": []
+  },
+  "swipe-actions": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { SwipeActions } from \"../custom/compositions/swipe-actions\";\nimport { Archive, MailOpen } from \"lucide-react\";\n\nexport function Demo() {\nconst [message, setMessage] = useState(\"\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><SwipeActions label=\"Design review\" meta=\"Now\" leading={[{id:\"read\",label:\"Read\",icon:<MailOpen/>,tone:\"primary\",onAction:()=>setMessage(\"Marked as read\")}]} trailing={[{id:\"archive\",label:\"Archive\",icon:<Archive/>,tone:\"primary\",removes:true,onAction:()=>setMessage(\"Archived\")}]}><div className=\"p-5\"><strong>The next iteration</strong><p>Swipe this row to reveal its actions.</p></div></SwipeActions><p role=\"status\" className=\"imported-demo-feedback\">{message}</p></div></div>;\n}\n",
+    "animations": []
+  },
+  "drop-zone": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { DropZone } from \"../custom/compositions/drop-zone\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><DropZone accept=\"image/*,.pdf\" maxSize={10000000} maxFiles={3} onUpload={async(_file,{progress,signal})=>{for(let i=0;i<=10;i++){if(signal.aborted)return;progress(i/10);await new Promise(resolve=>setTimeout(resolve,100));}}}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "wheel-picker": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { Wheel, WheelPicker } from \"../custom/compositions/wheel-picker\";\n\n\nexport function Demo() {\nconst [hour,setHour]=useState(9);const [minute,setMinute]=useState(30);const [period,setPeriod]=useState(\"AM\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><WheelPicker aria-label=\"Alarm time\"><Wheel label=\"Hour\" options={Array.from({length:12},(_,i)=>i+1)} value={hour} onValueChange={setHour} loop align=\"end\"/><Wheel label=\"Minute\" options={Array.from({length:60},(_,i)=>({value:i,label:String(i).padStart(2,\"0\")}))} value={minute} onValueChange={setMinute} loop align=\"start\"/><Wheel label=\"AM or PM\" options={[\"AM\",\"PM\"] as string[]} value={period} onValueChange={setPeriod}/></WheelPicker></div></div>;\n}\n",
+    "animations": []
+  },
+  "morphing-chart": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { MorphingChart } from \"../custom/compositions/morphing-chart\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><MorphingChart title=\"Revenue\" labels={[\"Jan\",\"Feb\",\"Mar\",\"Apr\",\"May\",\"Jun\"]} values={[6100,5800,7400,9200,11800,14900]} format={{style:\"currency\",currency:\"USD\",maximumFractionDigits:0}}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "range-ruler": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { RangeRuler } from \"../custom/compositions/range-ruler\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><RangeRuler label=\"Price interval\" min={0} max={500} step={5} unit=\"$\" defaultValue={[50,250]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "ratio-balancer": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { RatioBalancer } from \"../custom/compositions/ratio-balancer\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><RatioBalancer label=\"Compute allocation\" defaultSegments={[{id:\"eval\",label:\"Evaluation\",ratio:45},{id:\"batch\",label:\"Batch tasks\",ratio:35},{id:\"dev\",label:\"Dev testing\",ratio:20}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "split-pane": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { SplitPane } from \"../custom/compositions/split-pane\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><div className=\"h-72 w-full\"><SplitPane defaultSplit={50} first={<div className=\"p-5\"><strong>Editor</strong><p>Drag the divider to resize.</p></div>} second={<div className=\"p-5\"><strong>Preview</strong><p>Both panes stay responsive.</p></div>}/></div></div></div>;\n}\n",
+    "animations": []
+  },
+  "tag-input": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { TagInput } from \"../custom/compositions/tag-input\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><TagInput label=\"Invite by email\" placeholder=\"Names or emails\" separators={/[\\s,;]+/} normalize={v=>v.toLowerCase()} validate={v=>/^\\S+@\\S+\\.\\S+$/.test(v)?null:\"Enter an email address\"}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "avatar-cropper": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { AvatarCropper } from \"../custom/compositions/avatar-cropper\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><AvatarCropper name=\"Ada Okafor\" onSave={async photo=>URL.createObjectURL(photo)}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "week-calendar": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\nimport * as React from \"react\";\nimport { useState } from \"react\";\nimport { WeekCalendar } from \"../custom/compositions/week-calendar\";\n\n\nexport function Demo() {\nconst [value,setValue]=useState<React.ComponentProps<typeof WeekCalendar>[\"events\"]>([]);\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><WeekCalendar events={value} onEventsChange={setValue}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-sheen"]
+  },
+  "inline-edit": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { InlineEdit } from \"../custom/compositions/inline-edit\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><div className=\"text-2xl font-semibold\"><InlineEdit label=\"Project name\" defaultValue=\"Cavemio web\" onSave={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "combobox": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Combobox } from \"../custom/compositions/combobox\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Combobox label=\"Assignee\" placeholder=\"Assign someone\" search={async q=>[{value:\"ada\",label:\"Ada Okafor\",description:\"Design\"},{value:\"kai\",label:\"Kai Morgan\",description:\"Engineering\"},{value:\"maya\",label:\"Maya Chen\",description:\"Product\"}].filter(person=>person.label.toLowerCase().includes(q.toLowerCase()))}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-scan", "ui-fade-in"]
+  },
+  "cron-input": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { CronInput } from \"../custom/compositions/cron-input\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><CronInput defaultValue=\"0 9 * * 1-5\"/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "time-range-picker": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\nimport * as React from \"react\";\nimport { useState } from \"react\";\nimport { TimeRangePicker } from \"../custom/compositions/time-range-picker\";\n\n\nexport function Demo() {\nconst [value,setValue]=useState<React.ComponentProps<typeof TimeRangePicker>[\"value\"]>({type:\"relative\",duration:15*60000});\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><TimeRangePicker value={value} onValueChange={setValue}/></div></div>;\n}\n",
+    "animations": ["ui-breathe"]
+  },
+  "json-inspector": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { JsonInspector } from \"../custom/compositions/json-inspector\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><JsonInspector title=\"invoice.paid\" data={{id:\"inv_demo_001\",customer:{name:\"Ada Okafor\",plan:\"Team\"},amount:2400,currency:\"USD\",paid:true,items:[{description:\"Team plan\",quantity:1}]}}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-fade-in"]
+  },
+  "stepper-input": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { StepperInput } from \"../custom/compositions/stepper-input\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><StepperInput label=\"Workspace seats\" defaultValue={5} min={1} max={50} unit=\"seats\"/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "sparkline": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Sparkline } from \"../custom/compositions/sparkline\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Sparkline data={[12,14,18,16,22,28,24,32]} height={40} variant=\"area\" prefix=\"$\"/></div></div>;\n}\n",
+    "animations": []
+  },
+  "privacy-mask": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { PrivacyMask } from \"../custom/compositions/privacy-mask\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><PrivacyMask label=\"Demo API key\" value=\"demo_key_cavemio_preview_only\" autoHideMs={6000}/></div></div>;\n}\n",
+    "animations": []
+  },
+  "data-table": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { DataTable } from \"../custom/compositions/data-table\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><DataTable columns={[{key:\"company\",header:\"Customer\",sortable:true,searchable:true},{key:\"mrr\",header:\"MRR\",align:\"right\",sortable:true}]} rows={[{id:\"1\",company:\"Acme\",mrr:240},{id:\"2\",company:\"Orbit\",mrr:480},{id:\"3\",company:\"Layers\",mrr:120}]} noun={[\"customer\",\"customers\"]} selectable/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-progress"]
+  },
+  "kanban-board": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { KanbanBoard } from \"../custom/compositions/kanban-board\";\n\n\nexport function Demo() {\nconst [value,setValue]=useState([{id:\"1\",column:\"todo\",title:\"Explore the library\"},{id:\"2\",column:\"doing\",title:\"Build a prototype\"},{id:\"3\",column:\"done\",title:\"Set up the workspace\"}]);\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><KanbanBoard columns={[{id:\"todo\",title:\"Todo\"},{id:\"doing\",title:\"In progress\"},{id:\"done\",title:\"Done\",done:true}]} cards={value} onCardsChange={setValue} renderCard={issue=><p className=\"text-sm\">{issue.title}</p>}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "filter-bar": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\nimport * as React from \"react\";\nimport { useState } from \"react\";\nimport { FilterBar } from \"../custom/compositions/filter-bar\";\n\n\nexport function Demo() {\nconst [value,setValue]=useState<NonNullable<React.ComponentProps<typeof FilterBar>[\"value\"]>>([]);\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><FilterBar fields={[{id:\"status\",label:\"Status\",type:\"option\",options:[{value:\"todo\",label:\"Todo\"},{value:\"done\",label:\"Done\"}]},{id:\"title\",label:\"Title\",type:\"text\"}]} value={value} onValueChange={setValue} count={8} total={12} noun={[\"issue\",\"issues\"]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "tree-view": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { TreeView } from \"../custom/compositions/tree-view\";\n\n\nexport function Demo() {\nconst [value,setValue]=useState([{id:\"docs\",parent:null as string|null,title:\"Docs\"},{id:\"intro\",parent:\"docs\",title:\"Introduction\",leaf:true},{id:\"readme\",parent:null as string|null,title:\"README.md\",leaf:true}]);\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><TreeView nodes={value} onNodesChange={setValue} defaultExpanded={[\"docs\"]}/></div></div>;\n}\n",
+    "animations": ["ui-progress"]
+  },
+  "doc-comments": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\nimport * as React from \"react\";\nimport { useState } from \"react\";\nimport { DocComments } from \"../custom/compositions/doc-comments\";\n\nexport function Demo() {\n  const [value, setValue] = useState<\n    React.ComponentProps<typeof DocComments>[\"threads\"]\n  >([]);\n  return (\n    <div className=\"cavemio-demo imported-demo\">\n      <div className=\"imported-demo-stage\">\n        <DocComments\n          threads={value}\n          onThreadsChange={setValue}\n          user={{ id: \"ada\", name: \"Ada Okafor\" }}\n          onCreate={async () => {\n            await new Promise((resolve) => setTimeout(resolve, 650));\n          }}\n          onReply={async () => {\n            await new Promise((resolve) => setTimeout(resolve, 650));\n          }}\n          onResolve={async () => {\n            await new Promise((resolve) => setTimeout(resolve, 650));\n          }}\n        >\n          <article className=\"imported-demo-card\">\n            <h3>A shared starting point</h3>\n            <p>\n              Select a sentence to leave a comment. Keep decisions close to the\n              work so everyone can follow along.\n            </p>\n          </article>\n        </DocComments>\n      </div>\n    </div>\n  );\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-progress"]
+  },
+  "api-keys": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { ApiKeys } from \"../custom/compositions/api-keys\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ApiKeys defaultValue={[]} scopes={[{value:\"read\",label:\"Read\"},{value:\"write\",label:\"Write\"}]} onCreate={async({name,scopes})=>({key:{id:\"demo-\"+Date.now(),name,scopes,createdAt:Date.now(),prefix:\"demo_\",last4:\"0001\"},secret:\"demo_preview_key_only\"})} onRevoke={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "team-members": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { TeamMembers } from \"../custom/compositions/team-members\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><TeamMembers defaultValue={[{id:\"ada\",name:\"Ada Okafor\",email:\"ada@example.com\",role:\"admin\",status:\"active\"},{id:\"kai\",name:\"Kai Morgan\",email:\"kai@example.com\",role:\"member\",status:\"active\"}]} roles={[{value:\"admin\",label:\"Admin\",description:\"Manage the workspace\"},{value:\"member\",label:\"Member\",description:\"Create and edit projects\"}]} seats={10} onInvite={async emails=>emails.map((email,i)=>({id:\"invite-\"+i,name:email,email,role:\"member\",status:\"invited\" as const}))} onRoleChange={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }} onRemove={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }} onResend={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "settings-form": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { SettingsForm } from \"../custom/compositions/settings-form\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><SettingsForm defaultValue={{name:\"Cavemio\",digest:true}} sections={[{title:\"Workspace\",fields:[{type:\"text\",name:\"name\",label:\"Name\"}]},{title:\"Notifications\",fields:[{type:\"toggle\",name:\"digest\",label:\"Weekly digest\"}]}]} onSave={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "auth-card": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { AuthCard } from \"../custom/compositions/auth-card\";\n\n\nexport function Demo() {\nconst [message, setMessage] = useState(\"\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><AuthCard onEmail={async()=>\"code\" as const} onPassword={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }} onCode={async(_email,code)=>code===\"123456\"} onSuccess={()=>setMessage(\"Signed in to this local demo\")}/><p role=\"status\" className=\"imported-demo-feedback\">{message}</p></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-blink", "ui-sheen"]
+  },
+  "webhooks": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Webhooks } from \"../custom/compositions/webhooks\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Webhooks defaultValue={[]} events={[{value:\"invoice.paid\"},{value:\"customer.created\"}]} onTest={async(_endpoint,event)=>({id:\"delivery-demo\",event,status:200,at:Date.now(),duration:140})} onCreate={async input=>({...input,id:\"demo-\"+Date.now(),createdAt:Date.now(),secret:\"demo_webhook_secret\"})}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "domain-connect": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { DomainConnect } from \"../custom/compositions/domain-connect\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><DomainConnect onAdd={async domain=>({domain,status:\"pending\",records:[{type:\"CNAME\",name:\"www\",value:\"cavemio.example.com\"}]})} check={async domain=>({domain,status:\"active\",records:[]})} onRemove={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-ping"]
+  },
+  "log-stream": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { LogStream } from \"../custom/compositions/log-stream\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><LogStream defaultValue={[{id:\"1\",at:Date.parse(\"2026-10-27T12:00:00Z\"),level:\"info\",message:\"Application started\"},{id:\"2\",at:Date.parse(\"2026-10-27T12:00:01Z\"),level:\"info\",message:\"Connected to the local preview\"},{id:\"3\",at:Date.parse(\"2026-10-27T12:00:02Z\"),level:\"warn\",message:\"A sample warning for inspection\"}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-ping"]
+  },
+  "csv-import": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { CsvImport } from \"../custom/compositions/csv-import\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><CsvImport noun={{one:\"contact\",many:\"contacts\"}} fields={[{key:\"name\",label:\"Name\",required:true},{key:\"email\",label:\"Email\",required:true,match:[\"e-mail\"]}]} onImport={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "notification-inbox": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { NotificationInbox } from \"../custom/compositions/notification-inbox\";\n\n\nexport function Demo() {\nconst [previewNow] = useState(() => Date.now());\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><NotificationInbox defaultValue={[{id:\"1\",title:\"Design review\",body:\"Ada mentioned you in a comment.\",at:previewNow-60000,read:false},{id:\"2\",title:\"Workspace ready\",body:\"Your team can start building.\",at:previewNow-3600000,read:true}]} onRead={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }} onArchive={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "integrations": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Integrations } from \"../custom/compositions/integrations\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Integrations defaultValue={[{id:\"calendar\",name:\"Calendar\",description:\"Keep your schedule in sync\",account:null},{id:\"notes\",name:\"Notes\",description:\"Bring context into your workspace\",account:null}]} onConnect={async()=>({name:\"Demo account\",email:\"demo@example.com\"})} onDisconnect={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "status-bars": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { StatusBars } from \"../custom/compositions/status-bars\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><StatusBars services={[{id:\"api\",name:\"API\",status:\"operational\",uptime:99.98,days:Array.from({length:30},(_,i)=>({date:\"2026-10-\"+String(i+1).padStart(2,\"0\"),status:i===12?\"degraded\" as const:\"operational\" as const}))}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-ping"]
+  },
+  "toast-stack": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Toaster, toast } from \"../custom/compositions/toast-stack\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><button className=\"imported-demo-button\" onClick={()=>toast.success(\"Changes saved\")}>Show toast</button><button className=\"imported-demo-button\" onClick={()=>toast(\"Project archived\",{action:{label:\"Undo\",onClick:()=>toast.success(\"Project restored\")}})}>Show undo toast</button><Toaster position=\"bottom-right\"/></div></div>;\n}\n",
+    "animations": ["ui-progress"]
+  },
+  "live-activity": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { LiveActivity } from \"../custom/compositions/live-activity\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><LiveActivity activity={{id:\"export\",label:\"Editing 3 files\",progress:0.52,steps:[{label:\"Plan the change\",done:true},{label:\"Edit 3 files\"},{label:\"Run the tests\"}]}}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "live-cursors": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { LiveCursors } from \"../custom/compositions/live-cursors\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><LiveCursors cursors={[{id:\"ada\",name:\"Ada\",x:0.42,y:0.3,message:\"Love this headline\"},{id:\"kai\",name:\"Kai\",x:0.7,y:0.8,selection:{x:0.36,y:0.72,width:0.28,height:0.21}}]}><div className=\"imported-demo-card h-64\"><h3>Make room for a good idea.</h3><p>Shared presence, right where the work happens.</p></div></LiveCursors></div></div>;\n}\n",
+    "animations": []
+  },
+  "live-map": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { LiveMap } from \"../custom/compositions/live-map\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><LiveMap pings={[{id:1,lat:38.7,lon:-9.1,label:\"New signup\",detail:\"Lisbon, Portugal\"},{id:2,lat:35.7,lon:139.7,label:\"New signup\",detail:\"Tokyo, Japan\"}]}/></div></div>;\n}\n",
+    "animations": []
+  },
+  "pricing-calculator": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { PricingCalculator } from \"../custom/compositions/pricing-calculator\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><PricingCalculator min={1000} max={1000000} scale=\"log\" unit=\"monthly active users\" valueFormat={{notation:\"compact\"}} price={users=>29+users*0.003} plan={users=>users<10000?\"Starter\":\"Growth\"} marks={[{value:10000,label:\"10K\"}]} contactFrom={500000} yearlyDiscount={0.2}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-note-in"]
+  },
+  "comparison-table": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { ComparisonTable } from \"../custom/compositions/comparison-table\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ComparisonTable yearlyBadge=\"Save 20%\" plans={[{id:\"free\",name:\"Free\",price:0,cta:{label:\"Start free\",href:\"#preview\"}},{id:\"pro\",name:\"Pro\",price:{monthly:24,yearly:19},featured:true,badge:\"Popular\",cta:{label:\"Start a trial\",href:\"#preview\"}}]} groups={[{title:\"Usage\",rows:[{label:\"Projects\",values:{free:\"3\",pro:\"Unlimited\"}}]},{title:\"Security\",rows:[{label:\"Single sign-on\",values:{free:false,pro:true}}]}]}/></div></div>;\n}\n",
+    "animations": [
+      "ui-col-in",
+      "ui-col-out",
+      "ui-note-in",
+      "ui-slide-from-right",
+      "ui-slide-from-left"
+    ]
+  },
+  "onboarding-checklist": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { OnboardingChecklist } from \"../custom/compositions/onboarding-checklist\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><OnboardingChecklist tasks={[{id:\"menu\",title:\"Add your first project\",description:\"Bring an idea to life.\",action:{label:\"Create project\",pendingLabel:\"Creating\",onClick:async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}},{id:\"team\",title:\"Invite your team\",action:{label:\"Invite\",onClick:async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-fade-in"]
+  },
+  "sortable-list": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { SortableList } from \"../custom/compositions/sortable-list\";\n\n\nexport function Demo() {\nconst [value,setValue]=useState([{id:\"1\",name:\"Research the idea\"},{id:\"2\",name:\"Build a prototype\"},{id:\"3\",name:\"Share with the team\"},{id:\"4\",name:\"Ship the details\"}]);\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><SortableList items={value} onReorder={setValue} getLabel={item=>item.name} renderItem={item=><span className=\"text-sm font-medium\">{item.name}</span>}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "changelog-timeline": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { ChangelogTimeline } from \"../custom/compositions/changelog-timeline\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ChangelogTimeline entries={[{id:\"library\",date:\"2026-10-27\",version:\"v2.8\",title:\"A bigger component library\",tags:[\"new\"],body:<p>More editable components for your next project.</p>},{id:\"motion\",date:\"2026-10-20\",version:\"v2.7\",title:\"Motion that follows you\",tags:[\"improved\"],body:<p>Interruptible transitions and keyboard controls.</p>}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "changelog-trace": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { ChangelogTrace } from \"../custom/compositions/changelog-trace\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ChangelogTrace entries={[{id:\"library\",date:\"2026-10-27\",version:\"v2.8\",title:\"A bigger component library\",tags:[\"new\"],body:<p>More editable components for your next project.</p>},{id:\"motion\",date:\"2026-10-20\",version:\"v2.7\",title:\"Motion that follows you\",tags:[\"improved\"],body:<p>Interruptible transitions and keyboard controls.</p>}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "changelog-scrubber": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { ChangelogScrubber } from \"../custom/compositions/changelog-scrubber\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ChangelogScrubber entries={[{id:\"library\",date:\"2026-10-27\",version:\"v2.8\",title:\"A bigger component library\",tags:[\"new\"],body:<p>More editable components for your next project.</p>},{id:\"motion\",date:\"2026-10-20\",version:\"v2.7\",title:\"Motion that follows you\",tags:[\"improved\"],body:<p>Interruptible transitions and keyboard controls.</p>}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "cookie-banner": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { CookieBanner } from \"../custom/compositions/cookie-banner\";\n\n\nexport function Demo() {\nconst [message, setMessage] = useState(\"\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><CookieBanner policyHref=\"#preview\" onConsentChange={consent=>setMessage(consent.analytics?\"Analytics allowed in this demo\":\"Preferences saved\")}/><p role=\"status\" className=\"imported-demo-feedback\">{message}</p></div></div>;\n}\n",
+    "animations": []
+  },
+  "newsletter-footer": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { NewsletterFooter } from \"../custom/compositions/newsletter-footer\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><NewsletterFooter brand={{name:\"Cavemio\",tagline:\"Small details. Better interactions.\"}} newsletter={{onSubscribe:async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}} columns={[{title:\"Product\",links:[{label:\"Components\",href:\"#preview\"},{label:\"Changelog\",href:\"#preview\",badge:\"New\"}]},{title:\"Resources\",links:[{label:\"Documentation\",href:\"#preview\"},{label:\"Community\",href:\"#preview\"}]}]} legal={[{label:\"Privacy\",href:\"#preview\"},{label:\"Terms\",href:\"#preview\"}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-breathe"]
+  },
+  "prompt-composer": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { PromptComposer } from \"../custom/compositions/prompt-composer\";\n\n\nexport function Demo() {\nconst [message, setMessage] = useState(\"\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><PromptComposer onSubmit={text=>setMessage(\"Sent: \"+text)} maxLength={4000}/><p role=\"status\" className=\"imported-demo-feedback\">{message}</p></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "agent-composer": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { AgentComposer } from \"../custom/compositions/agent-composer\";\n\n\nexport function Demo() {\nconst [message, setMessage] = useState(\"\");const [model,setModel]=useState(\"fast\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><AgentComposer model={model} onModelChange={setModel} branch=\"main\" folder=\"cavemio-web\" context={{used:57000,limit:128000}} models={[{id:\"fast\",name:\"Fast\",description:\"Everyday questions\"},{id:\"reasoning\",name:\"Reasoning\",description:\"Explore a difficult problem\",reasoning:true}]} onSubmit={text=>setMessage(\"Sent: \"+text)}/><p role=\"status\" className=\"imported-demo-feedback\">{message}</p></div></div>;\n}\n",
+    "animations": ["ui-fade-in", "ui-col-in", "ui-col-out", "ui-breathe"]
+  },
+  "mention-menu": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { MentionInput } from \"../custom/compositions/mention-menu\";\n\n\nexport function Demo() {\nconst [message, setMessage] = useState(\"\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><MentionInput triggers={[{char:\"@\",label:\"Context\",items:[{id:\"readme\",label:\"README.md\"},{id:\"page\",label:\"page.tsx\"}]},{char:\"/\",label:\"Commands\",items:[{id:\"review\",label:\"Review\"},{id:\"explain\",label:\"Explain\"}],startOnly:true,variant:\"command\"}]} onSubmit={({text})=>setMessage(\"Sent: \"+text)}/><p role=\"status\" className=\"imported-demo-feedback\">{message}</p></div></div>;\n}\n",
+    "animations": ["ui-sheen", "ui-pop-in", "ui-chip-in"]
+  },
+  "attachment-chip": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { AttachmentChip } from \"../custom/compositions/attachment-chip\";\n\n\nexport function Demo() {\nconst [value, setValue] = useState(false);const [message, setMessage] = useState(\"\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><AttachmentChip name=\"project-brief.pdf\" type=\"application/pdf\" size={2400000} status={value?\"ready\":\"uploading\"} progress={0.42} onRemove={()=>setMessage(\"Attachment removed\")}/><button className=\"imported-demo-button\" onClick={()=>setValue(!value)}>Toggle upload state</button><p role=\"status\" className=\"imported-demo-feedback\">{message}</p></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-sheen", "ui-fade-up"]
+  },
+  "mode-switcher": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { ModeSwitcher } from \"../custom/compositions/mode-switcher\";\nimport { Zap, Brain, Telescope } from \"lucide-react\";\n\nexport function Demo() {\n  const [message, setMessage] = useState(\"\");\n  return (\n    <div className=\"cavemio-demo imported-demo imported-demo-compact\">\n      <div className=\"imported-demo-stage\">\n        <ModeSwitcher\n          modes={[\n            {\n              value: \"fast\",\n              label: \"Fast\",\n              icon: <Zap />,\n              description: \"Quick answers for everyday questions.\",\n            },\n            {\n              value: \"thinking\",\n              label: \"Thinking\",\n              icon: <Brain />,\n              description: \"Takes a moment to reason first.\",\n            },\n            {\n              value: \"research\",\n              label: \"Research\",\n              icon: <Telescope />,\n              locked: true,\n            },\n          ]}\n          defaultValue=\"fast\"\n          showDescription\n          onLockedSelect={() =>\n            setMessage(\"Research is available on the next plan.\")\n          }\n        />\n        <p role=\"status\" className=\"imported-demo-feedback\">\n          {message}\n        </p>\n      </div>\n    </div>\n  );\n}\n",
+    "animations": []
+  },
+  "model-picker": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { ModelPicker } from \"../custom/compositions/model-picker\";\n\n\nexport function Demo() {\nconst [value, setValue] = useState(\"fast\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ModelPicker models={[{id:\"fast\",name:\"Fast\",description:\"Everyday questions\",speed:3,intelligence:2},{id:\"reasoning\",name:\"Reasoning\",description:\"Think through a hard problem\",speed:1,intelligence:3,reasoning:true}]} value={value} onValueChange={setValue}/></div></div>;\n}\n",
+    "animations": ["ui-fade-in"]
+  },
+  "voice-input": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { VoiceInput } from \"../custom/compositions/voice-input\";\n\n\nexport function Demo() {\nconst [value, setValue] = useState(false);\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><VoiceInput status={value?\"listening\":\"idle\"} level={0.45} onStart={()=>setValue(true)} onStop={()=>setValue(false)} onCancel={()=>setValue(false)}/><p className=\"text-xs text-muted-foreground\">Local recording-state preview; no microphone is accessed.</p></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-sheen", "ui-wave"]
+  },
+  "voice-note": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { VoiceNote } from \"../custom/compositions/voice-note\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><VoiceNote src=\"/lifecycle/voice-preview.wav\" label=\"Voice note preview\" unread transcript={[{text:\"A\",start:0.1},{text:\"short\",start:0.6},{text:\"audio\",start:1.1},{text:\"preview.\",start:1.7}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "thinking-indicator": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { ThinkingIndicator } from \"../custom/compositions/thinking-indicator\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ThinkingIndicator variant=\"orbit\" label=\"Thinking\"/><ThinkingIndicator variant=\"dots\" label=\"Working through the details\"/></div></div>;\n}\n",
+    "animations": [
+      "ui-col-in",
+      "ui-col-out",
+      "ui-sheen",
+      "ui-bounce",
+      "ui-breathe",
+      "ui-scan"
+    ]
+  },
+  "thinking-trace": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { ThinkingTrace } from \"../custom/compositions/thinking-trace\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ThinkingTrace variant=\"tools\" status=\"running\" steps={[{label:\"Read\",detail:\"plans.ts\"},{label:\"Edit\",detail:\"PricingTable.tsx\",additions:74,deletions:41},{label:\"Run\",detail:\"npm test\",status:\"running\"}]}/></div></div>;\n}\n",
+    "animations": [
+      "ui-col-in",
+      "ui-col-out",
+      "ui-sheen",
+      "ui-fade-up",
+      "ui-fade-in"
+    ]
+  },
+  "tool-call": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { ToolCall } from \"../custom/compositions/tool-call\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ToolCall name=\"search_flights\" title=\"Search flights\" status=\"done\" duration={1240} input={{from:\"BLR\",to:\"LIS\",date:\"2026-11-02\"}} output={{cheapest:\"€412\",airline:\"Example Air\"}}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-sheen", "ui-fade-up"]
+  },
+  "approval-card": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { ApprovalCard } from \"../custom/compositions/approval-card\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ApprovalCard title=\"Send an update to the team\" description=\"Review the proposed action before continuing.\" details={[{label:\"To\",value:\"team@example.com\"},{label:\"Subject\",value:\"The next design review\"}]} onApprove={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }} onDeny={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-fade-up"]
+  },
+  "plan": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Plan } from \"../custom/compositions/plan\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Plan tasks={[{label:\"Read the project brief\",status:\"done\"},{label:\"Compare the options\",status:\"running\"},{label:\"Draft the next steps\",status:\"pending\"}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "web-research": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { WebResearch } from \"../custom/compositions/web-research\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><WebResearch status=\"done\" queries={[\"accessible interaction patterns\"]} sources={[{url:\"https://developer.mozilla.org/en-US/docs/Web/Accessibility\",title:\"Accessibility on the web\"},{url:\"https://www.w3.org/WAI/\",title:\"Web Accessibility Initiative\"}]}/></div></div>;\n}\n",
+    "animations": [
+      "ui-col-in",
+      "ui-col-out",
+      "ui-sheen",
+      "ui-breathe",
+      "ui-drop-in"
+    ]
+  },
+  "command-output": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { CommandOutput } from \"../custom/compositions/command-output\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><CommandOutput command=\"bun run test\" status=\"success\" lines={[\"✓ component registry validates\",\"✓ source imports resolve\",\"✓ preview fixture renders\",\"3 tests passed\"]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-fade-in", "ui-blink"]
+  },
+  "task-progress": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { TaskProgress } from \"../custom/compositions/task-progress\";\n\n\nexport function Demo() {\nconst [message, setMessage] = useState(\"\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><TaskProgress title=\"Exploring the component library\" status=\"running\" phases={[\"Searching\",\"Reading\",\"Writing\"]} phase={1} stats={[{label:\"sources\",value:42},{label:\"read\",value:12}]} message=\"Gathering the details.\" onCancel={()=>setMessage(\"Task cancelled in this demo\")}/><p role=\"status\" className=\"imported-demo-feedback\">{message}</p></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-scan", "ui-sheen"]
+  },
+  "task-log": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { TaskLog } from \"../custom/compositions/task-log\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><TaskLog tasks={[{id:\"find\",title:\"Finding project files\",doneTitle:\"Found project files\",status:\"done\",steps:[{id:\"1\",text:\"Read\",file:\"page.tsx\"},{id:\"2\",text:\"Scanned\",detail:\"52 files\"}]},{id:\"edit\",title:\"Updating the sidebar\",doneTitle:\"Updated sidebar\",status:\"done\",steps:[{id:\"3\",text:\"Edited\",file:\"component-sidebar.tsx\"}]}]}/></div></div>;\n}\n",
+    "animations": ["ui-sheen"]
+  },
+  "streaming-answer": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { StreamingText, AnswerActions, FollowUps } from \"../custom/compositions/streaming-answer\";\n\n\nexport function Demo() {\nconst [message, setMessage] = useState(\"\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><StreamingText content={[\"Signups are up 23%.\",{type:\"citation\",label:\"Q3 report\"},\" Churn is down, and more teams are returning.\"]} status=\"done\"/><AnswerActions copyText=\"Signups are up 23%. Churn is down.\" onRegenerate={()=>setMessage(\"A new answer was requested\")}/><FollowUps items={[\"Which channels bring the most signups?\",\"Compare with last quarter\"]} onSelect={setMessage}/><p role=\"status\" className=\"imported-demo-feedback\">{message}</p></div></div>;\n}\n",
+    "animations": [
+      "ui-col-in",
+      "ui-col-out",
+      "ui-fade-up",
+      "ui-fade-in",
+      "ui-blink"
+    ]
+  },
+  "code-block": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { CodeBlock } from \"../custom/compositions/code-block\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><CodeBlock code={\"export function greet(name: string) {\\n  return \\\"Hello, \\\" + name;\\n}\"} language=\"ts\" filename=\"lib/greet.ts\"/></div></div>;\n}\n",
+    "animations": ["ui-blink"]
+  },
+  "citation": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Citation } from \"../custom/compositions/citation\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><p>Accessible interfaces start with native controls.<Citation index={1} source={{title:\"Web accessibility\",url:\"https://developer.mozilla.org/en-US/docs/Web/Accessibility\",snippet:\"Build interfaces that work for everyone.\"}}/></p></div></div>;\n}\n",
+    "animations": []
+  },
+  "selection-actions": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { SelectionActions } from \"../custom/compositions/selection-actions\";\nimport { Sparkles, Scissors } from \"lucide-react\";\n\nexport function Demo() {\nconst [value, setValue] = useState(\"Select a few words in this paragraph to reveal the editing actions. Keep the meaning, and make the expression your own.\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><SelectionActions value={value} onValueChange={setValue} actions={[{id:\"improve\",label:\"Improve\",icon:<Sparkles/>,pendingLabel:\"Improving\"}]} more={[{id:\"shorten\",label:\"Shorten\",icon:<Scissors/>,pendingLabel:\"Shortening\"}]} onAction={async()=> \"A clear idea, expressed simply.\"}/></div></div>;\n}\n",
+    "animations": ["ui-shimmer", "ui-fade-in", "ui-pop-in"]
+  },
+  "diff-review": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\nimport * as React from \"react\";\nimport { useState } from \"react\";\nimport { DiffReview } from \"../custom/compositions/diff-review\";\n\n\nexport function Demo() {\nconst [message, setMessage] = useState(\"\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><DiffReview changes={[{id:\"intro\",label:\"Introduction\",before:\"We make components for building websites.\",after:\"Build thoughtful interfaces with editable React components.\"}]} onComplete={()=>setMessage(\"Review complete\")}/><p role=\"status\" className=\"imported-demo-feedback\">{message}</p></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "action-receipt": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { ActionReceipts } from \"../custom/compositions/action-receipt\";\n\n\nexport function Demo() {\nconst [previewNow] = useState(() => Date.now());\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ActionReceipts actions={[{id:\"evt_demo\",title:\"Added design review to Friday\",detail:\"Calendar · 2:00 PM\",undoUntil:previewNow+60000}]} onUndo={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-fade-up", "ui-drain"]
+  },
+  "chat-notice": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { ChatNotice } from \"../custom/compositions/chat-notice\";\n\n\nexport function Demo() {\nconst [previewNow] = useState(() => Date.now());const [message, setMessage] = useState(\"\");\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ChatNotice kind=\"rate-limit\" resetAt={previewNow+3600000} onUpgrade={()=>setMessage(\"Plan options opened\")}/><ChatNotice kind=\"error\" details=\"504 · demo_request\" onRetry={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/><p role=\"status\" className=\"imported-demo-feedback\">{message}</p></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-fade-up", "ui-breathe"]
+  },
+  "usage-meter": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { UsageMeter } from \"../custom/compositions/usage-meter\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><UsageMeter used={760} limit={2000} unit=\"credits\"/><UsageMeter variant=\"ring\" label=\"Context\" unit=\"tokens\" used={54000} limit={128000}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "usage-limits": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { UsageLimits } from \"../custom/compositions/usage-limits\";\n\n\nexport function Demo() {\nconst [previewNow] = useState(() => Date.now());\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><UsageLimits plan=\"Team\" context={{limit:1000000,parts:[{id:\"system\",label:\"System prompt\",tokens:14000},{id:\"chat\",label:\"Conversation\",tokens:548000}]}} limits={[{id:\"window\",label:\"5-hour window\",used:38,limit:100,resetsAt:previewNow+3600000}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "chat-scroll": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { ChatScroll } from \"../custom/compositions/chat-scroll\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><div className=\"h-80 w-full\"><ChatScroll className=\"h-full\" contentClassName=\"grid gap-5 p-5\">{Array.from({length:15},(_,i)=><p key={i} className={i%2?\"text-muted-foreground\":\"text-right\"}>{i%2?\"Here is an answer with a little more context.\":\"Question \"+(Math.floor(i/2)+1)}</p>)}</ChatScroll></div></div></div>;\n}\n",
+    "animations": ["ui-sheen", "ui-ping"]
+  },
+  "chat-history": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { ChatHistory } from \"../custom/compositions/chat-history\";\n\n\nexport function Demo() {\nconst [active,setActive]=useState(\"1\");const [value,setValue]=useState(()=>[{id:\"1\",title:\"A new direction\",updatedAt:Date.now()},{id:\"2\",title:\"Ideas for the next release\",updatedAt:Date.now()-86400000},{id:\"3\",title:\"Planning the launch\",updatedAt:Date.now()-172800000}]);\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ChatHistory chats={value} activeId={active} onSelect={setActive} onNew={()=>setValue([{id:String(Date.now()),title:\"New conversation\",updatedAt:Date.now()},...value])} onRename={async(id,title)=>setValue(value.map(chat=>chat.id===id?{...chat,title}:chat))} onDelete={async id=>setValue(value.filter(chat=>chat.id!==id))}/></div></div>;\n}\n",
+    "animations": ["ui-shimmer", "ui-fade-up"]
+  },
+  "earnings-chart": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { EarningsChart } from \"../custom/compositions/earnings-chart\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><EarningsChart title=\"Earned so far\" periods={[{id:\"6m\",label:\"6M\",bars:[\"Jan\",\"Feb\",\"Mar\",\"Apr\",\"May\",\"Jun\"].map((label,i)=>({key:label,label,value:[6100,5800,7400,9200,11800,14900][i]})),previous:32120,comparison:\"vs the previous six months\"}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "steps-chart": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { StepsChart } from \"../custom/compositions/steps-chart\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><StepsChart goal={10000} weeks={[{id:\"week\",label:\"This week\",days:[\"Mon\",\"Tue\",\"Wed\",\"Thu\",\"Fri\",\"Sat\",\"Sun\"].map((label,i)=>({key:label,label,value:[4200,7600,10300,8500,6180,12000,9200][i],today:i===4}))}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "revenue-chart": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { RevenueChart } from \"../custom/compositions/revenue-chart\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><RevenueChart labels={[\"Jan\",\"Feb\",\"Mar\",\"Apr\",\"May\",\"Jun\"]} metrics={[{id:\"revenue\",label:\"Revenue\",current:[6100,5800,7400,9200,11800,14900],previous:[4200,5100,6200,7400,8300,10000],format:{style:\"currency\",currency:\"USD\"}}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "area-chart": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { AreaChart } from \"../custom/compositions/area-chart\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><AreaChart title=\"Orders\" caption=\"over the last six months\" labels={[\"Jan\",\"Feb\",\"Mar\",\"Apr\",\"May\",\"Jun\"]} series={[{id:\"counter\",label:\"Counter\",values:[120,150,180,160,220,280]},{id:\"app\",label:\"App\",values:[60,80,100,140,130,180]},{id:\"delivery\",label:\"Delivery\",values:[40,50,70,60,90,120]}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "trend-chart": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { TrendChart } from \"../custom/compositions/trend-chart\";\n\nexport function Demo() {\n  return (\n    <div className=\"cavemio-demo imported-demo\">\n      <div className=\"imported-demo-stage\">\n        <TrendChart\n          className=\"w-full\"\n          label=\"Visitors by day\"\n          buckets={Array.from(\n            { length: 14 },\n            (_, i) => Date.parse(\"2026-10-01\") + i * 86400000,\n          )}\n          values={[\n            120, 140, 180, 160, 220, 280, 240, 320, 290, 350, 310, 420, 450,\n            480,\n          ]}\n          previous={[\n            100, 110, 140, 130, 180, 210, 200, 240, 220, 280, 260, 310, 350,\n            370,\n          ]}\n          unit=\"visitors\"\n        />\n      </div>\n    </div>\n  );\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "combo-chart": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { ComboChart } from \"../custom/compositions/combo-chart\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ComboChart title=\"Orders\" days={Array.from({length:30},(_,i)=>({key:\"2026-10-\"+String(i+1).padStart(2,\"0\"),label:(i+1)+\" Oct\",value:80+(i*37)%160}))} previous={3212}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "stage-bars": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { StageBars } from \"../custom/compositions/stage-bars\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><StageBars title=\"App orders\" stages={[{id:\"opened\",label:\"Opened the app\"},{id:\"basket\",label:\"Added to basket\"},{id:\"paid\",label:\"Paid\"}]} periods={[{id:\"week\",label:\"This week\",values:[2480,1164,611]}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "activity-rings": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { ActivityRings } from \"../custom/compositions/activity-rings\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ActivityRings goals={[{id:\"orders\",label:\"Orders\",goal:120},{id:\"revenue\",label:\"Revenue\",goal:1200,format:{style:\"currency\",currency:\"USD\"}},{id:\"regulars\",label:\"Regulars back\",goal:15}]} days={[\"Mon\",\"Tue\",\"Wed\",\"Thu\",\"Fri\",\"Sat\",\"Sun\"].map((label,i)=>({key:\"day-\"+i,label:label[0],title:label,values:[60+i*9,600+i*80,8+i]}))}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "donut-chart": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { DonutChart } from \"../custom/compositions/donut-chart\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><DonutChart title=\"Spend by service\" data={[{id:\"compute\",label:\"Compute\",value:5240},{id:\"storage\",label:\"Storage\",value:3180},{id:\"bandwidth\",label:\"Bandwidth\",value:2260}]} format={{style:\"currency\",currency:\"USD\",maximumFractionDigits:0}}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "activity-heatmap": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { ActivityHeatmap } from \"../custom/compositions/activity-heatmap\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><ActivityHeatmap data={Array.from({length:180},(_,i)=>({date:new Date(Date.parse(\"2026-05-01\")+i*86400000).toISOString().slice(0,10),value:(i*17)%23}))} unit={{one:\"contribution\",other:\"contributions\"}}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "live-line-chart": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { LiveLineChart } from \"../custom/compositions/live-line-chart\";\n\n\nexport function Demo() {\nconst [now]=useState(()=>Date.now());\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><LiveLineChart label=\"Requests\" unit=\"req/s\" data={Array.from({length:60},(_,i)=>({t:now-(59-i)*1000,value:900+Math.sin(i/5)*200+(i*13)%80}))} threshold={{value:1200,label:\"Rate limit\"}}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-ping"]
+  },
+  "agent-playback": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { AgentPlayback } from \"../custom/compositions/agent-playback\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><AgentPlayback turns={[{prompt:\"Summarise this week’s churn\",steps:[{type:\"thinking\",steps:[\"Reading the events\",\"Grouping by plan\"]},{type:\"tool\",name:\"run_query\",input:{table:\"events\",since:\"7d\"},output:{rows:1284}},{type:\"answer\",content:\"Churn fell to 2.1% this week, mostly on the Starter plan.\"}]}]} header=\"Cavemio\"/></div></div>;\n}\n",
+    "animations": [
+      "ui-col-in",
+      "ui-col-out",
+      "ui-sheen",
+      "ui-fade-up",
+      "ui-fade-in",
+      "ui-breathe",
+      "ui-drop-in",
+      "ui-blink"
+    ]
+  },
+  "wallet": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Wallet } from \"../custom/compositions/wallet\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Wallet name=\"Kai Morgan\" balance={2480} contacts={[{id:\"ada\",name:\"Ada Okafor\"},{id:\"maya\",name:\"Maya Chen\"}]} transactions={[]} onSend={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }} onRequest={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "pricing-plans": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { PricingPlans } from \"../custom/compositions/pricing-plans\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><PricingPlans plans={[{id:\"starter\",name:\"Starter\",price:{monthly:12,yearly:9},description:\"For your next idea\",features:[\"3 projects\",\"Editable source\"]},{id:\"team\",name:\"Team\",price:{monthly:24,yearly:19},description:\"Build together\",features:[\"Unlimited projects\",\"Team collaboration\"],featured:true}]} onCheckout={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-note-in"]
+  },
+  "booking": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { Booking } from \"../custom/compositions/booking\";\n\nexport function Demo() {\n  return (\n    <div className=\"cavemio-demo imported-demo\">\n      <div className=\"imported-demo-stage\">\n        <Booking\n          host={{ name: \"Maya Chen\", role: \"Product designer\" }}\n          title=\"A short introduction\"\n          duration={30}\n          location=\"Video call\"\n          getSlots={async ({ from, to }, signal) => {\n            const slots: Date[] = [];\n            for (const day = new Date(from); day < to; day.setDate(day.getDate() + 1)) {\n              for (const hour of [9, 10, 14]) {\n                const slot = new Date(day);\n                slot.setHours(hour, 0, 0, 0);\n                if (slot.getTime() > Date.now()) slots.push(slot);\n              }\n            }\n            return signal.aborted ? [] : slots;\n          }}\n          onBook={async () => {\n            await new Promise((resolve) => setTimeout(resolve, 650));\n          }}\n        />\n      </div>\n    </div>\n  );\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "cart": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\nimport { useState } from \"react\";\nimport { Cart } from \"../custom/compositions/cart\";\n\n\nexport function Demo() {\nconst [value,setValue]=useState([{id:\"linen\",name:\"Linen overshirt\",price:89,quantity:1,variant:\"Sand · Medium\"},{id:\"tote\",name:\"Everyday tote\",price:24,quantity:2,variant:\"Natural\"}]);\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Cart items={value} shipping={8} freeShippingAt={250} onQuantityChange={async(id,quantity)=>setValue(value.map(item=>item.id===id?{...item,quantity}:item))} onRemove={async id=>setValue(value.filter(item=>item.id!==id))} onCheckout={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "referral": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Referral } from \"../custom/compositions/referral\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Referral link=\"https://example.com/invite/demo\" friends={[]} goal={3} reward=\"a free month of Pro\" offer=\"Friends get 20% off their first year.\" onInvite={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }} onClaim={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "feedback": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Feedback } from \"../custom/compositions/feedback\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Feedback question=\"How likely are you to recommend Cavemio to a friend?\" onSubmit={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "buy-box": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { BuyBox } from \"../custom/compositions/buy-box\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><BuyBox name=\"Linen overshirt\" options={[{id:\"size\",label:\"Size\",values:[{id:\"S\",label:\"S\"},{id:\"M\",label:\"M\"},{id:\"L\",label:\"L\"}]}]} variants={[{id:\"s\",options:{size:\"S\"},price:89,stock:4},{id:\"m\",options:{size:\"M\"},price:89,stock:12},{id:\"l\",options:{size:\"L\"},price:89,stock:0}]} onAddToCart={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }} onNotify={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-fade-in"]
+  },
+  "checkout": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Checkout } from \"../custom/compositions/checkout\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Checkout lines={[{id:\"linen\",name:\"Linen overshirt\",price:89,quantity:1}]} deliveries={[{id:\"standard\",label:\"Standard delivery\",price:8,detail:\"3–5 working days\",days:[3,5]}]} payment={<div className=\"imported-demo-card\">Demo payment method · No payment is collected.</div>} onPlaceOrder={async()=>({number:\"DEMO-2026\"})}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-draw"]
+  },
+  "order-status": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { OrderStatus } from \"../custom/compositions/order-status\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><OrderStatus number=\"DEMO-2026\" status=\"shipped\" eta=\"2026-10-30\" carrier=\"Example delivery\" tracking=\"DEMO123456\" events={[]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "subscription": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Subscription } from \"../custom/compositions/subscription\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Subscription plan={{name:\"Pro\",price:24,interval:\"month\"}} status=\"active\" periodStart=\"2026-10-01\" periodEnd=\"2026-11-01\" onPause={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }} onCancel={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }} onResume={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "file-share": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { FileShare } from \"../custom/compositions/file-share\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><FileShare onUpload={async(file,{onProgress})=>{onProgress(1);return {id:\"demo-\"+Date.now(),name:file.name,size:file.size};}} onCreateLink={async()=>({url:\"https://example.com/share/demo\"})}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-pop-in"]
+  },
+  "poll": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Poll } from \"../custom/compositions/poll\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Poll question=\"What should we build next?\" options={[{id:\"charts\",label:\"More charts\",votes:42},{id:\"forms\",label:\"Form components\",votes:28},{id:\"agents\",label:\"Agent interfaces\",votes:35}]} onVote={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "cookie-consent": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { CookieConsent } from \"../custom/compositions/cookie-consent\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><CookieConsent onSave={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": []
+  },
+  "create-password": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { CreatePassword } from \"../custom/compositions/create-password\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><CreatePassword username=\"you@example.com\" onSubmit={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": []
+  },
+  "verify-code": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { VerifyCode } from \"../custom/compositions/verify-code\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><VerifyCode destination=\"you@example.com\" onVerify={async code=>code===\"123456\"} onResend={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/><p className=\"text-xs text-muted-foreground\">Try 123456.</p></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out", "ui-blink", "ui-sheen"]
+  },
+  "delete-workspace": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { DeleteWorkspace } from \"../custom/compositions/delete-workspace\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><DeleteWorkspace name=\"Demo workspace\" onDelete={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": []
+  },
+  "terms": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Terms } from \"../custom/compositions/terms\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Terms version=\"2026-10-27\" sections={[{id:\"data\",title:\"Your data\",tldr:\"Your files stay yours.\",body:<p>This local preview does not collect or transmit your information.</p>},{id:\"source\",title:\"Editable source\",tldr:\"Build it your way.\",body:<p>Keep the MIT license notices when sharing components.</p>}]} onAccept={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": []
+  },
+  "not-found": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { NotFound } from \"../custom/compositions/not-found\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><NotFound path=\"/a-missing-page\" links={[{title:\"Components\",href:\"#preview\"},{title:\"Documentation\",href:\"#preview\"}]} search={async query=>[{title:\"Search for \"+query,href:\"#preview\"}]}/></div></div>;\n}\n",
+    "animations": ["ui-fade-up"]
+  },
+  "waitlist": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Waitlist } from \"../custom/compositions/waitlist\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Waitlist product=\"Cavemio\" onJoin={async()=>({position:128,referralLink:\"https://example.com/invite/demo\"})}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "storage": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Storage } from \"../custom/compositions/storage\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Storage used={2400000000} limit={10000000000} kinds={[{id:\"photos\",label:\"Photos\",bytes:1600000000},{id:\"documents\",label:\"Documents\",bytes:800000000}]}/></div></div>;\n}\n",
+    "animations": ["ui-col-in", "ui-col-out"]
+  },
+  "username": {
+    "source": "\"use client\";\n\n// Local interactive fixture; no application services are called.\n\n\nimport { Username } from \"../custom/compositions/username\";\n\n\nexport function Demo() {\n\nreturn <div className=\"cavemio-demo imported-demo\"><div className=\"imported-demo-stage\"><Username check={async name=>({available:name.length>3})} onClaim={async () => { await new Promise(resolve => setTimeout(resolve, 650)); }}/></div></div>;\n}\n",
+    "animations": ["ui-fade-up"]
+  }
+}

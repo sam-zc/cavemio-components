@@ -297,15 +297,29 @@ try {
           assert.ok(css.includes(rule.slice(9)), `${label}: missing ${rule}`);
       }
     }
-    const imports = items
-      .map(
-        (item) =>
+    const importLines: string[] = [];
+    const renderLines: string[] = [];
+    for (const [index, item] of items.entries()) {
+      const example = installExamples[item.details.component];
+      if (example.source) {
+        await mkdir(join(cwd, "src/examples"), { recursive: true });
+        await write(
+          `src/examples/${item.details.component}.tsx`,
+          example.source,
+        );
+        importLines.push(
+          `import { Demo as InstalledExample${index} } from "./examples/${item.details.component}";`,
+        );
+        renderLines.push(`<InstalledExample${index} />`);
+      } else {
+        importLines.push(
           `import { ${item.details.exportName} } from "./custom/compositions/${basename(item.files![0].path).replace(/\.tsx?$/, "")}";`,
-      )
-      .join("\n");
-    const usages = items
-      .map((item) => installExamples[item.details.component].render)
-      .join("\n");
+        );
+        renderLines.push(example.render!);
+      }
+    }
+    const imports = importLines.join("\n");
+    const usages = renderLines.join("\n");
     await write(
       "src/main.tsx",
       `import {createRoot} from "react-dom/client";\n${imports}\nimport "./index.css";\ncreateRoot(document.getElementById("root")!).render(<>${usages}</>);`,

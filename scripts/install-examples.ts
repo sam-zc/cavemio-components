@@ -1,12 +1,20 @@
 // Installed-source examples and visual requirements, independent of registry declarations.
 // New items need usable props and required keyframes; compilation alone cannot detect missing CSS.
+import importedExamples from "./imported-install-examples.json" with { type: "json" };
+
 export const installExamples: Record<
   string,
-  { render: string; animations: string[] }
+  { render?: string; source?: string; animations: string[] }
 > = {
+  ...importedExamples,
+  "video-player": {
+    render:
+      '<VideoPlayer src="https://storage.googleapis.com/shaka-demo-assets/sintel/dash.mpd" type="dash" title="Sintel" muted enableDiagnostics />',
+    animations: [],
+  },
   "theme-toggle": {
     render:
-      '<ThemeToggle defaultTheme="light" pageTransition="circular" onThemeChange={(mode) => { document.documentElement.dataset.theme = mode; }} />',
+      '<><ThemeToggle defaultTheme="light" pageTransition="circular" onThemeChange={(mode) => { document.documentElement.dataset.theme = mode; }} /><ThemeToggle variant="segmented" defaultValue="system" reveal={false} /></>',
     animations: [],
   },
   select: {

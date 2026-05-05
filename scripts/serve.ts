@@ -9,6 +9,11 @@ const types: Record<string, string> = {
   ".css": "text/css",
   ".txt": "text/plain",
   ".woff2": "font/woff2",
+  ".webp": "image/webp",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".svg": "image/svg+xml",
+  ".mp3": "audio/mpeg",
 };
 const port = Number(process.env.PORT ?? 4001);
 createServer(async (request, response) => {

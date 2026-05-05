@@ -3,6 +3,7 @@ import { z } from "zod";
 export const metadataSchema = z.object({
   component: z.string().regex(/^[a-z][a-z0-9-]*$/),
   categories: z.array(z.string().regex(/^[a-z][a-z0-9-]*$/)).default([]),
+  isNew: z.boolean().optional(),
   exportName: z.string().regex(/^[A-Z][A-Za-z0-9]*$/),
   usage: z.string(),
   accessibility: z.string(),

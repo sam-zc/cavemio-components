@@ -4,7 +4,9 @@ import {
   mkdir,
   readdir,
   copyFile,
+  access,
 } from "node:fs/promises";
+import { dirname, resolve, relative } from "node:path";
 import { createHash } from "node:crypto";
 import { build } from "esbuild";
 import { execFileSync } from "node:child_process";
@@ -31,7 +33,15 @@ for (const style of ["normal", "italic"]) {
     `public/fonts/${filename}`,
   );
 }
-await writeFile("public/fonts/Geist-LICENSE.txt", "");
+await copyFile(`${fontPackage}/LICENSE`, "public/fonts/Geist-LICENSE.txt");
+await copyFile(
+  "node_modules/@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2",
+  "public/fonts/geist-mono-latin-wght-normal.woff2",
+);
+await copyFile(
+  "node_modules/@fontsource-variable/geist-mono/LICENSE",
+  "public/fonts/Geist-Mono-LICENSE.txt",
+);
 await copyFile(
   "preview/assets/inter-display-regular.woff2",
   "public/fonts/inter-display-regular.woff2",
@@ -49,7 +59,7 @@ for (const [pkg, file, license] of [
   ],
 ]) {
   await copyFile(`node_modules/${pkg}/files/${file}`, `public/fonts/${file}`);
-  await writeFile(`public/fonts/${license}`, "");
+  await copyFile(`node_modules/${pkg}/LICENSE`, `public/fonts/${license}`);
 }
 execFileSync(
   process.execPath,
@@ -93,10 +103,17 @@ for (const definition of registry.items) {
     },
     bundle: true,
     minify: true,
-    format: "iife",
+    format: meta.component === "video-player" ? "esm" : "iife",
+    splitting: meta.component === "video-player",
     jsx: "automatic",
     define: { "process.env.NODE_ENV": '"production"' },
-    outfile: `public/previews/${item.name}.js`,
+    ...(meta.component === "video-player"
+      ? {
+          outdir: "public/previews",
+          entryNames: item.name,
+          chunkNames: `${item.name}-[name]-[hash]`,
+        }
+      : { outfile: `public/previews/${item.name}.js` }),
     legalComments: "none",
   });
   nativeEntries.push({
@@ -105,14 +122,12 @@ for (const definition of registry.items) {
     sourceSha256,
   });
   for (const input of Object.keys(previewBuild.metafile.inputs)) {
-    if (/^(preview|registry\/components)\/.*\.tsx?$/.test(input))
+    if (/^(preview|registry\/components)\/.*\.[jt]sx?$/.test(input))
       nativeSourcePaths.add(input);
   }
-  // Keep existing distribution paths while omitting extracted comment text.
-  await writeFile(`public/previews/${item.name}.js.LEGAL.txt`, "");
   await writeFile(
     `public/previews/${item.name}.html`,
-    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="cavemio-source-sha256" content="${sourceSha256}"><title>${item.title}</title><link rel="stylesheet" href="./styles.css"></head><body><main id="root"></main><script defer src="./${item.name}.js"></script></body></html>`,
+    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="cavemio-source-sha256" content="${sourceSha256}"><title>${item.title}</title><link rel="stylesheet" href="./styles.css"></head><body><main id="root"></main><script ${meta.component === "video-player" ? 'type="module"' : "defer"} src="./${item.name}.js"></script></body></html>`,
   );
   items.push({
     ...meta,
@@ -131,10 +146,42 @@ await writeFile(
   JSON.stringify(catalogSchema.parse({ version: 2, items }), null, 2) + "\n",
 );
 const notices = "";
-await writeFile("public/previews/THIRD_PARTY_NOTICES.txt", notices);
 // Build-time source installation for native website previews; never runtime TSX.
 const packageJson = JSON.parse(await readFile("package.json", "utf8"));
 const nativeDependencies: Record<string, string> = {};
+// Bundler metafiles omit type-only modules. Native installed source must also
+// close over those imports so downstream TypeScript consumers can compile it.
+for (const path of nativeSourcePaths) {
+  if (path.endsWith(".jsx")) {
+    const declaration = path.replace(/\.jsx$/, ".d.ts");
+    try {
+      await access(declaration);
+      nativeSourcePaths.add(declaration);
+    } catch {
+      // Only scene entry modules need a typed boundary.
+    }
+  }
+  for (const imported of ts.preProcessFile(await readFile(path, "utf8"))
+    .importedFiles) {
+    if (!imported.fileName.startsWith(".")) continue;
+    const base = resolve(dirname(path), imported.fileName);
+    for (const suffix of ["", ".ts", ".tsx", "/index.ts", "/index.tsx"]) {
+      const candidate = relative(process.cwd(), base + suffix).replaceAll(
+        "\\",
+        "/",
+      );
+      if (!/^(preview|registry\/components)\/.*\.[jt]sx?$/.test(candidate))
+        continue;
+      try {
+        await access(candidate);
+        nativeSourcePaths.add(candidate);
+        break;
+      } catch {
+        /* Try the next source extension. */
+      }
+    }
+  }
+}
 const nativeFiles = await Promise.all(
   [...nativeSourcePaths].sort().map(async (path) => {
     const content = await readFile(path, "utf8");
@@ -158,9 +205,20 @@ const nativeFiles = await Promise.all(
   }),
 );
 const nativeAssets = [];
-for (const directory of ["fonts", "lifecycle"]) {
-  for (const filename of (await readdir(`public/${directory}`)).sort()) {
-    const path = `${directory}/${filename}`;
+async function assetPaths(directory: string): Promise<string[]> {
+  const entries = await readdir(`public/${directory}`, { withFileTypes: true });
+  return (
+    await Promise.all(
+      entries.map((entry) =>
+        entry.isDirectory()
+          ? assetPaths(`${directory}/${entry.name}`)
+          : [`${directory}/${entry.name}`],
+      ),
+    )
+  ).flat();
+}
+for (const directory of ["fonts", "lifecycle", "demos"]) {
+  for (const path of (await assetPaths(directory)).sort()) {
     nativeAssets.push({
       path,
       sha256: createHash("sha256")
@@ -170,6 +228,14 @@ for (const directory of ["fonts", "lifecycle"]) {
   }
 }
 const nativeStyles = (await readFile("preview/styles.css", "utf8"))
+  .replace(
+    '@import "./reference/styles.css";',
+    await readFile("preview/reference/styles.css", "utf8"),
+  )
+  .replace(
+    '@import "./imported-keyframes.css";',
+    await readFile("preview/imported-keyframes.css", "utf8"),
+  )
   .replace(
     '@import "./theme.css";',
     await readFile("preview/theme.css", "utf8"),
