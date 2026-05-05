@@ -1,0 +1,110 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-accordion",
+  "title": "Accordion",
+  "description": "Sections that open in place: the height eases open, the content rises out of a blur a beat later, and opening one folds the other at the same time.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/accordion.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport {\n  EASE_OUT,\n  INTERACTION_FOCUS,\n  useInteractionReducedMotion,\n} from \"./imported-ui-interaction-motion\";\n\n/* ─────────────────────────────────────────────────────────\n * ACCORDION: sections that open in place\n *\n *   open     the section's height eases open (0fr → 1fr) while its\n *            content rises out of a blur a beat later; the chevron\n *            turns over in the same motion\n *   single   opening one folds the open one at the same time, so\n *            the page below barely moves\n *   keys     ↑/↓ move between headers, Home/End jump; Enter and\n *            Space open\n *\n * For FAQ sections on landing pages there is faq-accordion; this\n * is the plain one for settings, filters and details.\n * ───────────────────────────────────────────────────────── */\n\nexport interface AccordionItem {\n  value: string;\n  title: React.ReactNode;\n  /** A second line under the title. */\n  subtitle?: React.ReactNode;\n  content: React.ReactNode;\n  disabled?: boolean;\n}\n\nexport interface AccordionProps {\n  items: AccordionItem[];\n  /** One open at a time, or any number. */\n  type?: \"single\" | \"multiple\";\n  value?: string[];\n  defaultValue?: string[];\n  onValueChange?: (value: string[]) => void;\n  /** thin line rows, or each section as its own card. */\n  variant?: \"rows\" | \"cards\";\n  className?: string;\n}\n\n/** The fold every disclosure in the library uses: height by grid rows, content through a blur. */\nexport function Fold({\n  open,\n  children,\n  reduced,\n  id,\n  labelledBy,\n}: {\n  open: boolean;\n  children: React.ReactNode;\n  reduced: boolean;\n  id?: string;\n  labelledBy?: string;\n}) {\n  return (\n    <div\n      id={id}\n      role={labelledBy ? \"region\" : undefined}\n      aria-labelledby={labelledBy}\n      inert={!open || undefined}\n      className=\"grid\"\n      style={{\n        gridTemplateRows: open ? \"1fr\" : \"0fr\",\n        transition: reduced ? \"none\" : `grid-template-rows 420ms ${EASE_OUT}`,\n      }}\n    >\n      <div className=\"min-h-0 overflow-hidden\">\n        <div\n          style={{\n            opacity: open ? 1 : 0,\n            filter: open || reduced ? \"blur(0px)\" : \"blur(4px)\",\n            translate: open || reduced ? \"0 0\" : \"0 -6px\",\n            transition: reduced\n              ? \"none\"\n              : open\n                ? `opacity 300ms ${EASE_OUT} 90ms, filter 300ms ${EASE_OUT} 90ms, translate 420ms ${EASE_OUT}`\n                : `opacity 160ms ${EASE_OUT}, filter 160ms ${EASE_OUT}, translate 260ms ${EASE_OUT}`,\n          }}\n        >\n          {children}\n        </div>\n      </div>\n    </div>\n  );\n}\n\nexport function Chevron({\n  open,\n  reduced,\n}: {\n  open: boolean;\n  reduced: boolean;\n}) {\n  return (\n    <svg\n      viewBox=\"0 0 16 16\"\n      fill=\"none\"\n      aria-hidden=\"true\"\n      className=\"size-3.5 shrink-0 text-muted-foreground\"\n      style={{\n        transform: open ? \"rotate(180deg)\" : \"none\",\n        transition: reduced ? \"none\" : `transform 420ms ${EASE_OUT}`,\n      }}\n    >\n      <path\n        d=\"M4 6l4 4 4-4\"\n        stroke=\"currentColor\"\n        strokeWidth=\"1.6\"\n        strokeLinecap=\"round\"\n        strokeLinejoin=\"round\"\n      />\n    </svg>\n  );\n}\n\nexport function Accordion({\n  items,\n  type = \"single\",\n  value,\n  defaultValue = [],\n  onValueChange,\n  variant = \"rows\",\n  className = \"\",\n}: AccordionProps) {\n  const reduced = useInteractionReducedMotion();\n  const baseId = React.useId();\n  const rootRef = React.useRef<HTMLDivElement>(null);\n  const [own, setOwn] = React.useState(defaultValue);\n  const open = value ?? own;\n  const cards = variant === \"cards\";\n\n  const toggle = (v: string) => {\n    const next = open.includes(v)\n      ? open.filter((x) => x !== v)\n      : type === \"single\"\n        ? [v]\n        : [...open, v];\n    if (value === undefined) setOwn(next);\n    onValueChange?.(next);\n  };\n\n  const onKeyDown = (e: React.KeyboardEvent) => {\n    const heads = Array.from(\n      rootRef.current?.querySelectorAll<HTMLButtonElement>(\n        \"[data-accordion-head]:not(:disabled)\",\n      ) ?? [],\n    );\n    const i = heads.indexOf(document.activeElement as HTMLButtonElement);\n    if (i < 0) return;\n    let next = -1;\n    if (e.key === \"ArrowDown\") next = (i + 1) % heads.length;\n    else if (e.key === \"ArrowUp\") next = (i - 1 + heads.length) % heads.length;\n    else if (e.key === \"Home\") next = 0;\n    else if (e.key === \"End\") next = heads.length - 1;\n    if (next < 0) return;\n    e.preventDefault();\n    heads[next].focus();\n  };\n\n  return (\n    <div\n      ref={rootRef}\n      onKeyDown={onKeyDown}\n      className={`flex w-full flex-col ${cards ? \"gap-2\" : \"divide-y divide-border border-y border-border\"} ${className}`}\n    >\n      {items.map((item) => {\n        const on = open.includes(item.value);\n        const head = `${baseId}-h-${item.value}`;\n        const panel = `${baseId}-p-${item.value}`;\n        return (\n          <div\n            key={item.value}\n            className={\n              cards\n                ? `rounded-[16px] bg-card shadow-[inset_0_0_0_1px_var(--border)] transition-colors duration-300 ${on ? \"\" : \"hover:bg-accent/40\"}`\n                : \"\"\n            }\n          >\n            <h3 className=\"m-0\">\n              <button\n                type=\"button\"\n                id={head}\n                data-accordion-head=\"\"\n                aria-expanded={on}\n                aria-controls={panel}\n                disabled={item.disabled}\n                onClick={() => toggle(item.value)}\n                className={`flex w-full items-center gap-3 text-left cursor-pointer disabled:cursor-default disabled:opacity-40 ${cards ? \"rounded-[16px] px-4 py-3.5\" : \"py-3.5\"} ${INTERACTION_FOCUS} focus-visible:ring-offset-0`}\n              >\n                <span className=\"flex min-w-0 flex-1 flex-col gap-0.5\">\n                  <span className=\"text-[14px] font-medium text-foreground\">\n                    {item.title}\n                  </span>\n                  {item.subtitle && (\n                    <span className=\"text-[12.5px] text-muted-foreground\">\n                      {item.subtitle}\n                    </span>\n                  )}\n                </span>\n                <Chevron open={on} reduced={reduced} />\n              </button>\n            </h3>\n            <Fold open={on} reduced={reduced} id={panel} labelledBy={head}>\n              <div\n                className={`text-[13.5px] leading-relaxed text-muted-foreground ${cards ? \"px-4 pb-4\" : \"pb-4\"}`}\n              >\n                {item.content}\n              </div>\n            </Fold>\n          </div>\n        );\n      })}\n    </div>\n  );\n}\n\nexport default Accordion;\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/imported-ui-interaction-motion.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport const EASE_OUT = \"cubic-bezier(0.16, 1, 0.3, 1)\";\nexport const EASE_SETTLE = \"cubic-bezier(0.22, 1.18, 0.36, 1)\";\n/** Thrown things (indicators, thumbs): a slight overshoot on transform only. */\nexport const EASE_THROW = \"cubic-bezier(0.34, 1.36, 0.64, 1)\";\n/**\n * The press every button primitive shares: a 3% give that eases in and settles back.\n * Tailwind v4's scale-* writes the `scale` property, so `scale` has to be in the list\n * or the press snaps.\n */\nexport const INTERACTION_PRESS =\n  \"transition-[background-color,color,box-shadow,opacity,scale] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100\";\nexport const INTERACTION_FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background\";\n\nconst query = \"(prefers-reduced-motion: reduce)\";\nconst subscribe = (notify: () => void) => {\n  const media = window.matchMedia(query);\n  media.addEventListener(\"change\", notify);\n  return () => media.removeEventListener(\"change\", notify);\n};\nexport const useInteractionReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false,\n  );\n\nexport function useInteractionActivity<T extends Element>() {\n  const ref = React.useRef<T>(null);\n  const [visible, setVisible] = React.useState(false);\n  const [hidden, setHidden] = React.useState(false);\n  React.useEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(([entry]) =>\n      setVisible(entry.isIntersecting),\n    );\n    observer.observe(el);\n    const visibility = () => setHidden(document.hidden);\n    visibility();\n    document.addEventListener(\"visibilitychange\", visibility);\n    return () => {\n      observer.disconnect();\n      document.removeEventListener(\"visibilitychange\", visibility);\n    };\n  }, []);\n  return { ref, active: visible && !hidden };\n}\n\nexport function interactionIcon(\n  on: boolean,\n  reduced: boolean,\n): React.CSSProperties {\n  return {\n    opacity: on ? 1 : 0,\n    transform: on ? \"none\" : \"scale(0.6)\",\n    filter: on ? \"blur(0px)\" : \"blur(3px)\",\n    transition: reduced\n      ? \"none\"\n      : `opacity 220ms ${EASE_OUT}, transform 380ms ${EASE_OUT}, filter 220ms ${EASE_OUT}`,\n  };\n}\n\n/** Sample recent movement rather than averaging a long drag and losing its release velocity. */\nexport type PointerSample = { x: number; time: number };\nexport function samplePointer(\n  samples: PointerSample[],\n  x: number,\n  time: number,\n) {\n  samples.push({ x, time });\n  while (samples.length > 2 && time - samples[0].time > 100) samples.shift();\n}\nexport function releaseVelocity(samples: PointerSample[], now: number) {\n  if (samples.length < 2 || now - samples[samples.length - 1].time > 100)\n    return 0;\n  const first = samples[0],\n    last = samples[samples.length - 1];\n  return (last.x - first.x) / Math.max(1, last.time - first.time);\n}\n\n/** Smooth Apple/rational rubber-band curve: continuous exponential-like resistance without linear kinks. */\nexport function rubberBand(\n  overshoot: number,\n  dimension = 320,\n  constant = 0.55,\n): number {\n  const d = dimension || 320;\n  const abs = Math.abs(overshoot);\n  return Math.sign(overshoot) * (1 - 1 / ((abs * constant) / d + 1)) * d;\n}\n\n/** Projects resting travel from release velocity (velocity in px/ms; time in seconds). */\nexport function projectInertia(\n  distance: number,\n  velocity: number,\n  time = 0.12,\n): number {\n  return distance + velocity * 1000 * time;\n}\n\n/** Smooths incoming release velocity toward a boundary so springs don't slam or clip into walls. */\nexport function softenVelocity(\n  velocity: number,\n  distanceToTarget: number,\n  factor = 10,\n): number {\n  const maxAllowed = Math.abs(distanceToTarget) * factor;\n  return Math.sign(velocity) * Math.min(Math.abs(velocity), maxAllowed);\n}\n\n/** A damped spring sampled by WAAPI: tuned for organic lightness with a hint of life (3% breath). */\nexport function springFrames(\n  from: number,\n  to: number,\n  velocity = 0,\n  duration = 480,\n  config: { omega?: number; damping?: number; steps?: number } = {},\n) {\n  const { omega = 16, damping = 0.74, steps = 36 } = config;\n  const damped = omega * Math.sqrt(Math.max(0.001, 1 - damping * damping));\n  const displacement = from - to;\n  const coefficient =\n    (velocity * 1000 + damping * omega * displacement) / damped;\n  return Array.from({ length: steps + 1 }, (_, i) => {\n    const t = (i / steps) * (duration / 1000);\n    const value =\n      to +\n      Math.exp(-damping * omega * t) *\n        (displacement * Math.cos(damped * t) +\n          coefficient * Math.sin(damped * t));\n    return { value: i === steps ? to : value, offset: i / steps };\n  });\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "accordion",
+      "exportName": "Accordion",
+      "categories": [
+        "display"
+      ],
+      "isNew": true,
+      "usage": "import { Accordion } from \"@/components/accordion\";\n\n<Accordion items={[\n  { value: \"shipping\", title: \"Shipping\", content: \"Ships in 2 days.\" },\n  { value: \"returns\", title: \"Returns\", content: \"30 days, free.\" },\n]} />",
+      "accessibility": "- Headers are buttons in h3s with aria-expanded and aria-controls; panels are regions.\n- Folded content is inert.\n- Reduced motion: sections open in place.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "items",
+            "type": "AccordionItem[]",
+            "description": "– · value, title, subtitle, content, disabled."
+          },
+          {
+            "name": "type",
+            "type": "\"single\" | \"multiple\"",
+            "description": "\"single\" · How many can be open."
+          },
+          {
+            "name": "value / defaultValue",
+            "type": "string[]",
+            "description": "– · Open sections."
+          },
+          {
+            "name": "onValueChange",
+            "type": "(value: string[]) => void",
+            "description": "– · Called on change."
+          },
+          {
+            "name": "variant",
+            "type": "\"rows\" | \"cards\"",
+            "description": "\"rows\" · thin line rows or cards."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Settings",
+            "description": "Advanced options folded under each group."
+          },
+          {
+            "title": "Filters",
+            "description": "Collapsible filter groups in a sidebar."
+          },
+          {
+            "title": "Order and invoice details",
+            "description": "Line items you can open."
+          },
+          {
+            "title": "Help",
+            "description": "Questions inside an app."
+          }
+        ],
+        "features": [
+          {
+            "title": "Real height",
+            "description": "grid-template-rows 0fr → 1fr, eased 420ms."
+          },
+          {
+            "title": "Content through a blur",
+            "description": "Rises 6px out of a 4px blur, 90ms after the height starts."
+          },
+          {
+            "title": "Single or multiple",
+            "description": "Folding the old one while the new one opens."
+          },
+          {
+            "title": "Keyboard",
+            "description": "↑/↓ between headers, Home/End."
+          }
+        ],
+        "states": [
+          {
+            "title": "open",
+            "description": "Height eases (420ms), content rises from a blur (300ms, 90ms later), chevron turns."
+          },
+          {
+            "title": "close",
+            "description": "Content fades fast (160ms) while the height folds."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
