@@ -1,0 +1,120 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-alert",
+  "title": "Alert",
+  "description": "A message that sits in the page: its tint, line and icon ease when the tone changes, and dismissing folds it away so the content below slides up.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/alert.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport {\n  EASE_OUT,\n  INTERACTION_FOCUS,\n  INTERACTION_PRESS,\n  interactionIcon,\n  useInteractionReducedMotion,\n} from \"./imported-ui-interaction-motion\";\n\n/* ─────────────────────────────────────────────────────────\n * ALERT: a message that sits in the page\n *\n *   tone     info, success, warning or danger: the tint, line and\n *            icon ease across when the tone changes (a sync that\n *            goes from \"Syncing\" to \"Synced\"), the icon swapping\n *            through a blur\n *   dismiss  the ✕ folds the alert away: it fades and lifts while\n *            its height closes, so the content below slides up\n *            instead of jumping\n *   action   an optional button on the right (or under it on\n *            narrow cards)\n * ───────────────────────────────────────────────────────── */\n\nexport type AlertTone = \"info\" | \"success\" | \"warning\" | \"danger\";\n\nexport interface AlertProps {\n  tone?: AlertTone;\n  title: React.ReactNode;\n  children?: React.ReactNode;\n  /** A button or link at the end. */\n  action?: React.ReactNode;\n  /** Show a ✕; called after the alert has folded away. */\n  onDismiss?: () => void;\n  /** Hide it (folds away) without unmounting. */\n  hidden?: boolean;\n  /** Replace the tone's icon. */\n  icon?: React.ReactNode;\n  className?: string;\n}\n\nconst TONE: Record<AlertTone, string> = {\n  info: \"bg-card shadow-[inset_0_0_0_1px_var(--border)] text-foreground\",\n  success:\n    \"bg-emerald-500/[0.06] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-emerald-500)_30%,transparent)] text-foreground\",\n  warning:\n    \"bg-amber-500/[0.07] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-amber-500)_35%,transparent)] text-foreground\",\n  danger:\n    \"bg-red-500/[0.06] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-red-500)_30%,transparent)] text-foreground\",\n};\nconst ICON_TONE: Record<AlertTone, string> = {\n  info: \"text-muted-foreground\",\n  success: \"text-emerald-600 dark:text-emerald-400\",\n  warning: \"text-amber-600 dark:text-amber-400\",\n  danger: \"text-red-600 dark:text-red-400\",\n};\n\nconst ICONS: Record<AlertTone, React.ReactNode> = {\n  info: (\n    <svg viewBox=\"0 0 16 16\" fill=\"none\" className=\"size-4\">\n      <circle cx=\"8\" cy=\"8\" r=\"6.25\" stroke=\"currentColor\" strokeWidth=\"1.5\" />\n      <path\n        d=\"M8 7.25v3.5\"\n        stroke=\"currentColor\"\n        strokeWidth=\"1.6\"\n        strokeLinecap=\"round\"\n      />\n      <circle cx=\"8\" cy=\"5\" r=\"0.9\" fill=\"currentColor\" />\n    </svg>\n  ),\n  success: (\n    <svg viewBox=\"0 0 16 16\" fill=\"none\" className=\"size-4\">\n      <circle cx=\"8\" cy=\"8\" r=\"6.25\" stroke=\"currentColor\" strokeWidth=\"1.5\" />\n      <path\n        d=\"M5.4 8.2 7.2 10l3.4-3.8\"\n        stroke=\"currentColor\"\n        strokeWidth=\"1.6\"\n        strokeLinecap=\"round\"\n        strokeLinejoin=\"round\"\n      />\n    </svg>\n  ),\n  warning: (\n    <svg viewBox=\"0 0 16 16\" fill=\"none\" className=\"size-4\">\n      <path\n        d=\"M8 2.2 14.3 13H1.7L8 2.2Z\"\n        stroke=\"currentColor\"\n        strokeWidth=\"1.5\"\n        strokeLinejoin=\"round\"\n      />\n      <path\n        d=\"M8 6.3v3.2\"\n        stroke=\"currentColor\"\n        strokeWidth=\"1.6\"\n        strokeLinecap=\"round\"\n      />\n      <circle cx=\"8\" cy=\"11.2\" r=\"0.85\" fill=\"currentColor\" />\n    </svg>\n  ),\n  danger: (\n    <svg viewBox=\"0 0 16 16\" fill=\"none\" className=\"size-4\">\n      <circle cx=\"8\" cy=\"8\" r=\"6.25\" stroke=\"currentColor\" strokeWidth=\"1.5\" />\n      <path\n        d=\"M8 4.75v3.75\"\n        stroke=\"currentColor\"\n        strokeWidth=\"1.6\"\n        strokeLinecap=\"round\"\n      />\n      <circle cx=\"8\" cy=\"11\" r=\"0.9\" fill=\"currentColor\" />\n    </svg>\n  ),\n};\n\nexport function Alert({\n  tone = \"info\",\n  title,\n  children,\n  action,\n  onDismiss,\n  hidden: hiddenProp,\n  icon,\n  className = \"\",\n}: AlertProps) {\n  const reduced = useInteractionReducedMotion();\n  const [dismissed, setDismissed] = React.useState(false);\n  const hidden = hiddenProp || dismissed;\n\n  React.useEffect(() => {\n    if (!dismissed) return;\n    const timer = window.setTimeout(() => onDismiss?.(), reduced ? 0 : 380);\n    return () => window.clearTimeout(timer);\n  }, [dismissed, onDismiss, reduced]);\n\n  return (\n    <div\n      className=\"grid w-full\"\n      aria-hidden={hidden || undefined}\n      inert={hidden || undefined}\n      style={{\n        gridTemplateRows: hidden ? \"0fr\" : \"1fr\",\n        transition: reduced\n          ? \"none\"\n          : `grid-template-rows 380ms ${EASE_OUT} ${hidden ? 80 : 0}ms`,\n      }}\n    >\n      <div className=\"min-h-0 overflow-hidden [clip-path:inset(-2px)]\">\n        <div\n          role={tone === \"danger\" || tone === \"warning\" ? \"alert\" : \"status\"}\n          className={`@container flex items-start gap-3 rounded-[14px] p-3.5 transition-[background-color,box-shadow] duration-300 ${TONE[tone]} ${className}`}\n          style={{\n            opacity: hidden ? 0 : 1,\n            translate: hidden && !reduced ? \"0 -6px\" : \"0 0\",\n            scale: hidden && !reduced ? \"0.98\" : \"1\",\n            transition: reduced\n              ? \"none\"\n              : `opacity 220ms ${EASE_OUT}, translate 320ms ${EASE_OUT}, scale 320ms ${EASE_OUT}, background-color 300ms, box-shadow 300ms`,\n          }}\n        >\n          <span\n            className={`relative mt-px size-4 shrink-0 transition-colors duration-300 ${ICON_TONE[tone]}`}\n            aria-hidden=\"true\"\n          >\n            {icon\n              ? icon\n              : (Object.keys(ICONS) as AlertTone[]).map((t) => (\n                  <span\n                    key={t}\n                    className=\"absolute inset-0\"\n                    style={interactionIcon(t === tone, reduced)}\n                  >\n                    {ICONS[t]}\n                  </span>\n                ))}\n          </span>\n          <div className=\"flex min-w-0 flex-1 flex-col gap-2.5 @md:flex-row @md:items-start @md:justify-between\">\n            <div className=\"flex min-w-0 flex-col gap-0.5\">\n              <p className=\"text-[13.5px] font-medium leading-5\">{title}</p>\n              {children && (\n                <div className=\"text-[13px] leading-relaxed text-muted-foreground\">\n                  {children}\n                </div>\n              )}\n            </div>\n            {action && (\n              <div className=\"flex shrink-0 items-center gap-2\">{action}</div>\n            )}\n          </div>\n          {onDismiss && (\n            <button\n              type=\"button\"\n              aria-label=\"Dismiss\"\n              onClick={() => setDismissed(true)}\n              className={`-mr-1 -mt-1 flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground cursor-pointer hover:bg-accent hover:text-foreground ${INTERACTION_PRESS} ${INTERACTION_FOCUS}`}\n            >\n              <svg viewBox=\"0 0 16 16\" fill=\"none\" className=\"size-3.5\">\n                <path\n                  d=\"M4 4l8 8M12 4l-8 8\"\n                  stroke=\"currentColor\"\n                  strokeWidth=\"1.6\"\n                  strokeLinecap=\"round\"\n                />\n              </svg>\n            </button>\n          )}\n        </div>\n      </div>\n    </div>\n  );\n}\n\nexport default Alert;\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/imported-ui-interaction-motion.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport const EASE_OUT = \"cubic-bezier(0.16, 1, 0.3, 1)\";\nexport const EASE_SETTLE = \"cubic-bezier(0.22, 1.18, 0.36, 1)\";\n/** Thrown things (indicators, thumbs): a slight overshoot on transform only. */\nexport const EASE_THROW = \"cubic-bezier(0.34, 1.36, 0.64, 1)\";\n/**\n * The press every button primitive shares: a 3% give that eases in and settles back.\n * Tailwind v4's scale-* writes the `scale` property, so `scale` has to be in the list\n * or the press snaps.\n */\nexport const INTERACTION_PRESS =\n  \"transition-[background-color,color,box-shadow,opacity,scale] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100\";\nexport const INTERACTION_FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background\";\n\nconst query = \"(prefers-reduced-motion: reduce)\";\nconst subscribe = (notify: () => void) => {\n  const media = window.matchMedia(query);\n  media.addEventListener(\"change\", notify);\n  return () => media.removeEventListener(\"change\", notify);\n};\nexport const useInteractionReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false,\n  );\n\nexport function useInteractionActivity<T extends Element>() {\n  const ref = React.useRef<T>(null);\n  const [visible, setVisible] = React.useState(false);\n  const [hidden, setHidden] = React.useState(false);\n  React.useEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(([entry]) =>\n      setVisible(entry.isIntersecting),\n    );\n    observer.observe(el);\n    const visibility = () => setHidden(document.hidden);\n    visibility();\n    document.addEventListener(\"visibilitychange\", visibility);\n    return () => {\n      observer.disconnect();\n      document.removeEventListener(\"visibilitychange\", visibility);\n    };\n  }, []);\n  return { ref, active: visible && !hidden };\n}\n\nexport function interactionIcon(\n  on: boolean,\n  reduced: boolean,\n): React.CSSProperties {\n  return {\n    opacity: on ? 1 : 0,\n    transform: on ? \"none\" : \"scale(0.6)\",\n    filter: on ? \"blur(0px)\" : \"blur(3px)\",\n    transition: reduced\n      ? \"none\"\n      : `opacity 220ms ${EASE_OUT}, transform 380ms ${EASE_OUT}, filter 220ms ${EASE_OUT}`,\n  };\n}\n\n/** Sample recent movement rather than averaging a long drag and losing its release velocity. */\nexport type PointerSample = { x: number; time: number };\nexport function samplePointer(\n  samples: PointerSample[],\n  x: number,\n  time: number,\n) {\n  samples.push({ x, time });\n  while (samples.length > 2 && time - samples[0].time > 100) samples.shift();\n}\nexport function releaseVelocity(samples: PointerSample[], now: number) {\n  if (samples.length < 2 || now - samples[samples.length - 1].time > 100)\n    return 0;\n  const first = samples[0],\n    last = samples[samples.length - 1];\n  return (last.x - first.x) / Math.max(1, last.time - first.time);\n}\n\n/** Smooth Apple/rational rubber-band curve: continuous exponential-like resistance without linear kinks. */\nexport function rubberBand(\n  overshoot: number,\n  dimension = 320,\n  constant = 0.55,\n): number {\n  const d = dimension || 320;\n  const abs = Math.abs(overshoot);\n  return Math.sign(overshoot) * (1 - 1 / ((abs * constant) / d + 1)) * d;\n}\n\n/** Projects resting travel from release velocity (velocity in px/ms; time in seconds). */\nexport function projectInertia(\n  distance: number,\n  velocity: number,\n  time = 0.12,\n): number {\n  return distance + velocity * 1000 * time;\n}\n\n/** Smooths incoming release velocity toward a boundary so springs don't slam or clip into walls. */\nexport function softenVelocity(\n  velocity: number,\n  distanceToTarget: number,\n  factor = 10,\n): number {\n  const maxAllowed = Math.abs(distanceToTarget) * factor;\n  return Math.sign(velocity) * Math.min(Math.abs(velocity), maxAllowed);\n}\n\n/** A damped spring sampled by WAAPI: tuned for organic lightness with a hint of life (3% breath). */\nexport function springFrames(\n  from: number,\n  to: number,\n  velocity = 0,\n  duration = 480,\n  config: { omega?: number; damping?: number; steps?: number } = {},\n) {\n  const { omega = 16, damping = 0.74, steps = 36 } = config;\n  const damped = omega * Math.sqrt(Math.max(0.001, 1 - damping * damping));\n  const displacement = from - to;\n  const coefficient =\n    (velocity * 1000 + damping * omega * displacement) / damped;\n  return Array.from({ length: steps + 1 }, (_, i) => {\n    const t = (i / steps) * (duration / 1000);\n    const value =\n      to +\n      Math.exp(-damping * omega * t) *\n        (displacement * Math.cos(damped * t) +\n          coefficient * Math.sin(damped * t));\n    return { value: i === steps ? to : value, offset: i / steps };\n  });\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "alert",
+      "exportName": "Alert",
+      "categories": [
+        "display"
+      ],
+      "isNew": true,
+      "usage": "import { Alert } from \"@/components/alert\";\n\n<Alert tone=\"warning\" title=\"Your card expires on 30 November\" action={<button>Update</button>} onDismiss={() => {}}>\n  Update it to keep All access.\n</Alert>",
+      "accessibility": "- Reduced motion: changes and dismissal happen in place.\n- Folded alerts are inert, so focus can't land in them.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "tone",
+            "type": "\"info\" | \"success\" | \"warning\" | \"danger\"",
+            "description": "\"info\" · Colour and icon."
+          },
+          {
+            "name": "title",
+            "type": "ReactNode",
+            "description": "– · First line."
+          },
+          {
+            "name": "children",
+            "type": "ReactNode",
+            "description": "– · Details."
+          },
+          {
+            "name": "action",
+            "type": "ReactNode",
+            "description": "– · A button or link."
+          },
+          {
+            "name": "onDismiss",
+            "type": "() => void",
+            "description": "– · Shows ✕; called after it has folded."
+          },
+          {
+            "name": "hidden",
+            "type": "boolean",
+            "description": "– · Fold it away without unmounting."
+          },
+          {
+            "name": "icon",
+            "type": "ReactNode",
+            "description": "– · Replace the tone icon."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Billing",
+            "description": "A card is about to expire, with Update."
+          },
+          {
+            "title": "Sync and imports",
+            "description": "\"Syncing\" turning into \"Synced\" in place."
+          },
+          {
+            "title": "Forms",
+            "description": "A summary of what needs fixing."
+          },
+          {
+            "title": "Announcements",
+            "description": "A dismissible note at the top of a settings page."
+          }
+        ],
+        "features": [
+          {
+            "title": "Tone transitions",
+            "description": "Tint, line and icon ease (300ms)."
+          },
+          {
+            "title": "Folding dismissal",
+            "description": "Height closes (380ms, 80ms after the fade) so content slides up."
+          },
+          {
+            "title": "Right role",
+            "description": "role=\"alert\" for warning and danger, \"status\" otherwise."
+          },
+          {
+            "title": "Responsive action",
+            "description": "Beside the text on wide cards, under it on narrow ones."
+          }
+        ],
+        "states": [
+          {
+            "title": "tone change",
+            "description": "Background, line and icon colour ease; the icon swaps through a 3px blur."
+          },
+          {
+            "title": "dismiss",
+            "description": "Lifts 6px and fades (220ms) while the height folds (380ms)."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
