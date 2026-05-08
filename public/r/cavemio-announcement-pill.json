@@ -1,0 +1,121 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-announcement-pill",
+  "title": "Announcement pill",
+  "description": "\"New: …\" above your headline that opens into the news: the pill itself grows into a changelog card.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/announcement-pill.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * ANNOUNCEMENT PILL: \"New: …\" that opens into the news\n *\n *   rest    a badge and one line, in a thin line pill\n *   hover   the arrow nudges on and a second phrase folds open\n *           (\"Read the changelog\")\n *   open    the pill itself grows into a card with the details:\n *           its size and corners ease from pill to card while\n *           the line cross-fades into the content\n *   close   the card folds back into the pill\n *\n * Without card content it's simply a link.\n * ───────────────────────────────────────────────────────── */\n\nexport interface AnnouncementPillProps extends Omit<\n  React.HTMLAttributes<HTMLDivElement>,\n  \"children\"\n> {\n  badge?: string;\n  children: React.ReactNode;\n  /** A second phrase that folds open on hover. */\n  more?: string;\n  /** Without card, the pill is a link to here. */\n  href?: string;\n  /** What the pill opens into. */\n  card?: React.ReactNode;\n  cardWidth?: number;\n}\n\ntype Phase = \"closed\" | \"opening\" | \"open\" | \"closing\";\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\nconst DURATION = 420;\nconst FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background\";\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\nfunction Arrow() {\n  return (\n    <svg\n      aria-hidden=\"true\"\n      viewBox=\"0 0 12 12\"\n      className=\"size-3 shrink-0 text-muted-foreground transition-[transform,color] duration-300 group-hover/pill:translate-x-0.5 group-hover/pill:text-foreground\"\n    >\n      <path\n        d=\"M2.5 6h7M6.5 3l3 3-3 3\"\n        fill=\"none\"\n        stroke=\"currentColor\"\n        strokeWidth=\"1.4\"\n        strokeLinecap=\"round\"\n        strokeLinejoin=\"round\"\n      />\n    </svg>\n  );\n}\n\nexport function AnnouncementPill({\n  badge = \"New\",\n  children,\n  more,\n  href,\n  card,\n  cardWidth = 360,\n  className = \"\",\n  ...props\n}: AnnouncementPillProps) {\n  const reduced = useReducedMotion();\n  const id = React.useId();\n  const [phase, setPhase] = React.useState<Phase>(\"closed\");\n  const [pill, setPill] = React.useState({ width: 0, height: 32 });\n  const [cardSize, setCardSize] = React.useState({\n    width: cardWidth,\n    height: 0,\n  });\n  const [moreWidth, setMoreWidth] = React.useState(0);\n  const wrapRef = React.useRef<HTMLDivElement>(null);\n  const pillRef = React.useRef<HTMLElement | null>(null);\n  const cardRef = React.useRef<HTMLDivElement>(null);\n  const moreRef = React.useRef<HTMLSpanElement>(null);\n  const timer = React.useRef(0);\n\n  const expanded = phase === \"open\";\n  const mounted = phase !== \"closed\";\n\n  React.useLayoutEffect(() => {\n    const el = pillRef.current;\n    if (!el) return;\n    const measure = () =>\n      setPill((p) =>\n        p.width === el.offsetWidth && p.height === el.offsetHeight\n          ? p\n          : { width: el.offsetWidth, height: el.offsetHeight },\n      );\n    measure();\n    const observer = new ResizeObserver(measure);\n    observer.observe(el);\n    return () => observer.disconnect();\n  }, []);\n\n  React.useLayoutEffect(() => {\n    const el = moreRef.current;\n    if (el) setMoreWidth(el.offsetWidth);\n  }, [more]);\n\n  React.useLayoutEffect(() => {\n    const el = cardRef.current;\n    if (!el) return;\n    const measure = () => {\n      const width = Math.min(\n        cardWidth,\n        document.documentElement.clientWidth - 32,\n      );\n      setCardSize((c) =>\n        c.width === width && c.height === el.offsetHeight\n          ? c\n          : { width, height: el.offsetHeight },\n      );\n    };\n    measure();\n    const observer = new ResizeObserver(measure);\n    observer.observe(el);\n    return () => observer.disconnect();\n  }, [mounted, cardWidth]);\n\n  const open = () => {\n    window.clearTimeout(timer.current);\n    setPhase(reduced ? \"open\" : \"opening\");\n  };\n\n  const close = React.useCallback(\n    (refocus = true) => {\n      window.clearTimeout(timer.current);\n      if (refocus) pillRef.current?.focus({ preventScroll: true });\n      if (reduced) return setPhase(\"closed\");\n      setPhase(\"closing\");\n      timer.current = window.setTimeout(() => setPhase(\"closed\"), DURATION);\n    },\n    [reduced],\n  );\n\n  // Paint the surface at the pill's size first, then let it grow.\n  React.useEffect(() => {\n    if (phase !== \"opening\") return;\n    let inner = 0;\n    const outer = requestAnimationFrame(\n      () => (inner = requestAnimationFrame(() => setPhase(\"open\"))),\n    );\n    return () => {\n      cancelAnimationFrame(outer);\n      cancelAnimationFrame(inner);\n    };\n  }, [phase]);\n\n  React.useEffect(() => () => window.clearTimeout(timer.current), []);\n\n  React.useEffect(() => {\n    if (!expanded) return;\n    cardRef.current\n      ?.querySelector<HTMLElement>(\"a[href], button\")\n      ?.focus({ preventScroll: true });\n    const onKey = (e: KeyboardEvent) => e.key === \"Escape\" && close();\n    const onDown = (e: PointerEvent) =>\n      !wrapRef.current?.contains(e.target as Node) && close(false);\n    document.addEventListener(\"keydown\", onKey);\n    document.addEventListener(\"pointerdown\", onDown);\n    return () => {\n      document.removeEventListener(\"keydown\", onKey);\n      document.removeEventListener(\"pointerdown\", onDown);\n    };\n  }, [expanded, close]);\n\n  const line = (\n    <>\n      <span className=\"flex h-6 shrink-0 items-center rounded-full bg-primary/10 px-2 text-[11.5px] font-medium text-primary\">\n        {badge}\n      </span>\n      <span className=\"whitespace-nowrap text-[13px] text-foreground\">\n        {children}\n      </span>\n      {more && (\n        <span\n          className=\"flex overflow-hidden whitespace-nowrap text-[13px] text-muted-foreground transition-[max-width,opacity] duration-500 group-hover/pill:opacity-100 group-focus-visible/pill:opacity-100 [max-width:0] group-hover/pill:[max-width:var(--more)] group-focus-visible/pill:[max-width:var(--more)] opacity-0\"\n          style={\n            {\n              \"--more\": `${moreWidth}px`,\n              transitionTimingFunction: EASE,\n            } as React.CSSProperties\n          }\n        >\n          <span\n            ref={moreRef}\n            className=\"flex w-max shrink-0 items-center gap-1.5 pl-0.5\"\n          >\n            <span aria-hidden=\"true\" className=\"text-border\">\n              ·\n            </span>\n            {more}\n          </span>\n        </span>\n      )}\n      <Arrow />\n    </>\n  );\n\n  const pillClass = `group/pill inline-flex h-8 items-center gap-2 rounded-full bg-background pl-1 pr-3 shadow-[inset_0_0_0_1px_var(--border)] transition-[box-shadow] duration-300 hover:shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_22%,transparent)] ${FOCUS}`;\n\n  if (!card) {\n    return (\n      <div className={`inline-flex ${className}`} {...props}>\n        <a\n          ref={(el) => void (pillRef.current = el)}\n          href={href}\n          className={pillClass}\n        >\n          {line}\n        </a>\n      </div>\n    );\n  }\n\n  return (\n    <div\n      ref={wrapRef}\n      className={`relative inline-flex ${className}`}\n      {...props}\n    >\n      <button\n        ref={(el) => void (pillRef.current = el)}\n        type=\"button\"\n        aria-expanded={expanded}\n        aria-controls={mounted ? `${id}-card` : undefined}\n        onClick={() => (expanded ? close() : open())}\n        className={`cursor-pointer ${pillClass} ${mounted ? \"opacity-0\" : \"\"}`}\n      >\n        {line}\n      </button>\n\n      {mounted && (\n        <div\n          id={`${id}-card`}\n          role=\"dialog\"\n          aria-label={typeof children === \"string\" ? children : \"Announcement\"}\n          className=\"absolute left-1/2 top-0 z-50 overflow-hidden bg-popover text-left text-popover-foreground\"\n          style={{\n            width: expanded ? cardSize.width : pill.width,\n            height: expanded ? cardSize.height : pill.height,\n            transform: \"translateX(-50%)\",\n            borderRadius: expanded ? 22 : pill.height / 2,\n            boxShadow: \"inset 0 0 0 1px var(--border)\",\n            transition: reduced\n              ? \"none\"\n              : `width ${DURATION}ms ${EASE}, height ${DURATION}ms ${EASE}, border-radius ${DURATION}ms ${EASE}`,\n          }}\n        >\n          {/* The pill's line, fading out as the card grows and back in as it folds. */}\n          <span\n            aria-hidden=\"true\"\n            className=\"pointer-events-none absolute left-1/2 top-0 flex h-8 -translate-x-1/2 items-center gap-2 pl-1 pr-3\"\n            style={{\n              opacity: expanded ? 0 : 1,\n              transition: reduced\n                ? \"none\"\n                : expanded\n                  ? \"opacity 120ms ease-out\"\n                  : \"opacity 200ms ease-out 180ms\",\n            }}\n          >\n            {line}\n          </span>\n          <div\n            ref={cardRef}\n            inert={!expanded}\n            className=\"absolute left-0 top-0\"\n            style={{\n              width: cardSize.width,\n              opacity: expanded ? 1 : 0,\n              transform: expanded ? \"none\" : \"translateY(-6px)\",\n              transition: reduced\n                ? \"none\"\n                : expanded\n                  ? `opacity 260ms ease-out 140ms, transform ${DURATION}ms ${EASE}`\n                  : \"opacity 100ms ease-out\",\n            }}\n          >\n            <button\n              type=\"button\"\n              aria-label=\"Close\"\n              onClick={() => close()}\n              className={`cursor-pointer absolute right-2.5 top-2.5 z-10 flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground ${FOCUS}`}\n            >\n              <svg aria-hidden=\"true\" viewBox=\"0 0 12 12\" className=\"size-3\">\n                <path\n                  d=\"M3 3l6 6M9 3l-6 6\"\n                  fill=\"none\"\n                  stroke=\"currentColor\"\n                  strokeWidth=\"1.5\"\n                  strokeLinecap=\"round\"\n                />\n              </svg>\n            </button>\n            {card}\n          </div>\n        </div>\n      )}\n    </div>\n  );\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "announcement-pill",
+      "exportName": "AnnouncementPill",
+      "categories": [
+        "motion"
+      ],
+      "isNew": false,
+      "usage": "import { AnnouncementPill } from \"@/components/announcement-pill\";\n\n<AnnouncementPill more=\"Read the changelog\" card={<Changelog />}>\n  Agents can now hand off\n</AnnouncementPill>",
+      "accessibility": "- With a card, the pill is a button with aria-expanded; the card is a labelled dialog and its first link takes focus when it opens.\n- Escape, the close button or a click outside closes it, and focus returns to the pill.\n- The hover phrase also opens on keyboard focus, so nobody misses it.\n- With reduced motion the card simply appears and disappears.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "children",
+            "type": "ReactNode",
+            "description": "– · The announcement line."
+          },
+          {
+            "name": "badge",
+            "type": "string",
+            "description": "\"New\" · The tinted label at the start."
+          },
+          {
+            "name": "more",
+            "type": "string",
+            "description": "– · A second phrase that folds open on hover or keyboard focus."
+          },
+          {
+            "name": "card / cardWidth",
+            "type": "ReactNode / number",
+            "description": "— / 360 · What the pill opens into, and how wide (never wider than the screen)."
+          },
+          {
+            "name": "href",
+            "type": "string",
+            "description": "– · Without a card, the pill links here."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Launch heroes",
+            "description": "A “New: …” badge above the headline that tells people what just shipped."
+          },
+          {
+            "title": "Changelog teasers",
+            "description": "Open the details in place instead of sending people to another page."
+          },
+          {
+            "title": "Event and webinar notices",
+            "description": "A “Live Thursday” pill that opens into the time and a sign-up link."
+          },
+          {
+            "title": "Docs and app headers",
+            "description": "A small notice for a new feature, without a full-width banner."
+          }
+        ],
+        "features": [
+          {
+            "title": "It opens into a card",
+            "description": "The pill itself grows into a card of up to 360px, never wider than the screen, then folds back."
+          },
+          {
+            "title": "Or it is a link",
+            "description": "Without card content it is simply a link to the href you give it."
+          },
+          {
+            "title": "A hover hint",
+            "description": "A second phrase folds open on hover and on keyboard focus, so nobody misses it."
+          },
+          {
+            "title": "Closes any way you expect",
+            "description": "Escape, the close button or a click outside closes it, and focus returns to the pill."
+          },
+          {
+            "title": "Focus is handled",
+            "description": "The pill is a button with aria-expanded, and the card’s first link takes focus when it opens."
+          },
+          {
+            "title": "Calm with reduced motion",
+            "description": "The card simply appears and disappears."
+          }
+        ],
+        "states": [
+          {
+            "title": "rest",
+            "description": "A tinted badge and one line in a thin line pill."
+          },
+          {
+            "title": "hover",
+            "description": "The arrow slides 2px on and \"· Read the changelog\" folds open from zero width (500ms); the edge darkens a touch."
+          },
+          {
+            "title": "open",
+            "description": "The pill grows into a 360px card (420ms), centred on where the pill was; the card’s first link takes focus."
+          },
+          {
+            "title": "close",
+            "description": "Escape, the close button or a click outside folds the card back into the pill and returns focus."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
