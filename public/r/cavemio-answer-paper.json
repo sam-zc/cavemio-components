@@ -21,8 +21,7 @@
       "accessibility": "The bottom handle is a keyboard-accessible slider. Up/Left shorten, Down/Right expand, Home selects the shortest version, and End restores the full answer. Inactive content is inert and hidden from assistive technology. Reduced motion disables spring and word movement, blur, and scale transitions.",
       "previewNote": "The demo reproduces the supplied video’s four prepared answer versions. The component displays caller-provided summaries; it does not generate AI text or make network requests.",
       "categories": [
-        "ai",
-        "interactions"
+        "ai"
       ],
       "documentation": {
         "useCases": [],
