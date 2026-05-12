@@ -1,0 +1,123 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-checkbox",
+  "title": "Checkbox",
+  "description": "A real checkbox whose fill grows from the centre and whose tick draws itself, with a mixed state that bends into the tick.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/checkbox.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport {\n  EASE_OUT,\n  EASE_THROW,\n  useInteractionReducedMotion,\n} from \"./imported-ui-interaction-motion\";\n\n/* ─────────────────────────────────────────────────────────\n * CHECKBOX: a tick that draws itself\n *\n *   check    the box fills from its centre (a slight overshoot)\n *            and the tick draws itself along its stroke\n *   uncheck  the tick retracts the way it came, the fill shrinks\n *   mixed    a dash grows from the middle; mixed → checked bends\n *            the dash into the tick\n *   press    the box gives under the finger\n *\n * A real <input type=\"checkbox\"> underneath, so forms, labels,\n * Space and screen readers all work as they always do.\n * ───────────────────────────────────────────────────────── */\n\nexport interface CheckboxProps extends Omit<\n  React.InputHTMLAttributes<HTMLInputElement>,\n  \"type\" | \"size\" | \"checked\" | \"defaultChecked\"\n> {\n  checked?: boolean | \"mixed\";\n  defaultChecked?: boolean;\n  onCheckedChange?: (checked: boolean) => void;\n  label?: React.ReactNode;\n  description?: React.ReactNode;\n  /** 14px or 16px box. */\n  size?: \"sm\" | \"md\";\n  ref?: React.Ref<HTMLInputElement>;\n}\n\nexport function Checkbox({\n  checked,\n  defaultChecked = false,\n  onCheckedChange,\n  label,\n  description,\n  size = \"md\",\n  disabled,\n  className = \"\",\n  onChange,\n  ref,\n  id,\n  ...props\n}: CheckboxProps) {\n  const reduced = useInteractionReducedMotion();\n  const auto = React.useId();\n  const inputId = id ?? auto;\n  const inner = React.useRef<HTMLInputElement>(null);\n  const [own, setOwn] = React.useState(defaultChecked);\n  const state = checked !== undefined ? checked : own;\n  const on = state === true;\n  const mixed = state === \"mixed\";\n\n  React.useEffect(() => {\n    if (inner.current) inner.current.indeterminate = mixed;\n  }, [mixed]);\n\n  const box = size === \"sm\" ? \"size-3.5 rounded-[4px]\" : \"size-4 rounded-[5px]\";\n  const t = (ms: number, delay = 0, ease = EASE_OUT) =>\n    reduced ? \"none\" : `${ms}ms ${ease} ${delay}ms`;\n\n  return (\n    <label\n      htmlFor={inputId}\n      className={`group/cb inline-flex select-none items-start gap-2.5 ${disabled ? \"cursor-default opacity-50\" : \"cursor-pointer\"} ${className}`}\n    >\n      <span className={`relative mt-[2px] inline-flex shrink-0 ${box}`}>\n        <input\n          ref={(el) => {\n            inner.current = el;\n            if (typeof ref === \"function\") ref(el);\n            else if (ref)\n              (ref as React.RefObject<HTMLInputElement | null>).current = el;\n          }}\n          id={inputId}\n          type=\"checkbox\"\n          checked={on}\n          disabled={disabled}\n          aria-checked={mixed ? \"mixed\" : on}\n          onChange={(e) => {\n            if (checked === undefined) setOwn(e.target.checked);\n            onChange?.(e);\n            onCheckedChange?.(e.target.checked);\n          }}\n          className=\"peer absolute inset-0 m-0 size-full cursor-[inherit] appearance-none rounded-[inherit] outline-none\"\n          {...props}\n        />\n        {/* The box: a thin line that the fill grows over. */}\n        <span\n          aria-hidden=\"true\"\n          className={`pointer-events-none absolute inset-0 rounded-[inherit] bg-background shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_22%,var(--border))] transition-[box-shadow,scale] duration-200 group-hover/cb:shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_40%,var(--border))] group-active/cb:scale-[0.88] peer-focus-visible:shadow-[inset_0_0_0_1px_var(--ring),0_0_0_3px_color-mix(in_oklab,var(--ring)_20%,transparent)] motion-reduce:group-active/cb:scale-100`}\n        >\n          <span\n            className=\"absolute inset-0 rounded-[inherit] bg-primary\"\n            style={{\n              transform: on || mixed ? \"scale(1)\" : \"scale(0.4)\",\n              opacity: on || mixed ? 1 : 0,\n              transition: reduced\n                ? \"none\"\n                : `transform ${t(320, 0, EASE_THROW)}, opacity ${t(160)}`,\n            }}\n          />\n          <svg\n            viewBox=\"0 0 16 16\"\n            fill=\"none\"\n            className=\"absolute inset-0 size-full text-primary-foreground\"\n          >\n            {/* The tick draws on the way in and retracts on the way out. */}\n            <path\n              d=\"M4 8.4 6.8 11 12 5.2\"\n              stroke=\"currentColor\"\n              strokeWidth=\"2\"\n              strokeLinecap=\"round\"\n              strokeLinejoin=\"round\"\n              pathLength={1}\n              strokeDasharray={1}\n              style={{\n                strokeDashoffset: on ? 0 : 1,\n                transition: reduced\n                  ? \"none\"\n                  : `stroke-dashoffset ${on ? t(300, 90) : t(160)}`,\n              }}\n            />\n            <path\n              d=\"M4.5 8h7\"\n              stroke=\"currentColor\"\n              strokeWidth=\"2\"\n              strokeLinecap=\"round\"\n              style={{\n                transform: mixed ? \"scaleX(1)\" : \"scaleX(0)\",\n                transformOrigin: \"8px 8px\",\n                transition: reduced\n                  ? \"none\"\n                  : `transform ${t(260, mixed ? 60 : 0)}`,\n              }}\n            />\n          </svg>\n        </span>\n      </span>\n      {(label || description) && (\n        <span className=\"flex min-w-0 flex-col gap-0.5\">\n          {label && (\n            <span className=\"text-[13.5px] font-medium leading-5 text-foreground\">\n              {label}\n            </span>\n          )}\n          {description && (\n            <span className=\"text-[12.5px] leading-snug text-muted-foreground\">\n              {description}\n            </span>\n          )}\n        </span>\n      )}\n    </label>\n  );\n}\n\nexport default Checkbox;\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/imported-ui-interaction-motion.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport const EASE_OUT = \"cubic-bezier(0.16, 1, 0.3, 1)\";\nexport const EASE_SETTLE = \"cubic-bezier(0.22, 1.18, 0.36, 1)\";\n/** Thrown things (indicators, thumbs): a slight overshoot on transform only. */\nexport const EASE_THROW = \"cubic-bezier(0.34, 1.36, 0.64, 1)\";\n/**\n * The press every button primitive shares: a 3% give that eases in and settles back.\n * Tailwind v4's scale-* writes the `scale` property, so `scale` has to be in the list\n * or the press snaps.\n */\nexport const INTERACTION_PRESS =\n  \"transition-[background-color,color,box-shadow,opacity,scale] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100\";\nexport const INTERACTION_FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background\";\n\nconst query = \"(prefers-reduced-motion: reduce)\";\nconst subscribe = (notify: () => void) => {\n  const media = window.matchMedia(query);\n  media.addEventListener(\"change\", notify);\n  return () => media.removeEventListener(\"change\", notify);\n};\nexport const useInteractionReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false,\n  );\n\nexport function useInteractionActivity<T extends Element>() {\n  const ref = React.useRef<T>(null);\n  const [visible, setVisible] = React.useState(false);\n  const [hidden, setHidden] = React.useState(false);\n  React.useEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(([entry]) =>\n      setVisible(entry.isIntersecting),\n    );\n    observer.observe(el);\n    const visibility = () => setHidden(document.hidden);\n    visibility();\n    document.addEventListener(\"visibilitychange\", visibility);\n    return () => {\n      observer.disconnect();\n      document.removeEventListener(\"visibilitychange\", visibility);\n    };\n  }, []);\n  return { ref, active: visible && !hidden };\n}\n\nexport function interactionIcon(\n  on: boolean,\n  reduced: boolean,\n): React.CSSProperties {\n  return {\n    opacity: on ? 1 : 0,\n    transform: on ? \"none\" : \"scale(0.6)\",\n    filter: on ? \"blur(0px)\" : \"blur(3px)\",\n    transition: reduced\n      ? \"none\"\n      : `opacity 220ms ${EASE_OUT}, transform 380ms ${EASE_OUT}, filter 220ms ${EASE_OUT}`,\n  };\n}\n\n/** Sample recent movement rather than averaging a long drag and losing its release velocity. */\nexport type PointerSample = { x: number; time: number };\nexport function samplePointer(\n  samples: PointerSample[],\n  x: number,\n  time: number,\n) {\n  samples.push({ x, time });\n  while (samples.length > 2 && time - samples[0].time > 100) samples.shift();\n}\nexport function releaseVelocity(samples: PointerSample[], now: number) {\n  if (samples.length < 2 || now - samples[samples.length - 1].time > 100)\n    return 0;\n  const first = samples[0],\n    last = samples[samples.length - 1];\n  return (last.x - first.x) / Math.max(1, last.time - first.time);\n}\n\n/** Smooth Apple/rational rubber-band curve: continuous exponential-like resistance without linear kinks. */\nexport function rubberBand(\n  overshoot: number,\n  dimension = 320,\n  constant = 0.55,\n): number {\n  const d = dimension || 320;\n  const abs = Math.abs(overshoot);\n  return Math.sign(overshoot) * (1 - 1 / ((abs * constant) / d + 1)) * d;\n}\n\n/** Projects resting travel from release velocity (velocity in px/ms; time in seconds). */\nexport function projectInertia(\n  distance: number,\n  velocity: number,\n  time = 0.12,\n): number {\n  return distance + velocity * 1000 * time;\n}\n\n/** Smooths incoming release velocity toward a boundary so springs don't slam or clip into walls. */\nexport function softenVelocity(\n  velocity: number,\n  distanceToTarget: number,\n  factor = 10,\n): number {\n  const maxAllowed = Math.abs(distanceToTarget) * factor;\n  return Math.sign(velocity) * Math.min(Math.abs(velocity), maxAllowed);\n}\n\n/** A damped spring sampled by WAAPI: tuned for organic lightness with a hint of life (3% breath). */\nexport function springFrames(\n  from: number,\n  to: number,\n  velocity = 0,\n  duration = 480,\n  config: { omega?: number; damping?: number; steps?: number } = {},\n) {\n  const { omega = 16, damping = 0.74, steps = 36 } = config;\n  const damped = omega * Math.sqrt(Math.max(0.001, 1 - damping * damping));\n  const displacement = from - to;\n  const coefficient =\n    (velocity * 1000 + damping * omega * displacement) / damped;\n  return Array.from({ length: steps + 1 }, (_, i) => {\n    const t = (i / steps) * (duration / 1000);\n    const value =\n      to +\n      Math.exp(-damping * omega * t) *\n        (displacement * Math.cos(damped * t) +\n          coefficient * Math.sin(damped * t));\n    return { value: i === steps ? to : value, offset: i / steps };\n  });\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "checkbox",
+      "exportName": "Checkbox",
+      "categories": [
+        "forms"
+      ],
+      "isNew": true,
+      "usage": "import { Checkbox } from \"@/components/checkbox\";\n\n<Checkbox label=\"Email me about new templates\" description=\"About once a month.\" defaultChecked />\n<Checkbox checked={some ? \"mixed\" : all} onCheckedChange={selectAll} aria-label=\"Select all\" />",
+      "accessibility": "- Reduced motion: the fill and tick change at once.\n- The whole label is the hit area.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "checked",
+            "type": "boolean | \"mixed\"",
+            "description": "– · Controlled state."
+          },
+          {
+            "name": "defaultChecked",
+            "type": "boolean",
+            "description": "false · Initial state when uncontrolled."
+          },
+          {
+            "name": "onCheckedChange",
+            "type": "(checked: boolean) => void",
+            "description": "– · Called with the new state."
+          },
+          {
+            "name": "label / description",
+            "type": "ReactNode",
+            "description": "– · Text beside the box."
+          },
+          {
+            "name": "size",
+            "type": "\"sm\" | \"md\"",
+            "description": "\"md\" · 14px or 16px box."
+          },
+          {
+            "name": "...input props",
+            "type": "InputHTMLAttributes",
+            "description": "– · name, value, required, disabled, ref."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Settings and consent",
+            "description": "Labelled options with a second line of description."
+          },
+          {
+            "title": "Table row selection",
+            "description": "A header box that shows \"some selected\" as a dash."
+          },
+          {
+            "title": "Task and to-do lists",
+            "description": "Ticks that draw as you finish things."
+          },
+          {
+            "title": "Sign-up terms",
+            "description": "A required box inside a native form."
+          }
+        ],
+        "features": [
+          {
+            "title": "A tick that draws",
+            "description": "pathLength stroke, 300ms after the fill lands; it retracts on uncheck."
+          },
+          {
+            "title": "Mixed state",
+            "description": "checked=\"mixed\" sets indeterminate on the input and grows a dash."
+          },
+          {
+            "title": "Native underneath",
+            "description": "Forms, labels, Space and aria-checked behave as always."
+          },
+          {
+            "title": "Press feedback",
+            "description": "The box gives under the finger and settles back."
+          }
+        ],
+        "states": [
+          {
+            "title": "unchecked",
+            "description": "A thin line box; hover darkens the line."
+          },
+          {
+            "title": "checked",
+            "description": "Primary fill grows from 0.4 with a slight overshoot (320ms) and the tick draws (300ms, 90ms later)."
+          },
+          {
+            "title": "mixed",
+            "description": "A dash grows from the centre (260ms)."
+          },
+          {
+            "title": "focus",
+            "description": "The ring and a 3px halo, from the keyboard only."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
