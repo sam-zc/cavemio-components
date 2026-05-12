@@ -1,0 +1,155 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-chat-history",
+  "title": "Chat history",
+  "description": "Past chats grouped by day, searchable, with titles that write themselves, rename in place and delete with Undo.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/chat-history.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport {\n  Pencil,\n  Pin,\n  PinOff,\n  Search,\n  SquarePen,\n  Trash2,\n  X,\n} from \"lucide-react\";\n\n/* ─────────────────────────────────────────────────────────\n * CHAT HISTORY: past conversations, findable and tidy\n *\n *   grouped    Pinned, Today, Yesterday, Previous 7 days,\n *              Previous 30 days, then by month\n *   new        a fresh chat shimmers \"New chat\" until its title\n *              is generated, then the title types itself in\n *   search     filters as you type and marks the match; the rows\n *              that stay glide up to close the gaps\n *   pin        the row glides into Pinned (and back); the pin\n *              icon trades places with unpin through a blur\n *   rename     the row turns into a field in place\n *   delete     the row's text gives way to \"Chat deleted · Undo\";\n *              it is only deleted once the undo window passes,\n *              then folds away\n *\n * Rows are buttons; arrow keys move between them.\n * ───────────────────────────────────────────────────────── */\n\nexport interface ChatSummary {\n  id: string;\n  /** Empty while the title is being generated. */\n  title?: string;\n  updatedAt: number | Date;\n  pinned?: boolean;\n  /** True while the title is being generated. */\n  generating?: boolean;\n}\n\nexport interface ChatHistoryProps extends Omit<\n  React.HTMLAttributes<HTMLElement>,\n  \"onSelect\"\n> {\n  chats: ChatSummary[];\n  activeId?: string;\n  onSelect: (id: string) => void;\n  onNew?: () => void;\n  onRename?: (id: string, title: string) => void;\n  /** Called once the undo window has passed. */\n  onDelete?: (id: string) => void;\n  onPin?: (id: string, pinned: boolean) => void;\n  /** How long Undo is offered after deleting (ms). */\n  undoWindow?: number;\n  searchable?: boolean;\n  defaultQuery?: string;\n}\n\nconst EASE = \"cubic-bezier(0.23,1,0.32,1)\";\nconst MORPH = \"cubic-bezier(0.16,1,0.3,1)\";\nconst FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40\";\nconst ICON = `cursor-pointer flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-background hover:text-foreground [&_svg]:size-3.5 ${FOCUS}`;\nconst SHIMMER =\n  \"bg-[linear-gradient(90deg,color-mix(in_oklab,var(--muted-foreground)_55%,transparent)_35%,var(--foreground)_50%,color-mix(in_oklab,var(--muted-foreground)_55%,transparent)_65%)] bg-[length:200%_100%] bg-clip-text text-transparent animate-[ui-shimmer_1.4s_linear_infinite] motion-reduce:animate-none motion-reduce:bg-none motion-reduce:text-foreground/70\";\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\n/** Icons trade places through a blur: the old one shrinks away as the new one grows in. */\nconst swap = (on: boolean, reduced: boolean): React.CSSProperties => ({\n  opacity: on ? 1 : 0,\n  transform: on ? \"none\" : \"scale(0.6)\",\n  filter: on ? \"none\" : \"blur(3px)\",\n  transition: reduced\n    ? \"none\"\n    : `opacity 260ms ${MORPH}, transform 380ms ${MORPH}, filter 260ms ${MORPH}`,\n});\n\n/** One layer of a row: it fades in through a blur when it becomes the row, and out when it stops being it. */\nconst layer = (on: boolean, reduced: boolean): React.CSSProperties => ({\n  opacity: on ? 1 : 0,\n  filter: on ? \"none\" : \"blur(4px)\",\n  transition: reduced\n    ? \"none\"\n    : on\n      ? `opacity 280ms ${MORPH} 60ms, filter 280ms ${MORPH} 60ms`\n      : \"opacity 140ms ease-out, filter 140ms ease-out\",\n});\n\n/** Rows that weren't in the list before rise in; rows that were (even if they moved group) don't replay it. */\nfunction Arrive({\n  id,\n  isFresh,\n  reduced,\n  children,\n}: {\n  id: string;\n  isFresh: (id: string) => boolean;\n  reduced: boolean;\n  children: React.ReactNode;\n}) {\n  const ref = React.useRef<HTMLDivElement>(null);\n  React.useLayoutEffect(() => {\n    const el = ref.current;\n    if (!el || reduced) return;\n    if (!isFresh(id)) return;\n    const a = el.animate(\n      [\n        { opacity: 0, transform: \"translateY(4px)\" },\n        { opacity: 1, transform: \"none\" },\n      ],\n      {\n        duration: 280,\n        easing: \"cubic-bezier(0.23,1,0.32,1)\",\n        fill: \"backwards\",\n      },\n    );\n    return () => a.cancel();\n  }, [id, isFresh, reduced]);\n  return <div ref={ref}>{children}</div>;\n}\n\nconst DAY = 86_400_000;\nconst startOfDay = (d: Date) =>\n  new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();\n\nfunction bucket(date: Date, today: number) {\n  const days = Math.round((today - startOfDay(date)) / DAY);\n  if (days <= 0) return \"Today\";\n  if (days === 1) return \"Yesterday\";\n  if (days < 7) return \"Previous 7 days\";\n  if (days < 30) return \"Previous 30 days\";\n  return date.toLocaleDateString(\"en-US\", {\n    month: \"long\",\n    year:\n      new Date(today).getFullYear() === date.getFullYear()\n        ? undefined\n        : \"numeric\",\n  });\n}\n\nfunction Mark({ text, query }: { text: string; query: string }) {\n  const i = query ? text.toLowerCase().indexOf(query.toLowerCase()) : -1;\n  if (i < 0) return <>{text}</>;\n  return (\n    <>\n      {text.slice(0, i)}\n      <mark className=\"rounded-[3px] bg-primary/15 text-foreground\">\n        {text.slice(i, i + query.length)}\n      </mark>\n      {text.slice(i + query.length)}\n    </>\n  );\n}\n\n/** Types a freshly generated title in, once; titles that were already there just show. */\nfunction useArrivingTitle(\n  title: string | undefined,\n  generating: boolean,\n  reduced: boolean,\n) {\n  const [shown, setShown] = React.useState(title ?? \"\");\n  const waited = React.useRef(generating || !title);\n  React.useEffect(() => {\n    if (generating || !title) {\n      waited.current = true;\n      return;\n    }\n    if (!waited.current || reduced) {\n      setShown(title);\n      return;\n    }\n    waited.current = false;\n    let i = 0;\n    let frame = 0;\n    const step = () => {\n      i = Math.min(title.length, i + 1);\n      setShown(title.slice(0, i));\n      if (i < title.length) frame = requestAnimationFrame(step);\n    };\n    frame = requestAnimationFrame(step);\n    return () => cancelAnimationFrame(frame);\n  }, [title, generating, reduced]);\n  return shown;\n}\n\nfunction Row({\n  chat,\n  active,\n  query,\n  reduced,\n  deleted,\n  onSelect,\n  onRename,\n  onPin,\n  onDelete,\n  onUndo,\n}: {\n  chat: ChatSummary;\n  active: boolean;\n  query: string;\n  reduced: boolean;\n  deleted: boolean;\n  onSelect: () => void;\n  onRename?: (title: string) => void;\n  onPin?: () => void;\n  onDelete?: () => void;\n  onUndo: () => void;\n}) {\n  const generating = Boolean(chat.generating || !chat.title);\n  const title = useArrivingTitle(chat.title, generating, reduced);\n  const [renaming, setRenaming] = React.useState(false);\n  const [draft, setDraft] = React.useState(\"\");\n  const fieldRef = React.useRef<HTMLInputElement>(null);\n  const rowRef = React.useRef<HTMLButtonElement>(null);\n\n  React.useEffect(() => {\n    if (!renaming) return;\n    fieldRef.current?.focus();\n    fieldRef.current?.select();\n  }, [renaming]);\n\n  const save = () => {\n    const next = draft.trim();\n    setRenaming(false);\n    if (next && next !== chat.title) onRename?.(next);\n    requestAnimationFrame(() => rowRef.current?.focus({ preventScroll: true }));\n  };\n\n  const mode = deleted ? \"deleted\" : renaming ? \"renaming\" : \"row\";\n\n  // One surface: the row, its rename field and its \"deleted\" note are layers of the same box.\n  return (\n    <div\n      className={`group/row relative flex h-9 items-center rounded-xl transition-[background-color,box-shadow] duration-200 ${\n        mode === \"renaming\"\n          ? \"bg-background shadow-[0_0_0_1px_var(--border)]\"\n          : mode === \"deleted\"\n            ? \"shadow-[0_0_0_1px_transparent]\"\n            : active\n              ? \"bg-accent shadow-[0_0_0_1px_transparent]\"\n              : \"shadow-[0_0_0_1px_transparent] hover:bg-accent/70 focus-within:bg-accent/70\"\n      }`}\n    >\n      <div\n        inert={mode !== \"row\"}\n        className=\"flex h-9 min-w-0 flex-1 items-center\"\n        style={layer(mode === \"row\", reduced)}\n      >\n        <button\n          ref={rowRef}\n          type=\"button\"\n          data-chat=\"\"\n          aria-current={active ? \"page\" : undefined}\n          onClick={onSelect}\n          className={`cursor-pointer flex h-9 min-w-0 flex-1 items-center rounded-xl pl-3 pr-2 text-left text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${active ? \"font-medium text-foreground\" : \"text-foreground/80\"}`}\n        >\n          <span className=\"min-w-0 flex-1 truncate group-focus-within/row:[mask-image:linear-gradient(to_right,#000_calc(100%_-_4.5rem),transparent)] group-hover/row:[mask-image:linear-gradient(to_right,#000_calc(100%_-_4.5rem),transparent)]\">\n            {generating ? (\n              <span className={SHIMMER}>New chat</span>\n            ) : (\n              <Mark text={title} query={query} />\n            )}\n          </span>\n        </button>\n        {!generating && (onPin || onRename || onDelete) && (\n          <span className=\"absolute right-1.5 flex items-center gap-0.5 opacity-0 transition-opacity duration-150 group-focus-within/row:opacity-100 group-hover/row:opacity-100 [@media(hover:none)]:opacity-100\">\n            {onPin && (\n              <button\n                type=\"button\"\n                aria-label={\n                  chat.pinned ? `Unpin ${chat.title}` : `Pin ${chat.title}`\n                }\n                onClick={onPin}\n                className={`cursor-pointer relative ${ICON}`}\n              >\n                <span\n                  aria-hidden=\"true\"\n                  className=\"absolute inset-0 flex items-center justify-center\"\n                  style={swap(!chat.pinned, reduced)}\n                >\n                  <Pin />\n                </span>\n                <span\n                  aria-hidden=\"true\"\n                  className=\"absolute inset-0 flex items-center justify-center\"\n                  style={swap(Boolean(chat.pinned), reduced)}\n                >\n                  <PinOff />\n                </span>\n              </button>\n            )}\n            {onRename && (\n              <button\n                type=\"button\"\n                aria-label={`Rename ${chat.title}`}\n                onClick={() => {\n                  setDraft(chat.title ?? \"\");\n                  setRenaming(true);\n                }}\n                className={ICON}\n              >\n                <Pencil />\n              </button>\n            )}\n            {onDelete && (\n              <button\n                type=\"button\"\n                aria-label={`Delete ${chat.title}`}\n                onClick={onDelete}\n                className={`cursor-pointer ${ICON} hover:text-red-600`}\n              >\n                <Trash2 />\n              </button>\n            )}\n          </span>\n        )}\n      </div>\n\n      {(onRename || renaming) && (\n        <div\n          inert={mode !== \"renaming\"}\n          className=\"absolute inset-0 flex items-center px-1\"\n          style={layer(mode === \"renaming\", reduced)}\n        >\n          <input\n            ref={fieldRef}\n            value={draft}\n            aria-label=\"Chat title\"\n            tabIndex={mode === \"renaming\" ? 0 : -1}\n            onChange={(e) => setDraft(e.target.value)}\n            onBlur={() => mode === \"renaming\" && save()}\n            onKeyDown={(e) => {\n              if (e.nativeEvent.isComposing) return;\n              if (e.key === \"Enter\") {\n                e.preventDefault();\n                save();\n              } else if (e.key === \"Escape\") {\n                e.preventDefault();\n                setDraft(chat.title ?? \"\");\n                setRenaming(false);\n                requestAnimationFrame(() =>\n                  rowRef.current?.focus({ preventScroll: true }),\n                );\n              }\n            }}\n            className=\"h-7 min-w-0 flex-1 rounded-lg bg-transparent px-2 text-[13px] text-foreground outline-none\"\n          />\n        </div>\n      )}\n\n      <div\n        inert={mode !== \"deleted\"}\n        className=\"absolute inset-0 flex items-center justify-between gap-2 px-3 text-[12.5px] text-muted-foreground\"\n        style={layer(mode === \"deleted\", reduced)}\n      >\n        <span role=\"status\" className=\"truncate\">\n          {deleted ? \"Chat deleted\" : \"\"}\n        </span>\n        <button\n          type=\"button\"\n          onClick={onUndo}\n          className={`cursor-pointer rounded font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-foreground ${FOCUS}`}\n        >\n          Undo\n        </button>\n      </div>\n    </div>\n  );\n}\n\nexport function ChatHistory({\n  chats,\n  activeId,\n  onSelect,\n  onNew,\n  onRename,\n  onDelete,\n  onPin,\n  undoWindow = 5000,\n  searchable = true,\n  defaultQuery = \"\",\n  className = \"\",\n  ...props\n}: ChatHistoryProps) {\n  const reduced = useReducedMotion();\n  const [query, setQuery] = React.useState(defaultQuery);\n  const [deleted, setDeleted] = React.useState<Set<string>>(() => new Set());\n  const [gone, setGone] = React.useState<Set<string>>(() => new Set());\n  const timers = React.useRef(new Map<string, number>());\n  const listRef = React.useRef<HTMLDivElement>(null);\n  const known = React.useRef(new Set<string>());\n  const isFresh = React.useCallback((id: string) => {\n    if (known.current.has(id)) return false;\n    known.current.add(id);\n    return true;\n  }, []);\n  const snapshot = React.useRef<{\n    at: number;\n    tops: Map<string, number>;\n  } | null>(null);\n  const [today, setToday] = React.useState(() => startOfDay(new Date()));\n\n  // Just before a reorder (a pin, a search keystroke), note where every row is...\n  const capture = () => {\n    const tops = new Map<string, number>();\n    listRef.current\n      ?.querySelectorAll<HTMLElement>(\"[data-row]\")\n      .forEach((el) => tops.set(el.dataset.row ?? \"\", el.offsetTop));\n    snapshot.current = { at: performance.now(), tops };\n  };\n\n  // ...then glide each row from there to its new place: into Pinned and back, or up as a search filters others out.\n  React.useLayoutEffect(() => {\n    const list = listRef.current;\n    const before = snapshot.current;\n    if (list)\n      known.current = new Set(\n        [...list.querySelectorAll<HTMLElement>(\"[data-row]\")].map(\n          (el) => el.dataset.row ?? \"\",\n        ),\n      );\n    if (!list || !before) return;\n    snapshot.current = null;\n    if (reduced || performance.now() - before.at > 1000) return;\n    list.querySelectorAll<HTMLElement>(\"[data-row]\").forEach((el) => {\n      const from = before.tops.get(el.dataset.row ?? \"\");\n      if (from !== undefined && Math.abs(from - el.offsetTop) > 1) {\n        el.animate(\n          [\n            { transform: `translateY(${from - el.offsetTop}px)` },\n            { transform: \"none\" },\n          ],\n          { duration: 420, easing: MORPH },\n        );\n      }\n    });\n  });\n\n  React.useEffect(() => {\n    const all = timers.current;\n    return () => all.forEach((t) => window.clearTimeout(t));\n  }, []);\n\n  // Regroup at midnight.\n  React.useEffect(() => {\n    const timer = window.setTimeout(\n      () => setToday(startOfDay(new Date())),\n      today + DAY - Date.now() + 1000,\n    );\n    return () => window.clearTimeout(timer);\n  }, [today]);\n\n  const remove = (id: string) => {\n    setDeleted((d) => new Set(d).add(id));\n    timers.current.set(\n      id,\n      window.setTimeout(() => {\n        timers.current.delete(id);\n        setGone((g) => new Set(g).add(id));\n        // Let the row fold away before the parent drops it.\n        window.setTimeout(() => onDelete?.(id), reduced ? 0 : 360);\n      }, undoWindow),\n    );\n  };\n\n  const undo = (id: string) => {\n    window.clearTimeout(timers.current.get(id));\n    timers.current.delete(id);\n    setDeleted((d) => {\n      const next = new Set(d);\n      next.delete(id);\n      return next;\n    });\n  };\n\n  const q = query.trim().toLowerCase();\n  const visible = chats.filter(\n    (c) => !q || (c.title ?? \"\").toLowerCase().includes(q),\n  );\n  const groups = new Map<string, ChatSummary[]>();\n  for (const chat of [...visible].sort(\n    (a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt),\n  )) {\n    const name = chat.pinned\n      ? \"Pinned\"\n      : bucket(new Date(chat.updatedAt), today);\n    groups.set(name, [...(groups.get(name) ?? []), chat]);\n  }\n  const ordered = [...groups.entries()].sort(([a], [b]) =>\n    a === \"Pinned\" ? -1 : b === \"Pinned\" ? 1 : 0,\n  );\n\n  // Up and down move between chats.\n  const onKeyDown = (e: React.KeyboardEvent) => {\n    if (e.key !== \"ArrowDown\" && e.key !== \"ArrowUp\") return;\n    if (e.target instanceof HTMLInputElement && e.key === \"ArrowUp\") return;\n    const rows = Array.from(\n      listRef.current?.querySelectorAll<HTMLButtonElement>(\"[data-chat]\") ?? [],\n    );\n    if (!rows.length) return;\n    e.preventDefault();\n    const i = rows.indexOf(document.activeElement as HTMLButtonElement);\n    const next =\n      e.key === \"ArrowDown\"\n        ? i < 0\n          ? 0\n          : Math.min(rows.length - 1, i + 1)\n        : Math.max(0, i - 1);\n    rows[next]?.focus();\n  };\n\n  return (\n    <nav\n      aria-label=\"Chat history\"\n      onKeyDown={onKeyDown}\n      className={`flex min-h-0 flex-col ${className}`}\n      {...props}\n    >\n      {(searchable || onNew) && (\n        <div className=\"flex items-center gap-1.5 pb-2\">\n          {searchable && (\n            <label className=\"flex h-9 min-w-0 flex-1 items-center gap-2 rounded-xl border border-border px-3 transition-colors focus-within:border-foreground/25\">\n              <Search\n                aria-hidden=\"true\"\n                className=\"size-3.5 shrink-0 text-muted-foreground\"\n              />\n              <input\n                type=\"search\"\n                value={query}\n                onChange={(e) => {\n                  capture();\n                  setQuery(e.target.value);\n                }}\n                onKeyDown={(e) => {\n                  if (e.key !== \"Escape\") return;\n                  capture();\n                  setQuery(\"\");\n                }}\n                placeholder=\"Search chats\"\n                aria-label=\"Search chats\"\n                className=\"h-full min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden\"\n              />\n              {query && (\n                <button\n                  type=\"button\"\n                  aria-label=\"Clear search\"\n                  onClick={() => {\n                    capture();\n                    setQuery(\"\");\n                  }}\n                  className={`cursor-pointer -mr-1.5 ${ICON}`}\n                >\n                  <X />\n                </button>\n              )}\n            </label>\n          )}\n          {onNew && (\n            <button\n              type=\"button\"\n              aria-label=\"New chat\"\n              onClick={onNew}\n              className={`cursor-pointer flex size-9 shrink-0 items-center justify-center rounded-xl border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [&_svg]:size-4 ${FOCUS}`}\n            >\n              <SquarePen />\n            </button>\n          )}\n        </div>\n      )}\n\n      <div\n        ref={listRef}\n        className=\"relative min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin]\"\n      >\n        {ordered.length === 0 && (\n          <p\n            role=\"status\"\n            className=\"px-3 py-6 text-center text-[12.5px] text-muted-foreground\"\n          >\n            {q ? `No chats match “${query.trim()}”` : \"No chats yet\"}\n          </p>\n        )}\n        {ordered.map(([name, items]) => (\n          <section key={name} aria-label={name} className=\"pb-2\">\n            <h3 className=\"px-3 pb-1 pt-2 text-[11.5px] font-medium text-muted-foreground\">\n              {name}\n            </h3>\n            <ul>\n              {items.map((chat) => (\n                <li\n                  key={chat.id}\n                  data-row={chat.id}\n                  className=\"grid\"\n                  style={{\n                    gridTemplateRows: gone.has(chat.id) ? \"0fr\" : \"1fr\",\n                    opacity: gone.has(chat.id) ? 0 : 1,\n                    transition: reduced\n                      ? \"none\"\n                      : `grid-template-rows 340ms ${EASE}, opacity 240ms ease-out`,\n                  }}\n                >\n                  <div className=\"min-h-0 overflow-hidden\">\n                    <Arrive id={chat.id} isFresh={isFresh} reduced={reduced}>\n                      <Row\n                        chat={chat}\n                        active={chat.id === activeId}\n                        query={q}\n                        reduced={reduced}\n                        deleted={deleted.has(chat.id)}\n                        onSelect={() => onSelect(chat.id)}\n                        onRename={\n                          onRename\n                            ? (title) => onRename(chat.id, title)\n                            : undefined\n                        }\n                        onPin={\n                          onPin\n                            ? () => {\n                                capture();\n                                onPin(chat.id, !chat.pinned);\n                              }\n                            : undefined\n                        }\n                        onDelete={onDelete ? () => remove(chat.id) : undefined}\n                        onUndo={() => undo(chat.id)}\n                      />\n                    </Arrive>\n                  </div>\n                </li>\n              ))}\n            </ul>\n          </section>\n        ))}\n      </div>\n    </nav>\n  );\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {
+    "@keyframes ui-shimmer": {
+      "0%": {
+        "background-position": "150% 0"
+      },
+      "100%": {
+        "background-position": "-50% 0"
+      }
+    },
+    "@keyframes ui-fade-up": {
+      "from": {
+        "opacity": "0",
+        "transform": "translateY(4px)"
+      },
+      "to": {
+        "opacity": "1",
+        "transform": "none"
+      }
+    }
+  },
+  "meta": {
+    "cavemio": {
+      "component": "chat-history",
+      "exportName": "ChatHistory",
+      "categories": [
+        "ai"
+      ],
+      "isNew": false,
+      "usage": "import { ChatHistory } from \"@/components/chat-history\";\n\n<ChatHistory chats={chats} activeId={chatId} onSelect={openChat} onNew={newChat} onRename={rename} onDelete={remove} onPin={pin} />",
+      "accessibility": "- A labelled navigation landmark with a heading per group; the open chat has aria-current=\"page\".\n- Up and Down move between chats from anywhere in the list, including the search field.\n- Row actions appear on hover and keyboard focus, always on touch screens, and are labelled with the chat (\"Delete Pistachio supplier prices\").\n- Nothing is deleted until Undo has had its chance, so a slip of the finger never costs a conversation.\n- With reduced motion, rows move and change state in place.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "chats",
+            "type": "{ id; title?; updatedAt; pinned?; generating? }[]",
+            "description": "– · Grouped and sorted for you. Leave title empty (or set generating) while it’s being named."
+          },
+          {
+            "name": "activeId / onSelect",
+            "type": "string / (id) => void",
+            "description": "– · The open chat, marked with aria-current."
+          },
+          {
+            "name": "onNew",
+            "type": "() => void",
+            "description": "– · Shows the new-chat button beside search."
+          },
+          {
+            "name": "onRename / onPin",
+            "type": "(id, title) => void / (id, pinned) => void",
+            "description": "– · Show Rename and Pin on hover or focus."
+          },
+          {
+            "name": "onDelete / undoWindow",
+            "type": "(id) => void / number",
+            "description": "— / 5000 · Called once the undo window has passed, after the row has folded away."
+          },
+          {
+            "name": "searchable / defaultQuery",
+            "type": "boolean / string",
+            "description": "true / \"\" · The search field and its starting text."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "AI chat apps",
+            "description": "The sidebar of past conversations, grouped by day like the ones people already know."
+          },
+          {
+            "title": "In-product assistants",
+            "description": "Past conversations with the help or copilot inside a SaaS product."
+          },
+          {
+            "title": "Agent and coding tools",
+            "description": "Past sessions of an agent, searchable by what they were about."
+          },
+          {
+            "title": "Internal knowledge assistants",
+            "description": "Staff chats with company documents, kept and findable."
+          }
+        ],
+        "features": [
+          {
+            "title": "Grouped by day",
+            "description": "Pinned, Today, Yesterday, Previous 7 days, Previous 30 days, then month names. It regroups at midnight."
+          },
+          {
+            "title": "New chats name themselves",
+            "description": "A new chat shimmers “New chat” until its title is generated, then the title types itself in."
+          },
+          {
+            "title": "Search as you type",
+            "description": "Rows filter as you type, the match is highlighted and the rows that stay glide up to close the gaps."
+          },
+          {
+            "title": "Pin, rename and delete in the row",
+            "description": "The actions appear on hover or focus, and always on touch screens. Rename turns the row into a field."
+          },
+          {
+            "title": "Delete with Undo",
+            "description": "The title gives way to “Chat deleted · Undo”. Nothing is deleted until the undo window has passed."
+          },
+          {
+            "title": "Keyboard and landmarks",
+            "description": "Up and Down move between chats, the list is a navigation landmark and the open chat is marked as current."
+          }
+        ],
+        "states": [
+          {
+            "title": "grouped",
+            "description": "Newest first under Pinned, Today, Yesterday, Previous 7 days, Previous 30 days, then month names. It regroups at midnight."
+          },
+          {
+            "title": "new",
+            "description": "\"New chat\" shimmers while generating is true; the title then types in once."
+          },
+          {
+            "title": "search",
+            "description": "Rows filter as you type and the ones that stay glide to their new places (420ms); the match is highlighted, Escape clears, and an empty search says so."
+          },
+          {
+            "title": "pin",
+            "description": "The row glides from its group into Pinned (and back) instead of jumping; the pin icon blurs into unpin."
+          },
+          {
+            "title": "rename",
+            "description": "The same row becomes a field, its outline fading in, with the title selected; Enter or leaving saves, Escape cancels."
+          },
+          {
+            "title": "deleted",
+            "description": "The title blurs out as \"Chat deleted · Undo\" fades in for undoWindow, then the row folds away and onDelete is called."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
