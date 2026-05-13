@@ -1,0 +1,109 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-citation",
+  "title": "Citation",
+  "description": "An inline numbered source that previews the site, title and snippet on hover or focus.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/citation.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport { Globe } from \"lucide-react\";\n\n/* ─────────────────────────────────────────────────────────\n * CITATION: an inline [1] that previews its source\n *\n *   closed       a small numbered marker in the sentence\n *   open         hover or focus: the card rises out of a light blur\n *                with the site, title and snippet, and sinks back\n *                when you leave\n *   unavailable  the source couldn't be fetched\n *\n * The marker is the link itself, so clicking opens the source.\n * The card is a tooltip describing it; it flips above near the\n * bottom of the screen and shifts to stay inside the viewport.\n * ───────────────────────────────────────────────────────── */\n\nexport interface CitationSource {\n  title: string;\n  url: string;\n  snippet?: string;\n  /** A favicon, e.g. <img src=\"…\" alt=\"\" />. */\n  icon?: React.ReactNode;\n}\n\nexport interface CitationProps extends Omit<\n  React.HTMLAttributes<HTMLSpanElement>,\n  \"children\"\n> {\n  index: number;\n  source?: CitationSource;\n  status?: \"available\" | \"unavailable\";\n}\n\nconst FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40\";\nconst CARD_WIDTH = 288;\nconst MORPH = \"cubic-bezier(0.16,1,0.3,1)\";\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\nfunction hostname(url: string) {\n  try {\n    return new URL(url).hostname.replace(/^www\\./, \"\");\n  } catch {\n    return url;\n  }\n}\n\nexport function Citation({\n  index,\n  source,\n  status = \"available\",\n  className = \"\",\n  ...props\n}: CitationProps) {\n  const reduced = useReducedMotion();\n  const [open, setOpen] = React.useState(false);\n  // The card stays mounted while it sinks away after closing.\n  const [mounted, setMounted] = React.useState(false);\n  if (open && !mounted) setMounted(true);\n  if (!open && reduced && mounted) setMounted(false);\n  const [place, setPlace] = React.useState<{ above: boolean; shift: number }>({\n    above: false,\n    shift: 0,\n  });\n  const triggerRef = React.useRef<HTMLAnchorElement>(null);\n  const cardRef = React.useRef<HTMLSpanElement>(null);\n  const timer = React.useRef<number | undefined>(undefined);\n  const id = React.useId();\n  const unavailable = status === \"unavailable\" || !source;\n\n  const show = (delay: number) => {\n    window.clearTimeout(timer.current);\n    timer.current = window.setTimeout(() => setOpen(true), delay);\n  };\n  const hide = (delay: number) => {\n    window.clearTimeout(timer.current);\n    timer.current = window.setTimeout(() => setOpen(false), delay);\n  };\n  React.useEffect(() => () => window.clearTimeout(timer.current), []);\n\n  // Keep the card on screen: flip above near the bottom, shift left near the right edge.\n  React.useLayoutEffect(() => {\n    if (!open || !triggerRef.current || !cardRef.current) return;\n    const t = triggerRef.current.getBoundingClientRect();\n    const h = cardRef.current.offsetHeight;\n    const overflowRight = t.left + CARD_WIDTH - (window.innerWidth - 12);\n    setPlace({\n      above: t.bottom + h + 12 > window.innerHeight && t.top > h + 12,\n      shift: Math.max(0, overflowRight),\n    });\n  }, [open]);\n\n  // Rise in from the side it opens on; sink back the same way, then unmount.\n  React.useLayoutEffect(() => {\n    const el = cardRef.current;\n    if (!el || reduced) return;\n    const from = `translateY(${place.above ? 4 : -4}px)`;\n    if (open) {\n      const enter = el.animate(\n        [\n          { opacity: 0, transform: from, filter: \"blur(2px)\" },\n          { opacity: 1, transform: \"none\", filter: \"blur(0px)\" },\n        ],\n        { duration: 220, easing: MORPH },\n      );\n      return () => enter.cancel();\n    }\n    const leave = el.animate(\n      [\n        { opacity: 1, transform: \"none\" },\n        { opacity: 0, transform: from },\n      ],\n      { duration: 140, easing: \"ease-out\", fill: \"forwards\" },\n    );\n    leave.onfinish = () => setMounted(false);\n    return () => leave.cancel();\n  }, [open, mounted, place.above, reduced]);\n\n  React.useEffect(() => {\n    if (!open) return;\n    const onKey = (e: KeyboardEvent) => e.key === \"Escape\" && setOpen(false);\n    window.addEventListener(\"keydown\", onKey);\n    return () => window.removeEventListener(\"keydown\", onKey);\n  }, [open]);\n\n  return (\n    <span\n      className={`relative inline-block align-baseline ${className}`}\n      onMouseEnter={() => show(120)}\n      onMouseLeave={() => hide(150)}\n      {...props}\n    >\n      <a\n        ref={triggerRef}\n        href={source?.url}\n        target=\"_blank\"\n        rel=\"noreferrer\"\n        aria-describedby={open ? id : undefined}\n        aria-label={`Source ${index}${source ? `: ${source.title}` : \"\"}`}\n        onFocus={() => show(0)}\n        onBlur={() => hide(0)}\n        className={`mx-0.5 inline-flex h-[1.2em] min-w-[1.2em] -translate-y-[0.12em] items-center justify-center rounded-[5px] px-1 font-mono text-[10.5px] leading-none no-underline transition-colors ${FOCUS} ${\n          unavailable\n            ? \"bg-muted text-muted-foreground/60 line-through\"\n            : open\n              ? \"bg-foreground text-background\"\n              : \"bg-muted text-muted-foreground hover:bg-accent hover:text-foreground\"\n        }`}\n      >\n        {index}\n      </a>\n\n      {mounted && (\n        <span\n          ref={cardRef}\n          id={id}\n          role=\"tooltip\"\n          aria-hidden={!open || undefined}\n          className={`absolute z-50 block rounded-xl border border-border bg-background p-3 text-left ${place.above ? \"bottom-full mb-1.5\" : \"top-full mt-1.5\"} ${\n            open ? \"\" : \"pointer-events-none\"\n          }`}\n          // Shifted with left, not transform, so the entrance animation can't undo it.\n          style={{ width: CARD_WIDTH, left: -place.shift }}\n        >\n          {unavailable ? (\n            <span className=\"block text-[12.5px] text-muted-foreground\">\n              This source couldn’t be loaded.\n            </span>\n          ) : (\n            <>\n              <span className=\"flex items-center gap-1.5 text-[11.5px] text-muted-foreground\">\n                <span\n                  aria-hidden=\"true\"\n                  className=\"flex size-3.5 shrink-0 items-center justify-center overflow-hidden rounded-full\"\n                >\n                  {source.icon ?? <Globe className=\"size-3.5\" />}\n                </span>\n                <span className=\"truncate\">{hostname(source.url)}</span>\n              </span>\n              <span className=\"mt-1.5 line-clamp-2 block text-[13px] font-medium leading-snug text-foreground\">\n                {source.title}\n              </span>\n              {source.snippet && (\n                <span className=\"mt-1 line-clamp-3 block text-[12px] leading-relaxed text-muted-foreground\">\n                  {source.snippet}\n                </span>\n              )}\n            </>\n          )}\n        </span>\n      )}\n    </span>\n  );\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "citation",
+      "exportName": "Citation",
+      "categories": [
+        "ai"
+      ],
+      "isNew": false,
+      "usage": "import { Citation } from \"@/components/citation\";\n\n<p>\n  Highlights style text without touching the DOM\n  <Citation index={1} source={{ title: \"CSS Custom Highlight API\", url: \"https://developer.mozilla.org/…\", snippet: \"…\" }} />\n</p>",
+      "accessibility": "- The marker is a real link, so middle-click and Ctrl-click work, and it’s labelled \"Source 1: title\".\n- The card is a tooltip linked with aria-describedby; it opens on keyboard focus and closes on Escape.\n- Short open and close delays stop cards flickering as the pointer crosses a paragraph.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "index",
+            "type": "number",
+            "description": "– · The number shown in the marker."
+          },
+          {
+            "name": "source",
+            "type": "{ title; url; snippet?; icon? }",
+            "description": "– · What the card shows. icon takes a favicon element; a globe is shown without one."
+          },
+          {
+            "name": "status",
+            "type": "\"available\" | \"unavailable\"",
+            "description": "\"available\" · Unavailable (or no source) strikes the marker and explains in the card."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "AI answers with sources",
+            "description": "Numbered markers inside the sentences of a chatbot answer."
+          },
+          {
+            "title": "Research and search tools",
+            "description": "Answers where each claim points to the page it came from."
+          },
+          {
+            "title": "Documentation assistants",
+            "description": "Show which docs page an answer was taken from."
+          },
+          {
+            "title": "Reports and articles",
+            "description": "Footnote-style references that preview the source in place."
+          }
+        ],
+        "features": [
+          {
+            "title": "A marker in the sentence",
+            "description": "A small numbered marker that sits on the text’s baseline, where the claim is."
+          },
+          {
+            "title": "A preview of the source",
+            "description": "Hover or focus it to see the site, the title and a snippet."
+          },
+          {
+            "title": "It stays on screen",
+            "description": "The card flips above near the bottom of the screen and shifts to stay inside it."
+          },
+          {
+            "title": "It opens the source",
+            "description": "The marker is a real link, so middle-click and Ctrl-click work."
+          },
+          {
+            "title": "Broken sources say so",
+            "description": "A source that couldn’t be fetched is struck through and the card explains it."
+          },
+          {
+            "title": "No flicker",
+            "description": "Short open and close delays stop cards flashing as the pointer crosses a paragraph. Escape closes it."
+          }
+        ],
+        "states": [
+          {
+            "title": "closed",
+            "description": "A quiet numbered marker that sits on the text’s baseline."
+          },
+          {
+            "title": "open",
+            "description": "After a short hover delay, or at once on focus: site, title and a snippet. The card rises 4px out of a 2px blur (220ms) and sinks back the same way when it closes (140ms)."
+          },
+          {
+            "title": "unavailable",
+            "description": "The marker is struck through and the card says the source couldn’t be loaded."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
