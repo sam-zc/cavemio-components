@@ -1,0 +1,111 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-faq-accordion",
+  "title": "FAQ accordion",
+  "description": "Questions on fine lines that open like they mean it: the answer eases to its height, the plus folds into a minus.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/faq-accordion.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * FAQ ACCORDION: questions that open like they mean it\n *\n *   closed   a question on a thin line, with a plus\n *   opening  the answer eases open to its real height while its\n *            text settles in out of a slight blur; the plus\n *            turns and folds into a minus\n *   closing  the answer fades first, then the space closes\n *   single   opening one closes the other in the same motion\n *\n * Up and Down move between questions, Home and End jump.\n * ───────────────────────────────────────────────────────── */\n\nexport interface FaqItem {\n  question: string;\n  answer: React.ReactNode;\n  id?: string;\n}\n\nexport interface FaqAccordionProps extends React.HTMLAttributes<HTMLDivElement> {\n  items: FaqItem[];\n  /** One answer open at a time, or any number. */\n  type?: \"single\" | \"multiple\";\n  /** Questions open at first, by index. */\n  defaultOpen?: number[];\n}\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\nfunction PlusMinus({ open, reduced }: { open: boolean; reduced: boolean }) {\n  const t = reduced ? \"none\" : `transform 420ms ${EASE}, opacity 300ms ${EASE}`;\n  return (\n    <span\n      aria-hidden=\"true\"\n      className=\"relative flex size-4 shrink-0 items-center justify-center\"\n      style={{ transform: open ? \"rotate(180deg)\" : \"none\", transition: t }}\n    >\n      <span className=\"absolute h-px w-3 rounded-full bg-current\" />\n      {/* The upright folds flat to make the minus. */}\n      <span\n        className=\"absolute h-3 w-px rounded-full bg-current\"\n        style={{\n          transform: open ? \"rotate(90deg) scaleY(0.4)\" : \"none\",\n          opacity: open ? 0 : 1,\n          transition: t,\n        }}\n      />\n    </span>\n  );\n}\n\nexport function FaqAccordion({\n  items,\n  type = \"single\",\n  defaultOpen = [],\n  className = \"\",\n  ...props\n}: FaqAccordionProps) {\n  const reduced = useReducedMotion();\n  const id = React.useId();\n  const [open, setOpen] = React.useState<Set<number>>(\n    () => new Set(type === \"single\" ? defaultOpen.slice(0, 1) : defaultOpen),\n  );\n  const buttons = React.useRef<(HTMLButtonElement | null)[]>([]);\n\n  const toggle = (i: number) =>\n    setOpen((prev) => {\n      const next = new Set(type === \"single\" ? [] : prev);\n      if (prev.has(i)) next.delete(i);\n      else next.add(i);\n      return next;\n    });\n\n  const onKeyDown = (e: React.KeyboardEvent, i: number) => {\n    const moves: Record<string, number> = {\n      ArrowDown: i + 1,\n      ArrowUp: i - 1,\n      Home: 0,\n      End: items.length - 1,\n    };\n    if (!(e.key in moves)) return;\n    e.preventDefault();\n    buttons.current[(moves[e.key] + items.length) % items.length]?.focus();\n  };\n\n  return (\n    <div className={`w-full border-b border-border ${className}`} {...props}>\n      {items.map((item, i) => {\n        const isOpen = open.has(i);\n        const key = item.id ?? `${id}-${i}`;\n        return (\n          <div key={key} className=\"border-t border-border\">\n            <h3>\n              <button\n                ref={(el) => {\n                  buttons.current[i] = el;\n                }}\n                type=\"button\"\n                id={`${key}-q`}\n                aria-expanded={isOpen}\n                aria-controls={`${key}-a`}\n                onClick={() => toggle(i)}\n                onKeyDown={(e) => onKeyDown(e, i)}\n                className={`cursor-pointer group flex w-full items-center justify-between gap-6 rounded-lg py-4 text-left text-[15px] outline-none transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/40 ${\n                  isOpen\n                    ? \"text-foreground\"\n                    : \"text-foreground/80 hover:text-foreground\"\n                }`}\n              >\n                <span className=\"font-medium tracking-[-0.01em]\">\n                  {item.question}\n                </span>\n                <span\n                  className={`transition-colors duration-300 ${isOpen ? \"text-foreground\" : \"text-muted-foreground group-hover:text-foreground\"}`}\n                >\n                  <PlusMinus open={isOpen} reduced={reduced} />\n                </span>\n              </button>\n            </h3>\n            <div\n              id={`${key}-a`}\n              role=\"region\"\n              aria-labelledby={`${key}-q`}\n              inert={!isOpen}\n              className=\"grid\"\n              style={{\n                gridTemplateRows: isOpen ? \"1fr\" : \"0fr\",\n                transition: reduced\n                  ? \"none\"\n                  : `grid-template-rows 460ms ${EASE}`,\n              }}\n            >\n              <div className=\"min-h-0 overflow-hidden\">\n                <div\n                  className=\"pb-5 pr-10 text-[14px] leading-relaxed text-muted-foreground\"\n                  style={{\n                    opacity: isOpen ? 1 : 0,\n                    filter: isOpen ? \"none\" : \"blur(4px)\",\n                    transform: isOpen ? \"none\" : \"translateY(-6px)\",\n                    transition: reduced\n                      ? \"none\"\n                      : isOpen\n                        ? `opacity 420ms ${EASE} 90ms, filter 420ms ${EASE} 90ms, transform 520ms ${EASE} 60ms`\n                        : `opacity 160ms ease-out, filter 160ms ease-out, transform 240ms ease-out`,\n                  }}\n                >\n                  {item.answer}\n                </div>\n              </div>\n            </div>\n          </div>\n        );\n      })}\n    </div>\n  );\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "faq-accordion",
+      "exportName": "FaqAccordion",
+      "categories": [
+        "motion"
+      ],
+      "isNew": false,
+      "usage": "import { FaqAccordion } from \"@/components/faq-accordion\";\n\n<FaqAccordion\n  defaultOpen={[0]}\n  items={[{ question: \"Can I use it for client work?\", answer: \"Yes, one licence covers it.\" }]}\n/>",
+      "accessibility": "- Each question is a heading with a button (aria-expanded, aria-controls); each answer is a labelled region, hidden from the tab order when closed.\n- Up and Down move between questions, Home and End jump to the first and last, as the ARIA accordion pattern describes.\n- Height is animated with grid rows, so answers can be any length without measuring.\n- With reduced motion, answers open and close in place.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "items",
+            "type": "{ question; answer; id? }[]",
+            "description": "– · Each question, and its answer as text or any React."
+          },
+          {
+            "name": "type",
+            "type": "\"single\" | \"multiple\"",
+            "description": "\"single\" · One answer open at a time, or any number."
+          },
+          {
+            "name": "defaultOpen",
+            "type": "number[]",
+            "description": "[] · Questions open at first, by index."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Landing page FAQs",
+            "description": "The questions that stop visitors from signing up, answered in place."
+          },
+          {
+            "title": "Pricing page questions",
+            "description": "Billing, refunds and plan limits next to the plans."
+          },
+          {
+            "title": "Help centres and docs",
+            "description": "Short answers that expand without leaving the page."
+          },
+          {
+            "title": "Product and checkout pages",
+            "description": "Shipping, returns and licence questions where people decide."
+          }
+        ],
+        "features": [
+          {
+            "title": "It opens to the real height",
+            "description": "The answer eases open to its own height, whatever its length, without measuring it first."
+          },
+          {
+            "title": "It closes without squeezing",
+            "description": "The words fade first and then the space closes, so the text is never crushed."
+          },
+          {
+            "title": "One at a time, or many",
+            "description": "In single mode, opening one question closes the other in the same motion. Choose which start open."
+          },
+          {
+            "title": "Answers can be anything",
+            "description": "Text, links, lists or small tables. An answer is any React."
+          },
+          {
+            "title": "Keyboard navigation",
+            "description": "Up and Down move between questions, and Home and End jump to the first and last."
+          },
+          {
+            "title": "Correct markup",
+            "description": "Each question is a heading with a button that has aria-expanded, and closed answers are out of the tab order."
+          }
+        ],
+        "states": [
+          {
+            "title": "closed",
+            "description": "The question at 80% ink on a thin line, with a plus; hover brings it to full."
+          },
+          {
+            "title": "opening",
+            "description": "The answer’s row grows to its real height (460ms) and its text rises 6px out of a 4px blur; the plus turns 180° into a minus."
+          },
+          {
+            "title": "closing",
+            "description": "The words fade in 160ms, then the space closes, so text never gets squeezed."
+          },
+          {
+            "title": "single / multiple",
+            "description": "One open at a time, or any number."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
