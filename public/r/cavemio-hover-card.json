@@ -1,0 +1,119 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-hover-card",
+  "title": "Hover card",
+  "description": "A preview of what a link points to: it rises off the link after a rest, stays open while you move onto it, and closes after a short grace.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/hover-card.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport { createPortal } from \"react-dom\";\nimport {\n  enterStyle,\n  themeVars,\n  useFloating,\n  usePresence,\n  type Align,\n  type Side,\n} from \"./floating\";\nimport { useInteractionReducedMotion } from \"./imported-ui-interaction-motion\";\n\n/* ─────────────────────────────────────────────────────────\n * HOVER CARD: a preview of what a link points to\n *\n *   rest     after resting on the link (600ms) the card rises off\n *            it out of a blur, from the point nearest to it\n *   travel   moving from the link onto the card keeps it open, so\n *            its buttons can be used; leaving both closes it after\n *            a short grace (300ms), so a diagonal path doesn't\n *   keys     focusing the link from the keyboard opens it at once;\n *            Escape closes it\n *\n * Touch has no hover: a tap follows the link, as people expect.\n * The card adds to the link, so nothing in it should be the only\n * way to reach something.\n * ───────────────────────────────────────────────────────── */\n\nexport interface HoverCardProps {\n  /** The link or name it previews. */\n  children: React.ReactElement<{ \"aria-describedby\"?: string }>;\n  content: React.ReactNode;\n  side?: Side;\n  align?: Align;\n  /** Rest before it opens (ms). */\n  openDelay?: number;\n  /** Grace before it closes once the pointer has left both (ms). */\n  closeDelay?: number;\n  width?: number;\n  className?: string;\n}\n\nexport function HoverCard({\n  children,\n  content,\n  side = \"bottom\",\n  align = \"start\",\n  openDelay = 600,\n  closeDelay = 300,\n  width = 300,\n  className = \"\",\n}: HoverCardProps) {\n  const reduced = useInteractionReducedMotion();\n  const anchor = React.useRef<HTMLSpanElement>(null);\n  const surface = React.useRef<HTMLDivElement>(null);\n  const [open, setOpen] = React.useState(false);\n  const timer = React.useRef(0);\n  const id = React.useId();\n  const { mounted, shown } = usePresence(open, 160);\n  const place = useFloating({\n    open: mounted,\n    anchor,\n    floating: surface,\n    side,\n    align,\n    offset: 8,\n  });\n  const [vars, setVars] = React.useState<React.CSSProperties>({});\n\n  const later = (next: boolean, ms: number) => {\n    window.clearTimeout(timer.current);\n    timer.current = window.setTimeout(() => setOpen(next), ms);\n  };\n  const enter = (e: React.PointerEvent) =>\n    e.pointerType === \"mouse\" && later(true, open ? 0 : openDelay);\n  const leave = (e: React.PointerEvent) =>\n    e.pointerType === \"mouse\" && later(false, closeDelay);\n\n  React.useEffect(() => () => window.clearTimeout(timer.current), []);\n  React.useEffect(() => {\n    if (!open) return;\n    const onKey = (e: KeyboardEvent) => e.key === \"Escape\" && setOpen(false);\n    document.addEventListener(\"keydown\", onKey);\n    return () => document.removeEventListener(\"keydown\", onKey);\n  }, [open]);\n  React.useLayoutEffect(() => {\n    if (mounted) setVars(themeVars(anchor.current));\n  }, [mounted]);\n\n  return (\n    <>\n      <span\n        ref={anchor}\n        className=\"inline\"\n        onPointerEnter={enter}\n        onPointerLeave={leave}\n        onFocus={(e) => {\n          if ((e.target as HTMLElement).matches(\":focus-visible\")) {\n            window.clearTimeout(timer.current);\n            setOpen(true);\n          }\n        }}\n        onBlur={(e) => {\n          if (!surface.current?.contains(e.relatedTarget as Node))\n            later(false, 0);\n        }}\n      >\n        {React.cloneElement(children, {\n          \"aria-describedby\": open ? id : children.props[\"aria-describedby\"],\n        })}\n      </span>\n      {mounted &&\n        createPortal(\n          <div\n            ref={surface}\n            id={id}\n            role=\"tooltip\"\n            onPointerEnter={enter}\n            onPointerLeave={leave}\n            className={`fixed left-0 top-0 z-[55] max-w-[calc(100vw_-_16px)] rounded-[16px] bg-popover p-4 text-[13.5px] text-popover-foreground shadow-[0_0_0_1px_var(--border)] ${className}`}\n            style={{\n              ...vars,\n              width,\n              left: place.x,\n              top: place.y,\n              transformOrigin: place.origin,\n              ...enterStyle(shown, place.side, reduced),\n            }}\n          >\n            {content}\n          </div>,\n          document.body,\n        )}\n    </>\n  );\n}\n\nexport default HoverCard;\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/floating.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * FLOATING: what every popover, menu and tooltip shares\n *\n *   place     beside an anchor on a side, lined up start, centre\n *             or end; flips to the other side when it doesn't fit\n *             and shifts to stay `padding` inside the viewport;\n *             follows scroll and resize\n *   presence  mounts on open, shows a frame later (so the entry\n *             transitions run), hides, then unmounts after `exit`\n *   dismiss   Escape and a press outside both close it\n *   theme     the portal carries the anchor's theme tokens, so a\n *             light specimen on a dark page stays light\n * ───────────────────────────────────────────────────────── */\n\nexport type Side = \"top\" | \"bottom\" | \"left\" | \"right\";\nexport type Align = \"start\" | \"center\" | \"end\";\n\nconst TOKENS = [\n  \"--background\",\n  \"--foreground\",\n  \"--popover\",\n  \"--popover-foreground\",\n  \"--border\",\n  \"--accent\",\n  \"--accent-foreground\",\n  \"--primary\",\n  \"--primary-foreground\",\n  \"--muted\",\n  \"--muted-foreground\",\n  \"--ring\",\n  \"--card\",\n];\n\n/** The anchor's theme tokens as inline styles for something portalled out of its tree. */\nexport function themeVars(anchor: Element | null): React.CSSProperties {\n  if (!anchor) return {};\n  const style = getComputedStyle(anchor);\n  const vars: Record<string, string> = {};\n  for (const t of TOKENS) {\n    const v = style.getPropertyValue(t);\n    if (v) vars[t] = v;\n  }\n  return vars as React.CSSProperties;\n}\n\nconst OPPOSITE: Record<Side, Side> = {\n  top: \"bottom\",\n  bottom: \"top\",\n  left: \"right\",\n  right: \"left\",\n};\n\nexport interface Placement {\n  x: number;\n  y: number;\n  side: Side;\n  /** Where the surface grows from, for transform-origin. */\n  origin: string;\n  ready: boolean;\n}\n\n/** Positions `floating` (position: fixed) next to `anchor` while `open`. Pass a point instead of an anchor for context menus. */\nexport function useFloating({\n  open,\n  anchor,\n  point,\n  floating,\n  side = \"bottom\",\n  align = \"center\",\n  offset = 8,\n  padding = 8,\n}: {\n  open: boolean;\n  anchor?: React.RefObject<Element | null>;\n  point?: { x: number; y: number } | null;\n  floating: React.RefObject<HTMLElement | null>;\n  side?: Side;\n  align?: Align;\n  offset?: number;\n  padding?: number;\n}): Placement {\n  const [place, setPlace] = React.useState<Placement>({\n    x: -9999,\n    y: -9999,\n    side,\n    origin: \"center\",\n    ready: false,\n  });\n\n  React.useLayoutEffect(() => {\n    if (!open) return;\n    let frame = 0;\n    const measure = () => {\n      const el = floating.current;\n      if (!el) return;\n      const a = point\n        ? {\n            left: point.x,\n            right: point.x,\n            top: point.y,\n            bottom: point.y,\n            width: 0,\n            height: 0,\n          }\n        : anchor?.current?.getBoundingClientRect();\n      if (!a) return;\n      const w = el.offsetWidth;\n      const h = el.offsetHeight;\n      const vw = window.innerWidth;\n      const vh = window.innerHeight;\n      const room: Record<Side, number> = {\n        top: a.top - padding,\n        bottom: vh - a.bottom - padding,\n        left: a.left - padding,\n        right: vw - a.right - padding,\n      };\n      const need =\n        side === \"top\" || side === \"bottom\" ? h + offset : w + offset;\n      const s =\n        room[side] < need && room[OPPOSITE[side]] > room[side]\n          ? OPPOSITE[side]\n          : side;\n      let x: number;\n      let y: number;\n      if (s === \"top\" || s === \"bottom\") {\n        y = s === \"bottom\" ? a.bottom + offset : a.top - offset - h;\n        x =\n          align === \"start\"\n            ? a.left\n            : align === \"end\"\n              ? a.right - w\n              : a.left + a.width / 2 - w / 2;\n        if (point) x = a.left;\n      } else {\n        x = s === \"right\" ? a.right + offset : a.left - offset - w;\n        y =\n          align === \"start\"\n            ? a.top\n            : align === \"end\"\n              ? a.bottom - h\n              : a.top + a.height / 2 - h / 2;\n      }\n      x = Math.max(padding, Math.min(vw - padding - w, x));\n      y = Math.max(padding, Math.min(vh - padding - h, y));\n      // Grow from the point on the anchor's edge nearest the surface.\n      const ox =\n        s === \"left\"\n          ? \"100%\"\n          : s === \"right\"\n            ? \"0%\"\n            : `${Math.max(0, Math.min(w, a.left + a.width / 2 - x))}px`;\n      const oy =\n        s === \"top\"\n          ? \"100%\"\n          : s === \"bottom\"\n            ? \"0%\"\n            : `${Math.max(0, Math.min(h, a.top + a.height / 2 - y))}px`;\n      const next = {\n        x: Math.round(x),\n        y: Math.round(y),\n        side: s,\n        origin: `${ox} ${oy}`,\n        ready: true,\n      };\n      setPlace((p) =>\n        p.x === next.x &&\n        p.y === next.y &&\n        p.side === next.side &&\n        p.origin === next.origin &&\n        p.ready\n          ? p\n          : next,\n      );\n    };\n    const schedule = () => {\n      cancelAnimationFrame(frame);\n      frame = requestAnimationFrame(measure);\n    };\n    measure();\n    const ro = new ResizeObserver(schedule);\n    if (floating.current) ro.observe(floating.current);\n    window.addEventListener(\"scroll\", schedule, {\n      capture: true,\n      passive: true,\n    });\n    window.addEventListener(\"resize\", schedule);\n    return () => {\n      cancelAnimationFrame(frame);\n      ro.disconnect();\n      window.removeEventListener(\"scroll\", schedule, { capture: true });\n      window.removeEventListener(\"resize\", schedule);\n    };\n  }, [open, anchor, point, floating, side, align, offset, padding]);\n\n  return open ? place : { ...place, ready: false };\n}\n\n/** Mount → show next frame → hide → unmount after `exit` ms. */\nexport function usePresence(open: boolean, exit = 160) {\n  const [mounted, setMounted] = React.useState(open);\n  const [shown, setShown] = React.useState(false);\n  if (open && !mounted) setMounted(true);\n  React.useEffect(() => {\n    if (open) {\n      let inner = 0;\n      const outer = requestAnimationFrame(() => {\n        inner = requestAnimationFrame(() => setShown(true));\n      });\n      return () => {\n        cancelAnimationFrame(outer);\n        cancelAnimationFrame(inner);\n      };\n    }\n    const timer = window.setTimeout(() => {\n      setMounted(false);\n      setShown(false);\n    }, exit);\n    return () => window.clearTimeout(timer);\n  }, [open, exit]);\n  return { mounted: mounted || open, shown: open && shown };\n}\n\n/** Escape and presses outside `refs` call onDismiss while `open`. */\nexport function useDismiss(\n  open: boolean,\n  onDismiss: (reason: \"escape\" | \"outside\") => void,\n  refs: React.RefObject<Element | null>[],\n) {\n  const latest = React.useRef({ onDismiss, refs });\n  React.useEffect(() => {\n    latest.current = { onDismiss, refs };\n  });\n  React.useEffect(() => {\n    if (!open) return;\n    const onKey = (e: KeyboardEvent) => {\n      if (e.key !== \"Escape\") return;\n      e.stopPropagation();\n      latest.current.onDismiss(\"escape\");\n    };\n    const onDown = (e: PointerEvent) => {\n      const target = e.target as Node;\n      if (latest.current.refs.some((r) => r.current?.contains(target))) return;\n      latest.current.onDismiss(\"outside\");\n    };\n    document.addEventListener(\"keydown\", onKey);\n    document.addEventListener(\"pointerdown\", onDown, true);\n    return () => {\n      document.removeEventListener(\"keydown\", onKey);\n      document.removeEventListener(\"pointerdown\", onDown, true);\n    };\n  }, [open]);\n}\n\n/** The entry pose for a surface on `side`: it comes 6px from the anchor, 0.96 and blurred. */\nexport function enterStyle(\n  shown: boolean,\n  side: Side,\n  reduced: boolean,\n  ease = \"cubic-bezier(0.16,1,0.3,1)\",\n): React.CSSProperties {\n  const d = 6;\n  const shift =\n    side === \"top\"\n      ? `0 ${d}px`\n      : side === \"bottom\"\n        ? `0 -${d}px`\n        : side === \"left\"\n          ? `${d}px 0`\n          : `-${d}px 0`;\n  return {\n    opacity: shown ? 1 : 0,\n    translate: shown || reduced ? \"0 0\" : shift,\n    scale: shown || reduced ? \"1\" : \"0.96\",\n    filter: shown || reduced ? \"blur(0px)\" : \"blur(4px)\",\n    transition: reduced\n      ? \"opacity 120ms ease-out\"\n      : shown\n        ? `opacity 220ms ${ease}, translate 320ms ${ease}, scale 320ms ${ease}, filter 220ms ${ease}`\n        : `opacity 140ms ${ease}, translate 180ms ${ease}, scale 180ms ${ease}, filter 140ms ${ease}`,\n  };\n}\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/imported-ui-interaction-motion.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport const EASE_OUT = \"cubic-bezier(0.16, 1, 0.3, 1)\";\nexport const EASE_SETTLE = \"cubic-bezier(0.22, 1.18, 0.36, 1)\";\n/** Thrown things (indicators, thumbs): a slight overshoot on transform only. */\nexport const EASE_THROW = \"cubic-bezier(0.34, 1.36, 0.64, 1)\";\n/**\n * The press every button primitive shares: a 3% give that eases in and settles back.\n * Tailwind v4's scale-* writes the `scale` property, so `scale` has to be in the list\n * or the press snaps.\n */\nexport const INTERACTION_PRESS =\n  \"transition-[background-color,color,box-shadow,opacity,scale] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100\";\nexport const INTERACTION_FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background\";\n\nconst query = \"(prefers-reduced-motion: reduce)\";\nconst subscribe = (notify: () => void) => {\n  const media = window.matchMedia(query);\n  media.addEventListener(\"change\", notify);\n  return () => media.removeEventListener(\"change\", notify);\n};\nexport const useInteractionReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false,\n  );\n\nexport function useInteractionActivity<T extends Element>() {\n  const ref = React.useRef<T>(null);\n  const [visible, setVisible] = React.useState(false);\n  const [hidden, setHidden] = React.useState(false);\n  React.useEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(([entry]) =>\n      setVisible(entry.isIntersecting),\n    );\n    observer.observe(el);\n    const visibility = () => setHidden(document.hidden);\n    visibility();\n    document.addEventListener(\"visibilitychange\", visibility);\n    return () => {\n      observer.disconnect();\n      document.removeEventListener(\"visibilitychange\", visibility);\n    };\n  }, []);\n  return { ref, active: visible && !hidden };\n}\n\nexport function interactionIcon(\n  on: boolean,\n  reduced: boolean,\n): React.CSSProperties {\n  return {\n    opacity: on ? 1 : 0,\n    transform: on ? \"none\" : \"scale(0.6)\",\n    filter: on ? \"blur(0px)\" : \"blur(3px)\",\n    transition: reduced\n      ? \"none\"\n      : `opacity 220ms ${EASE_OUT}, transform 380ms ${EASE_OUT}, filter 220ms ${EASE_OUT}`,\n  };\n}\n\n/** Sample recent movement rather than averaging a long drag and losing its release velocity. */\nexport type PointerSample = { x: number; time: number };\nexport function samplePointer(\n  samples: PointerSample[],\n  x: number,\n  time: number,\n) {\n  samples.push({ x, time });\n  while (samples.length > 2 && time - samples[0].time > 100) samples.shift();\n}\nexport function releaseVelocity(samples: PointerSample[], now: number) {\n  if (samples.length < 2 || now - samples[samples.length - 1].time > 100)\n    return 0;\n  const first = samples[0],\n    last = samples[samples.length - 1];\n  return (last.x - first.x) / Math.max(1, last.time - first.time);\n}\n\n/** Smooth Apple/rational rubber-band curve: continuous exponential-like resistance without linear kinks. */\nexport function rubberBand(\n  overshoot: number,\n  dimension = 320,\n  constant = 0.55,\n): number {\n  const d = dimension || 320;\n  const abs = Math.abs(overshoot);\n  return Math.sign(overshoot) * (1 - 1 / ((abs * constant) / d + 1)) * d;\n}\n\n/** Projects resting travel from release velocity (velocity in px/ms; time in seconds). */\nexport function projectInertia(\n  distance: number,\n  velocity: number,\n  time = 0.12,\n): number {\n  return distance + velocity * 1000 * time;\n}\n\n/** Smooths incoming release velocity toward a boundary so springs don't slam or clip into walls. */\nexport function softenVelocity(\n  velocity: number,\n  distanceToTarget: number,\n  factor = 10,\n): number {\n  const maxAllowed = Math.abs(distanceToTarget) * factor;\n  return Math.sign(velocity) * Math.min(Math.abs(velocity), maxAllowed);\n}\n\n/** A damped spring sampled by WAAPI: tuned for organic lightness with a hint of life (3% breath). */\nexport function springFrames(\n  from: number,\n  to: number,\n  velocity = 0,\n  duration = 480,\n  config: { omega?: number; damping?: number; steps?: number } = {},\n) {\n  const { omega = 16, damping = 0.74, steps = 36 } = config;\n  const damped = omega * Math.sqrt(Math.max(0.001, 1 - damping * damping));\n  const displacement = from - to;\n  const coefficient =\n    (velocity * 1000 + damping * omega * displacement) / damped;\n  return Array.from({ length: steps + 1 }, (_, i) => {\n    const t = (i / steps) * (duration / 1000);\n    const value =\n      to +\n      Math.exp(-damping * omega * t) *\n        (displacement * Math.cos(damped * t) +\n          coefficient * Math.sin(damped * t));\n    return { value: i === steps ? to : value, offset: i / steps };\n  });\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "hover-card",
+      "exportName": "HoverCard",
+      "categories": [
+        "overlays"
+      ],
+      "isNew": true,
+      "usage": "import { HoverCard } from \"@/components/hover-card\";\n\n<HoverCard content={<ProfilePreview user={ada} />}>\n  <a href=\"/people/ada\">@ada</a>\n</HoverCard>",
+      "accessibility": "- Placement, presence and dismissal come from floating.ts, shared with tooltip, popover and the menus.\n- Nothing in the card should be the only way to reach something: touch and screen readers may never see it.\n- Reduced motion: it fades.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "children",
+            "type": "ReactElement",
+            "description": "– · The link it previews."
+          },
+          {
+            "name": "content",
+            "type": "ReactNode",
+            "description": "– · The card."
+          },
+          {
+            "name": "side / align",
+            "type": "Side / Align",
+            "description": "\"bottom\" / \"start\" · Where it sits."
+          },
+          {
+            "name": "openDelay / closeDelay",
+            "type": "number",
+            "description": "600 / 300 · Rest and grace in ms."
+          },
+          {
+            "name": "width",
+            "type": "number",
+            "description": "300 · Card width."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Mentions and usernames",
+            "description": "A profile with a Follow button on @ada."
+          },
+          {
+            "title": "Issue and PR references",
+            "description": "Status and title behind #482."
+          },
+          {
+            "title": "Docs links",
+            "description": "A summary of the page before you leave."
+          },
+          {
+            "title": "Tables",
+            "description": "A customer's details behind their name."
+          }
+        ],
+        "features": [
+          {
+            "title": "Travel-safe",
+            "description": "Pointer on the link or the card keeps it open; 300ms grace after leaving both."
+          },
+          {
+            "title": "Rests before opening",
+            "description": "600ms, so passing over links doesn't flash cards."
+          },
+          {
+            "title": "Keyboard",
+            "description": "Focus opens it, Escape closes it."
+          },
+          {
+            "title": "Touch-honest",
+            "description": "No hover on touch: the link just works."
+          }
+        ],
+        "states": [
+          {
+            "title": "rest",
+            "description": "After 600ms on the link the card rises 6px from its side out of a 4px blur (320ms)."
+          },
+          {
+            "title": "travel",
+            "description": "Moving onto the card keeps it open."
+          },
+          {
+            "title": "leave",
+            "description": "300ms after leaving both, it fades (160ms)."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
