@@ -1,0 +1,116 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-feature-tabs",
+  "title": "Feature tabs",
+  "description": "One panel, many features: the line slides between tabs, fills as autoplay runs, and the panel eases to each.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/feature-tabs.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * FEATURE TABS: one panel, many features\n *\n *   tabs      the line under the chosen tab slides over with a\n *             little give\n *   autoplay  that line fills like a progress bar; when it's\n *             full the next tab takes over. Pointing at it pauses\n *   panel     its height eases to the new content while the\n *             content slides in from the side you went, through\n *             a light blur\n *\n * A real tablist: arrow keys, Home and End move between tabs.\n * ───────────────────────────────────────────────────────── */\n\nexport interface FeatureTab {\n  id: string;\n  label: string;\n  content: React.ReactNode;\n}\n\nexport interface FeatureTabsProps extends Omit<\n  React.HTMLAttributes<HTMLDivElement>,\n  \"onChange\"\n> {\n  tabs: FeatureTab[];\n  value?: string;\n  defaultValue?: string;\n  onValueChange?: (id: string) => void;\n  /** Move to the next tab every this many ms. Pointing at the tabs pauses it. */\n  autoplay?: number;\n}\n\ntype Leaving = { id: string; dir: number; key: number };\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\nconst THROW = \"cubic-bezier(0.34,1.36,0.64,1)\";\nconst MORPH = 460;\nconst FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40\";\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\nfunction Pane({\n  children,\n  dir,\n  leaving,\n  reduced,\n  paneRef,\n}: {\n  children: React.ReactNode;\n  dir: number;\n  leaving: boolean;\n  reduced: boolean;\n  paneRef?: (el: HTMLDivElement | null) => void;\n}) {\n  const ref = React.useRef<HTMLDivElement>(null);\n  React.useLayoutEffect(() => {\n    const el = ref.current;\n    if (!el || reduced || dir === 0) return;\n    const shift = 32 * dir;\n    const animation = leaving\n      ? el.animate(\n          [\n            { opacity: 1, filter: \"blur(0px)\", transform: \"none\" },\n            {\n              opacity: 0,\n              filter: \"blur(6px)\",\n              transform: `translateX(${-shift}px)`,\n            },\n          ],\n          { duration: MORPH * 0.6, easing: EASE, fill: \"forwards\" },\n        )\n      : el.animate(\n          [\n            {\n              opacity: 0,\n              filter: \"blur(6px)\",\n              transform: `translateX(${shift}px)`,\n            },\n            { opacity: 1, filter: \"blur(0px)\", transform: \"none\" },\n          ],\n          { duration: MORPH, easing: EASE, delay: 60, fill: \"backwards\" },\n        );\n    return () => animation.cancel();\n  }, [dir, leaving, reduced]);\n  return (\n    <div\n      ref={(el) => {\n        ref.current = el;\n        paneRef?.(el);\n      }}\n      inert={leaving}\n      aria-hidden={leaving || undefined}\n      className=\"absolute inset-x-0 top-0\"\n    >\n      {children}\n    </div>\n  );\n}\n\nexport function FeatureTabs({\n  tabs,\n  value,\n  defaultValue,\n  onValueChange,\n  autoplay,\n  className = \"\",\n  ...props\n}: FeatureTabsProps) {\n  const reduced = useReducedMotion();\n  const id = React.useId();\n  const [own, setOwn] = React.useState(defaultValue ?? tabs[0]?.id);\n  const active = value ?? own;\n  const index = Math.max(\n    0,\n    tabs.findIndex((t) => t.id === active),\n  );\n\n  const [leaving, setLeaving] = React.useState<Leaving[]>([]);\n  const [dir, setDir] = React.useState(0);\n  const [cycle, setCycle] = React.useState(0);\n  const [paused, setPaused] = React.useState(false);\n  const [line, setLine] = React.useState({ left: 0, width: 0, ready: false });\n  const [height, setHeight] = React.useState<number | null>(null);\n  const tabRefs = React.useRef<(HTMLButtonElement | null)[]>([]);\n  const paneRef = React.useRef<HTMLDivElement | null>(null);\n  const setPane = React.useCallback((el: HTMLDivElement | null) => {\n    paneRef.current = el;\n  }, []);\n  const keyCounter = React.useRef(0);\n\n  const select = (next: number, focus = false) => {\n    const tab = tabs[(next + tabs.length) % tabs.length];\n    if (!tab) return;\n    setCycle((c) => c + 1);\n    if (tab.id === active) return;\n    const nextIndex = tabs.indexOf(tab);\n    setDir(Math.sign(nextIndex - index) || 1);\n    setLeaving((l) => [\n      ...l,\n      {\n        id: active,\n        dir: Math.sign(nextIndex - index) || 1,\n        key: ++keyCounter.current,\n      },\n    ]);\n    if (value === undefined) setOwn(tab.id);\n    onValueChange?.(tab.id);\n    if (focus) tabRefs.current[nextIndex]?.focus();\n  };\n\n  React.useEffect(() => {\n    if (!leaving.length) return;\n    const timer = window.setTimeout(() => setLeaving([]), MORPH);\n    return () => window.clearTimeout(timer);\n  }, [leaving]);\n\n  // The line sits under the chosen tab.\n  React.useLayoutEffect(() => {\n    const measure = () => {\n      const tab = tabRefs.current[index];\n      if (!tab) return;\n      const left = tab.offsetLeft;\n      const width = tab.offsetWidth;\n      setLine((l) =>\n        l.left === left && l.width === width\n          ? l\n          : { left, width, ready: l.width > 0 },\n      );\n    };\n    measure();\n    const observer = new ResizeObserver(measure);\n    tabRefs.current.forEach((t) => t && observer.observe(t));\n    return () => observer.disconnect();\n  }, [index, tabs]);\n\n  // The panel takes the height of what it's showing.\n  React.useLayoutEffect(() => {\n    const pane = paneRef.current;\n    if (!pane) return;\n    const measure = () =>\n      setHeight((h) => (h === pane.offsetHeight ? h : pane.offsetHeight));\n    measure();\n    const observer = new ResizeObserver(measure);\n    observer.observe(pane);\n    return () => observer.disconnect();\n  }, [active]);\n\n  const onKeyDown = (e: React.KeyboardEvent) => {\n    const moves: Record<string, number> = {\n      ArrowRight: index + 1,\n      ArrowLeft: index - 1,\n      Home: 0,\n      End: tabs.length - 1,\n    };\n    if (!(e.key in moves)) return;\n    e.preventDefault();\n    select(moves[e.key], true);\n  };\n\n  const playing = Boolean(autoplay) && !reduced && !paused;\n  const current = tabs[index];\n\n  return (\n    <div\n      className={`w-full ${className}`}\n      onPointerEnter={() => setPaused(true)}\n      onPointerLeave={() => setPaused(false)}\n      onFocus={() => setPaused(true)}\n      onBlur={(e) =>\n        !e.currentTarget.contains(e.relatedTarget as Node) && setPaused(false)\n      }\n      {...props}\n    >\n      <div\n        role=\"tablist\"\n        aria-label=\"Features\"\n        onKeyDown={onKeyDown}\n        className=\"relative flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden\"\n      >\n        {tabs.map((tab, i) => {\n          const selected = i === index;\n          return (\n            <button\n              key={tab.id}\n              ref={(el) => {\n                tabRefs.current[i] = el;\n              }}\n              type=\"button\"\n              role=\"tab\"\n              id={`${id}-tab-${tab.id}`}\n              aria-selected={selected}\n              aria-controls={`${id}-panel`}\n              tabIndex={selected ? 0 : -1}\n              onClick={() => select(i)}\n              className={`cursor-pointer relative shrink-0 whitespace-nowrap px-3 pb-3 pt-1 text-[13.5px] transition-colors duration-300 ${FOCUS} ${\n                selected\n                  ? \"text-foreground\"\n                  : \"text-muted-foreground hover:text-foreground\"\n              }`}\n            >\n              {tab.label}\n            </button>\n          );\n        })}\n        {/* The thin line under the row, then the line: it slides to the chosen tab and, with autoplay, fills as its time runs. */}\n        <span\n          aria-hidden=\"true\"\n          className=\"absolute inset-x-0 bottom-0 h-px bg-border\"\n        />\n        <span\n          aria-hidden=\"true\"\n          className=\"absolute bottom-0 left-0 h-px overflow-hidden\"\n          style={{\n            width: line.width,\n            transform: `translateX(${line.left}px)`,\n            transition:\n              line.ready && !reduced\n                ? `transform 520ms ${THROW}, width 420ms ${EASE}`\n                : \"none\",\n          }}\n        >\n          <span className=\"absolute inset-0 bg-border\" />\n          <span\n            key={`${active}-${cycle}`}\n            className=\"absolute inset-0 origin-left bg-foreground\"\n            onAnimationEnd={() => select(index + 1)}\n            style={\n              autoplay && !reduced\n                ? {\n                    animation: `ui-progress ${autoplay}ms linear forwards`,\n                    animationPlayState: playing ? \"running\" : \"paused\",\n                  }\n                : undefined\n            }\n          />\n        </span>\n      </div>\n\n      <div\n        id={`${id}-panel`}\n        role=\"tabpanel\"\n        aria-labelledby={`${id}-tab-${active}`}\n        className=\"relative mt-5 overflow-hidden\"\n        style={{\n          height: height ?? undefined,\n          transition:\n            reduced || height === null ? \"none\" : `height ${MORPH}ms ${EASE}`,\n        }}\n      >\n        {leaving.map((l) => (\n          <Pane key={l.key} dir={l.dir} leaving reduced={reduced}>\n            {tabs.find((t) => t.id === l.id)?.content}\n          </Pane>\n        ))}\n        {current && (\n          <Pane\n            key={current.id}\n            dir={leaving.length ? dir : 0}\n            leaving={false}\n            reduced={reduced}\n            paneRef={setPane}\n          >\n            {current.content}\n          </Pane>\n        )}\n      </div>\n    </div>\n  );\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {
+    "@keyframes ui-progress": {
+      "from": {
+        "transform": "scaleX(0)"
+      },
+      "to": {
+        "transform": "scaleX(1)"
+      }
+    }
+  },
+  "meta": {
+    "cavemio": {
+      "component": "feature-tabs",
+      "exportName": "FeatureTabs",
+      "categories": [
+        "display"
+      ],
+      "isNew": false,
+      "usage": "import { FeatureTabs } from \"@/components/feature-tabs\";\n\n<FeatureTabs\n  autoplay={4200}\n  tabs={[\n    { id: \"plan\", label: \"Plan\", content: <PlanShot /> },\n    { id: \"ship\", label: \"Ship\", content: <ShipShot /> },\n  ]}\n/>",
+      "accessibility": "- A real tablist with a labelled tabpanel; arrow keys, Home and End move between tabs and only the chosen tab is in the tab order.\n- Autoplay pauses while the pointer or focus is anywhere inside, so it never moves under someone reading.\n- The progress is a CSS animation, so nothing re-renders while it runs.\n- With reduced motion there is no autoplay and content changes in place.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "tabs",
+            "type": "{ id; label; content }[]",
+            "description": "– · Each tab and what its panel shows."
+          },
+          {
+            "name": "value / defaultValue / onValueChange",
+            "type": "string / string / (id) => void",
+            "description": "– · The chosen tab, controlled or not."
+          },
+          {
+            "name": "autoplay",
+            "type": "number",
+            "description": "– · Move on every this many ms, with the line as the timer. Off with reduced motion."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Feature sections",
+            "description": "One tab per feature, each with a screenshot, a video or a small live demo."
+          },
+          {
+            "title": "Product tours",
+            "description": "Autoplay through the product in the order you want it seen."
+          },
+          {
+            "title": "Solutions pages",
+            "description": "One tab per team, role or use case."
+          },
+          {
+            "title": "Docs landing pages",
+            "description": "Switch between platforms or languages on a quick-start page."
+          }
+        ],
+        "features": [
+          {
+            "title": "A line that follows the tab",
+            "description": "The line under the chosen tab slides across with a little give, and the label colour follows."
+          },
+          {
+            "title": "Autoplay with a visible timer",
+            "description": "The line fills like a progress bar, then hands over to the next tab when it is full."
+          },
+          {
+            "title": "It pauses when you do",
+            "description": "Pointing at it, or focus inside, pauses autoplay. Clicking a tab restarts the timer."
+          },
+          {
+            "title": "The panel eases to each tab",
+            "description": "The height eases to the new content, which slides in from the side you went."
+          },
+          {
+            "title": "Any content in a panel",
+            "description": "A screenshot, a video, a small mock or anything else React can render."
+          },
+          {
+            "title": "Real tabs",
+            "description": "A proper tablist with arrow keys, Home and End. With reduced motion there is no autoplay."
+          }
+        ],
+        "states": [
+          {
+            "title": "switch",
+            "description": "The line slides and resizes to the tab (520ms, slight overshoot); the label colour follows."
+          },
+          {
+            "title": "panel",
+            "description": "Height eases over 460ms; old content slides and blurs out one way, new content in from the other."
+          },
+          {
+            "title": "autoplay",
+            "description": "The line fills over the interval and moves to the next tab when full. Pointer or focus inside pauses it; clicking a tab restarts it."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
