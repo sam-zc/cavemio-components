@@ -1,0 +1,123 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-icon-morph",
+  "title": "Icon morph",
+  "description": "One icon becoming another: blur pop, direction-aware turn, card flip, or strokes that draw themselves. Fast toggling never jumps.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/icon-morph.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport {\n  EASE_OUT,\n  EASE_THROW,\n  INTERACTION_FOCUS,\n  INTERACTION_PRESS,\n  useInteractionReducedMotion,\n} from \"./imported-ui-interaction-motion\";\n\n/* ─────────────────────────────────────────────────────────\n * ICON MORPH: one icon becoming another\n *\n *   blur     the old icon shrinks into a 3px blur while the new\n *            one pops out of it with a slight overshoot\n *   rotate   a quarter turn that keeps its direction: forward\n *            turns clockwise, back turns the other way\n *   flip     a card turn: the old icon goes edge-on, the new one\n *            comes round from behind\n *   draw     the new icon's strokes draw themselves, one after\n *            another, as the old one blurs away\n *\n * Every change starts from wherever the last one is, so fast\n * toggling never jumps. Two icons (from/to + active) or any\n * number (icons + value). Reduced motion gets a short crossfade.\n * ───────────────────────────────────────────────────────── */\n\nexport type IconMorphMode = \"blur\" | \"rotate\" | \"flip\" | \"draw\" | \"scale\";\n\nexport interface IconMorphProps extends Omit<\n  React.HTMLAttributes<HTMLSpanElement>,\n  \"children\"\n> {\n  /** Shown while `active` is false. */\n  from?: React.ReactNode;\n  /** Shown while `active` is true. */\n  to?: React.ReactNode;\n  active?: boolean;\n  /** Any number of icons by name; `value` picks one. Order sets the direction of rotate and flip. */\n  icons?: Record<string, React.ReactNode>;\n  value?: string;\n  /** How the icons trade places. \"scale\" is the old name for \"blur\". */\n  mode?: IconMorphMode;\n  /** Box size in px. */\n  size?: number;\n}\n\ntype Pose = { opacity: string; transform: string; filter: string };\n\nconst SHOWN: Pose = { opacity: \"1\", transform: \"none\", filter: \"blur(0px)\" };\nconst STROKES = \"path, line, polyline, polygon, circle, rect, ellipse\";\n\nfunction hidden(mode: IconMorphMode, dir: number, leaving: boolean): Pose {\n  const side = leaving ? dir : -dir;\n  if (mode === \"rotate\")\n    return {\n      opacity: \"0\",\n      transform: `rotate(${90 * side}deg) scale(0.5)`,\n      filter: \"blur(2px)\",\n    };\n  if (mode === \"flip\")\n    return {\n      opacity: \"0\",\n      transform: `rotateY(${90 * side}deg)`,\n      filter: \"blur(0px)\",\n    };\n  if (mode === \"draw\")\n    return { opacity: \"0\", transform: \"scale(0.85)\", filter: \"blur(3px)\" };\n  return { opacity: \"0\", transform: \"scale(0.6)\", filter: \"blur(3px)\" };\n}\n\n/**\n * Where a layer starts from. Mid-animation, that's wherever it is now (so a fast toggle turns\n * back instead of jumping); at rest, the pose it held before this render flipped its opacity.\n */\nfunction startPose(el: HTMLElement, rest: Pose): Pose {\n  if (!el.getAnimations().some((a) => a.playState === \"running\")) return rest;\n  const style = getComputedStyle(el);\n  return {\n    opacity: style.opacity,\n    transform: style.transform,\n    filter: style.filter === \"none\" ? \"blur(0px)\" : style.filter,\n  };\n}\n\nfunction animateLayer(\n  el: HTMLElement,\n  mode: IconMorphMode,\n  dir: number,\n  entering: boolean,\n  reduced: boolean,\n) {\n  const from = startPose(el, entering ? hidden(mode, dir, false) : SHOWN);\n  el.getAnimations().forEach((a) => a.cancel());\n  el.querySelectorAll<SVGElement>(STROKES).forEach((s) =>\n    s.getAnimations().forEach((a) => a.cancel()),\n  );\n\n  if (reduced) {\n    el.animate([{ opacity: from.opacity }, { opacity: entering ? \"1\" : \"0\" }], {\n      duration: 160,\n      easing: \"ease-out\",\n    });\n    return;\n  }\n\n  if (!entering) {\n    if (mode === \"flip\")\n      el.animate([from, hidden(mode, dir, true)], {\n        duration: 170,\n        easing: \"cubic-bezier(0.5,0,0.75,0)\",\n      });\n    else\n      el.animate([from, hidden(mode, dir, true)], {\n        duration: 200,\n        easing: EASE_OUT,\n      });\n    return;\n  }\n\n  if (mode === \"flip\") {\n    // Waits until the old face is edge-on, then comes round from behind.\n    const wait = Number(from.opacity) < 0.02;\n    el.animate(\n      wait\n        ? [\n            { ...from, offset: 0 },\n            { ...from, offset: 0.34, easing: EASE_OUT },\n            { ...SHOWN, offset: 1 },\n          ]\n        : [from, SHOWN],\n      {\n        duration: wait ? 500 : 340,\n        easing: wait ? \"linear\" : EASE_OUT,\n      },\n    );\n    return;\n  }\n  el.animate(\n    [\n      { opacity: from.opacity, filter: from.filter },\n      { opacity: \"1\", filter: \"blur(0px)\" },\n    ],\n    { duration: mode === \"draw\" ? 180 : 260, easing: EASE_OUT },\n  );\n  el.animate([{ transform: from.transform }, { transform: \"none\" }], {\n    duration: mode === \"rotate\" ? 480 : 440,\n    easing: EASE_THROW,\n  });\n  if (mode !== \"draw\") return;\n  el.querySelectorAll<SVGGeometryElement>(STROKES).forEach((stroke, i) => {\n    const length =\n      typeof stroke.getTotalLength === \"function\" ? stroke.getTotalLength() : 0;\n    if (!length) return;\n    stroke.animate(\n      [\n        { strokeDasharray: `${length}`, strokeDashoffset: `${length}` },\n        { strokeDasharray: `${length}`, strokeDashoffset: \"0\" },\n      ],\n      {\n        duration: 420,\n        delay: 40 + Math.min(i, 5) * 60,\n        easing: EASE_OUT,\n        fill: \"backwards\",\n      },\n    );\n  });\n}\n\nexport function IconMorph({\n  from,\n  to,\n  active = false,\n  icons,\n  value,\n  mode = \"blur\",\n  size = 16,\n  className = \"\",\n  style,\n  ...props\n}: IconMorphProps) {\n  const reduced = useInteractionReducedMotion();\n  const layers = React.useMemo<[string, React.ReactNode][]>(\n    () =>\n      icons\n        ? Object.entries(icons)\n        : [\n            [\"from\", from],\n            [\"to\", to],\n          ],\n    [icons, from, to],\n  );\n  const key = icons ? (value ?? layers[0]?.[0]) : active ? \"to\" : \"from\";\n  const refs = React.useRef(new Map<string, HTMLSpanElement>());\n  const shownRef = React.useRef(key);\n  const kind: IconMorphMode = mode === \"scale\" ? \"blur\" : mode;\n\n  React.useLayoutEffect(() => {\n    const prev = shownRef.current;\n    if (prev === key) return;\n    shownRef.current = key;\n    const order = layers.map(([k]) => k);\n    const dir = order.indexOf(key) >= order.indexOf(prev) ? 1 : -1;\n    const leaving = refs.current.get(prev);\n    const entering = refs.current.get(key);\n    if (leaving) animateLayer(leaving, kind, dir, false, reduced);\n    if (entering) animateLayer(entering, kind, dir, true, reduced);\n  }, [key, layers, kind, reduced]);\n\n  return (\n    <span\n      aria-hidden=\"true\"\n      className={`relative inline-flex shrink-0 items-center justify-center ${className}`}\n      style={{\n        width: size,\n        height: size,\n        perspective: kind === \"flip\" ? 240 : undefined,\n        ...style,\n      }}\n      {...props}\n    >\n      {layers.map(([k, node]) => (\n        <span\n          key={k}\n          ref={(el) => {\n            if (el) refs.current.set(k, el);\n            else refs.current.delete(k);\n          }}\n          className=\"absolute inset-0 flex items-center justify-center [backface-visibility:hidden] [&_svg]:size-full\"\n          style={{\n            opacity: k === key ? 1 : 0,\n            willChange: \"transform, opacity\",\n          }}\n        >\n          {node}\n        </span>\n      ))}\n    </span>\n  );\n}\n\nexport interface IconMorphButtonProps extends Omit<\n  React.ButtonHTMLAttributes<HTMLButtonElement>,\n  \"children\"\n> {\n  from: React.ReactNode;\n  to: React.ReactNode;\n  active?: boolean;\n  defaultActive?: boolean;\n  onActiveChange?: (next: boolean) => void;\n  mode?: IconMorphMode;\n  /** sm 28px, md 36px, lg 40px. */\n  size?: \"sm\" | \"md\" | \"lg\";\n  variant?: \"outline\" | \"ghost\" | \"solid\";\n  /** Accessible name; the pressed state is announced with it. */\n  label: string;\n}\n\nconst BUTTON_SIZES = {\n  sm: { box: \"size-7\", icon: 14 },\n  md: { box: \"size-9\", icon: 16 },\n  lg: { box: \"size-10\", icon: 18 },\n};\n\nconst BUTTON_TONES = {\n  outline:\n    \"bg-card text-foreground shadow-[inset_0_0_0_1px_var(--border)] hover:bg-accent\",\n  ghost:\n    \"bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground\",\n  solid: \"bg-primary text-primary-foreground hover:bg-primary/90\",\n};\n\nexport function IconMorphButton({\n  from,\n  to,\n  active: controlled,\n  defaultActive = false,\n  onActiveChange,\n  mode = \"blur\",\n  size = \"md\",\n  variant = \"outline\",\n  label,\n  className = \"\",\n  onClick,\n  ...props\n}: IconMorphButtonProps) {\n  const [inner, setInner] = React.useState(defaultActive);\n  const active = controlled ?? inner;\n  const s = BUTTON_SIZES[size];\n\n  return (\n    <button\n      type=\"button\"\n      aria-label={label}\n      aria-pressed={active}\n      onClick={(e) => {\n        onClick?.(e);\n        if (e.defaultPrevented) return;\n        if (controlled === undefined) setInner(!active);\n        onActiveChange?.(!active);\n      }}\n      className={`inline-flex shrink-0 select-none items-center justify-center rounded-full cursor-pointer disabled:cursor-default disabled:opacity-45 ${s.box} ${BUTTON_TONES[variant]} ${INTERACTION_PRESS} ${INTERACTION_FOCUS} ${className}`}\n      {...props}\n    >\n      <IconMorph\n        from={from}\n        to={to}\n        active={active}\n        mode={mode}\n        size={s.icon}\n      />\n    </button>\n  );\n}\n\nexport default IconMorph;\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/imported-ui-interaction-motion.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport const EASE_OUT = \"cubic-bezier(0.16, 1, 0.3, 1)\";\nexport const EASE_SETTLE = \"cubic-bezier(0.22, 1.18, 0.36, 1)\";\n/** Thrown things (indicators, thumbs): a slight overshoot on transform only. */\nexport const EASE_THROW = \"cubic-bezier(0.34, 1.36, 0.64, 1)\";\n/**\n * The press every button primitive shares: a 3% give that eases in and settles back.\n * Tailwind v4's scale-* writes the `scale` property, so `scale` has to be in the list\n * or the press snaps.\n */\nexport const INTERACTION_PRESS =\n  \"transition-[background-color,color,box-shadow,opacity,scale] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100\";\nexport const INTERACTION_FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background\";\n\nconst query = \"(prefers-reduced-motion: reduce)\";\nconst subscribe = (notify: () => void) => {\n  const media = window.matchMedia(query);\n  media.addEventListener(\"change\", notify);\n  return () => media.removeEventListener(\"change\", notify);\n};\nexport const useInteractionReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false,\n  );\n\nexport function useInteractionActivity<T extends Element>() {\n  const ref = React.useRef<T>(null);\n  const [visible, setVisible] = React.useState(false);\n  const [hidden, setHidden] = React.useState(false);\n  React.useEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(([entry]) =>\n      setVisible(entry.isIntersecting),\n    );\n    observer.observe(el);\n    const visibility = () => setHidden(document.hidden);\n    visibility();\n    document.addEventListener(\"visibilitychange\", visibility);\n    return () => {\n      observer.disconnect();\n      document.removeEventListener(\"visibilitychange\", visibility);\n    };\n  }, []);\n  return { ref, active: visible && !hidden };\n}\n\nexport function interactionIcon(\n  on: boolean,\n  reduced: boolean,\n): React.CSSProperties {\n  return {\n    opacity: on ? 1 : 0,\n    transform: on ? \"none\" : \"scale(0.6)\",\n    filter: on ? \"blur(0px)\" : \"blur(3px)\",\n    transition: reduced\n      ? \"none\"\n      : `opacity 220ms ${EASE_OUT}, transform 380ms ${EASE_OUT}, filter 220ms ${EASE_OUT}`,\n  };\n}\n\n/** Sample recent movement rather than averaging a long drag and losing its release velocity. */\nexport type PointerSample = { x: number; time: number };\nexport function samplePointer(\n  samples: PointerSample[],\n  x: number,\n  time: number,\n) {\n  samples.push({ x, time });\n  while (samples.length > 2 && time - samples[0].time > 100) samples.shift();\n}\nexport function releaseVelocity(samples: PointerSample[], now: number) {\n  if (samples.length < 2 || now - samples[samples.length - 1].time > 100)\n    return 0;\n  const first = samples[0],\n    last = samples[samples.length - 1];\n  return (last.x - first.x) / Math.max(1, last.time - first.time);\n}\n\n/** Smooth Apple/rational rubber-band curve: continuous exponential-like resistance without linear kinks. */\nexport function rubberBand(\n  overshoot: number,\n  dimension = 320,\n  constant = 0.55,\n): number {\n  const d = dimension || 320;\n  const abs = Math.abs(overshoot);\n  return Math.sign(overshoot) * (1 - 1 / ((abs * constant) / d + 1)) * d;\n}\n\n/** Projects resting travel from release velocity (velocity in px/ms; time in seconds). */\nexport function projectInertia(\n  distance: number,\n  velocity: number,\n  time = 0.12,\n): number {\n  return distance + velocity * 1000 * time;\n}\n\n/** Smooths incoming release velocity toward a boundary so springs don't slam or clip into walls. */\nexport function softenVelocity(\n  velocity: number,\n  distanceToTarget: number,\n  factor = 10,\n): number {\n  const maxAllowed = Math.abs(distanceToTarget) * factor;\n  return Math.sign(velocity) * Math.min(Math.abs(velocity), maxAllowed);\n}\n\n/** A damped spring sampled by WAAPI: tuned for organic lightness with a hint of life (3% breath). */\nexport function springFrames(\n  from: number,\n  to: number,\n  velocity = 0,\n  duration = 480,\n  config: { omega?: number; damping?: number; steps?: number } = {},\n) {\n  const { omega = 16, damping = 0.74, steps = 36 } = config;\n  const damped = omega * Math.sqrt(Math.max(0.001, 1 - damping * damping));\n  const displacement = from - to;\n  const coefficient =\n    (velocity * 1000 + damping * omega * displacement) / damped;\n  return Array.from({ length: steps + 1 }, (_, i) => {\n    const t = (i / steps) * (duration / 1000);\n    const value =\n      to +\n      Math.exp(-damping * omega * t) *\n        (displacement * Math.cos(damped * t) +\n          coefficient * Math.sin(damped * t));\n    return { value: i === steps ? to : value, offset: i / steps };\n  });\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "icon-morph",
+      "exportName": "IconMorph",
+      "categories": [
+        "buttons"
+      ],
+      "isNew": true,
+      "usage": "import { IconMorph, IconMorphButton } from \"@/components/icon-morph\";\nimport { Play, Pause } from \"lucide-react\";\n\n// As a standalone kinetic icon\n<IconMorph from={<Play size={16} />} to={<Pause size={16} />} active={isPlaying} />\n\n// As an interactive button\n<IconMorphButton\n  label=\"Toggle playback\"\n  active={isPlaying}\n  onActiveChange={setIsPlaying}\n  from={<Play size={15} />}\n  to={<Pause size={15} />}\n/>",
+      "accessibility": "- Driven by the Web Animations API: each change starts from the layer's current pose, so a second press mid-morph turns it back.\n- draw works with stroke icons (lucide and the like): every path, line and circle is drawn by its own length.\n- The icon is aria-hidden; IconMorphButton carries the name and aria-pressed.\n- Reduced motion: a 160ms crossfade, no scale, turn or draw.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "from / to",
+            "type": "React.ReactNode",
+            "description": "– · The two icons; active picks to."
+          },
+          {
+            "name": "active",
+            "type": "boolean",
+            "description": "false · Shows to when true."
+          },
+          {
+            "name": "icons / value",
+            "type": "Record<string, ReactNode> / string",
+            "description": "– · Any number of icons by name; value picks one. Their order sets the direction of rotate and flip."
+          },
+          {
+            "name": "mode",
+            "type": "\"blur\" | \"rotate\" | \"flip\" | \"draw\"",
+            "description": "\"blur\" · How the icons trade places. \"scale\" still works as the old name for \"blur\"."
+          },
+          {
+            "name": "size",
+            "type": "number",
+            "description": "16 · Box size in px; icons fill it."
+          },
+          {
+            "name": "IconMorphButton",
+            "type": "component",
+            "description": "– · A 28/36/40px toggle (sm/md/lg; ghost, outline, solid) with aria-pressed, active/defaultActive/onActiveChange and a required label."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Media players & audio controls",
+            "description": "Play/Pause and Mute/Unmute state swaps with harmonic spring settle."
+          },
+          {
+            "title": "Navigation headers",
+            "description": "Mobile hamburger menu morphing into an X close button."
+          },
+          {
+            "title": "Theme & mode switchers",
+            "description": "Sun/Moon toggling with 3D horizon flip."
+          },
+          {
+            "title": "Password fields",
+            "description": "Eye to EyeOff toggle with soft depth blur."
+          }
+        ],
+        "features": [
+          {
+            "title": "Three morph modes",
+            "description": "Supports scale with soft depth blur, planar rotate (0° → 90°), and 3D horizon flip (rotateY)."
+          },
+          {
+            "title": "Standalone & button variants",
+            "description": "Use as a standalone kinetic icon primitive (IconMorph) or as an interactive button (IconMorphButton)."
+          },
+          {
+            "title": "Concentric thin line pill",
+            "description": "Button variant includes outline, ghost, and solid styles with active scale damping."
+          },
+          {
+            "title": "Harmonic spring curve",
+            "description": "Transitions use cubic-bezier(0.22, 1.18, 0.36, 1) for a subtle 3% organic breath."
+          }
+        ],
+        "states": [
+          {
+            "title": "blur",
+            "description": "The old icon shrinks to 0.6 into a 3px blur (200ms) while the new one pops out of it with a slight overshoot (440ms)."
+          },
+          {
+            "title": "rotate",
+            "description": "A quarter turn that keeps its direction: forward turns clockwise, back turns the other way (480ms)."
+          },
+          {
+            "title": "flip",
+            "description": "The old face turns edge-on (170ms), then the new one comes round from behind (500ms)."
+          },
+          {
+            "title": "draw",
+            "description": "The new icon's strokes draw themselves one after another (420ms, 60ms apart) as the old one blurs away."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
