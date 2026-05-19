@@ -1,0 +1,138 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-input",
+  "title": "Input",
+  "description": "A one-line field with a label, hint and error that trade places, a clear button that folds in, and one shake when an error arrives.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/input.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport {\n  Field,\n  fieldSurface,\n  setNativeValue,\n  useFieldIds,\n  useShake,\n  type FieldSize,\n} from \"./imported-field\";\nimport {\n  EASE_OUT,\n  INTERACTION_FOCUS,\n  interactionIcon,\n  useInteractionReducedMotion,\n} from \"./imported-ui-interaction-motion\";\n\n/* ─────────────────────────────────────────────────────────\n * INPUT: a one-line field\n *\n *   rest     a thin line pill; hover darkens the line\n *   focus    the line turns to the ring with a 3px halo\n *   typing   a clear button folds in once there is text and\n *            folds away when it's gone (it hands focus back)\n *   error    the line turns red, the hint gives way to the\n *            error and the field shakes once\n * ───────────────────────────────────────────────────────── */\n\nexport interface InputProps extends Omit<\n  React.InputHTMLAttributes<HTMLInputElement>,\n  \"size\"\n> {\n  label?: React.ReactNode;\n  hint?: React.ReactNode;\n  /** Shows red and replaces the hint. */\n  error?: React.ReactNode;\n  /** An icon or text before the value. */\n  leading?: React.ReactNode;\n  /** An icon, text or button after the value. */\n  trailing?: React.ReactNode;\n  /** A button that empties the field once it has text. */\n  clearable?: boolean;\n  /** 28px or 36px tall. */\n  size?: FieldSize;\n  /** Called with the new text on every change. */\n  onValueChange?: (value: string) => void;\n  ref?: React.Ref<HTMLInputElement>;\n  /** Class for the outer column. */\n  className?: string;\n  /** Class for the input element itself. */\n  inputClassName?: string;\n}\n\nfunction ClearIcon() {\n  return (\n    <svg viewBox=\"0 0 16 16\" fill=\"none\" className=\"size-3.5\">\n      <path\n        d=\"M4.5 4.5l7 7M11.5 4.5l-7 7\"\n        stroke=\"currentColor\"\n        strokeWidth=\"1.6\"\n        strokeLinecap=\"round\"\n      />\n    </svg>\n  );\n}\n\nexport function Input({\n  label,\n  hint,\n  error,\n  leading,\n  trailing,\n  clearable,\n  size = \"md\",\n  onValueChange,\n  ref,\n  id,\n  className = \"\",\n  inputClassName = \"\",\n  value,\n  defaultValue,\n  onChange,\n  disabled,\n  required,\n  ...props\n}: InputProps) {\n  const reduced = useInteractionReducedMotion();\n  const ids = useFieldIds(id);\n  const inner = React.useRef<HTMLInputElement>(null);\n  const [text, setText] = React.useState(String(defaultValue ?? \"\"));\n  const current = value !== undefined ? String(value) : text;\n  const shakeRef = useShake<HTMLDivElement>(!!error);\n  const sm = size === \"sm\";\n  const showClear = !!clearable && current.length > 0 && !disabled;\n\n  const setRefs = (el: HTMLInputElement | null) => {\n    inner.current = el;\n    if (typeof ref === \"function\") ref(el);\n    else if (ref)\n      (ref as React.RefObject<HTMLInputElement | null>).current = el;\n  };\n\n  const describedBy =\n    [hint && !error ? ids.hint : null, error ? ids.error : null]\n      .filter(Boolean)\n      .join(\" \") || undefined;\n\n  return (\n    <Field\n      id={ids.id}\n      label={label}\n      hint={hint}\n      error={error}\n      required={required}\n      className={className}\n    >\n      <div\n        ref={shakeRef}\n        className={`${fieldSurface({ invalid: !!error, disabled })} ${sm ? \"h-7 text-[16px] sm:text-[12.5px]\" : \"h-9 text-[16px] sm:text-[13.5px]\"}`}\n      >\n        {leading && (\n          <span\n            className={`flex shrink-0 items-center text-muted-foreground ${sm ? \"pl-2.5\" : \"pl-3.5\"} [&_svg]:size-3.5`}\n          >\n            {leading}\n          </span>\n        )}\n        <input\n          ref={setRefs}\n          id={ids.id}\n          value={value}\n          defaultValue={defaultValue}\n          disabled={disabled}\n          required={required}\n          aria-invalid={error ? true : undefined}\n          aria-describedby={describedBy}\n          onChange={(e) => {\n            if (value === undefined) setText(e.target.value);\n            onChange?.(e);\n            onValueChange?.(e.target.value);\n          }}\n          className={`h-full min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground/70 ${leading ? \"pl-2\" : sm ? \"pl-3\" : \"pl-4\"} ${trailing || clearable ? \"pr-1\" : sm ? \"pr-3\" : \"pr-4\"} ${inputClassName}`}\n          {...props}\n        />\n        {clearable && (\n          // The clear button folds its own width open, so the text never jumps.\n          <span\n            className=\"grid shrink-0\"\n            style={{\n              gridTemplateColumns: showClear ? \"1fr\" : \"0fr\",\n              transition: reduced\n                ? \"none\"\n                : `grid-template-columns 320ms ${EASE_OUT}`,\n            }}\n          >\n            <span className=\"min-w-0 overflow-hidden\">\n              <button\n                type=\"button\"\n                tabIndex={showClear ? 0 : -1}\n                aria-hidden={!showClear}\n                aria-label=\"Clear\"\n                onClick={() => {\n                  if (!inner.current) return;\n                  setNativeValue(inner.current, \"\");\n                  inner.current.focus();\n                }}\n                className={`mr-1 flex items-center justify-center rounded-full text-muted-foreground cursor-pointer hover:bg-accent hover:text-foreground ${sm ? \"size-5\" : \"size-7\"} ${INTERACTION_FOCUS}`}\n                style={interactionIcon(showClear, reduced)}\n              >\n                <ClearIcon />\n              </button>\n            </span>\n          </span>\n        )}\n        {trailing && (\n          <span\n            className={`flex shrink-0 items-center text-muted-foreground ${sm ? \"pr-1\" : \"pr-1.5\"} [&_svg]:size-3.5`}\n          >\n            {trailing}\n          </span>\n        )}\n      </div>\n    </Field>\n  );\n}\n\nexport default Input;\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/imported-field.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport {\n  EASE_OUT,\n  useInteractionReducedMotion,\n} from \"./imported-ui-interaction-motion\";\n\n/* ─────────────────────────────────────────────────────────\n * FIELD: the column every text control sits in\n *\n *   label    above, with an optional aside on the right (a count)\n *   hint     under the control while all is well\n *   error    takes the hint's place: the hint folds away, the\n *            error rises in out of a blur, the control shakes once\n *\n * Shared by input, textarea, password, search and select so the\n * whole family has one surface, one focus ring and one error.\n * ───────────────────────────────────────────────────────── */\n\nexport interface FieldProps {\n  id: string;\n  label?: React.ReactNode;\n  /** Right side of the label row, e.g. a character count. */\n  aside?: React.ReactNode;\n  hint?: React.ReactNode;\n  error?: React.ReactNode;\n  required?: boolean;\n  className?: string;\n  children: React.ReactNode;\n}\n\nexport type FieldSize = \"sm\" | \"md\";\n\n/** The surface of a text control: a thin line that darkens on hover and turns to the ring on focus. */\nexport function fieldSurface({\n  invalid,\n  disabled,\n  round = true,\n}: {\n  invalid?: boolean;\n  disabled?: boolean;\n  round?: boolean;\n}) {\n  const ring = invalid\n    ? \"shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-red-500)_55%,transparent)] focus-within:shadow-[inset_0_0_0_1px_var(--color-red-500),0_0_0_3px_color-mix(in_oklab,var(--color-red-500)_14%,transparent)]\"\n    : \"shadow-[inset_0_0_0_1px_var(--border)] [&:not(:focus-within)]:hover:shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_24%,var(--border))] focus-within:shadow-[inset_0_0_0_1px_var(--ring),0_0_0_3px_color-mix(in_oklab,var(--ring)_16%,transparent)]\";\n  return `relative flex w-full items-center bg-background text-foreground transition-[box-shadow,background-color,opacity] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] ${round ? \"rounded-full\" : \"rounded-[14px]\"} ${ring} ${\n    disabled ? \"pointer-events-none opacity-50\" : \"\"\n  }`;\n}\n\n/** ids for the control's label, hint and error. */\nexport function useFieldIds(id?: string) {\n  const auto = React.useId();\n  const base = id ?? auto;\n  return { id: base, hint: `${base}-hint`, error: `${base}-error` };\n}\n\n/** One short shake whenever `on` turns true (an error arrives). */\nexport function useShake<T extends HTMLElement>(on: boolean) {\n  const ref = React.useRef<T>(null);\n  const reduced = useInteractionReducedMotion();\n  React.useEffect(() => {\n    if (!on || reduced) return;\n    ref.current?.animate(\n      [\n        { transform: \"none\" },\n        { transform: \"translateX(-4px)\" },\n        { transform: \"translateX(4px)\" },\n        { transform: \"translateX(-2px)\" },\n        { transform: \"none\" },\n      ],\n      { duration: 380, easing: \"ease-out\" },\n    );\n  }, [on, reduced]);\n  return ref;\n}\n\n/** Sets a native input's value so React's onChange still fires (clear buttons, pickers). */\nexport function setNativeValue(\n  el: HTMLInputElement | HTMLTextAreaElement,\n  value: string,\n) {\n  const proto =\n    el instanceof HTMLTextAreaElement\n      ? HTMLTextAreaElement.prototype\n      : HTMLInputElement.prototype;\n  Object.getOwnPropertyDescriptor(proto, \"value\")?.set?.call(el, value);\n  el.dispatchEvent(new Event(\"input\", { bubbles: true }));\n}\n\n/** A line under the control that folds open and closed; keeps its last words while closing. */\nfunction Line({\n  show,\n  children,\n  id,\n  tone,\n  reduced,\n}: {\n  show: boolean;\n  children: React.ReactNode;\n  id: string;\n  tone: string;\n  reduced: boolean;\n}) {\n  const [kept, setKept] = React.useState(children);\n  if (show && children !== kept) setKept(children);\n  return (\n    <div\n      className=\"grid\"\n      style={{\n        gridTemplateRows: show ? \"1fr\" : \"0fr\",\n        transition: reduced ? \"none\" : `grid-template-rows 320ms ${EASE_OUT}`,\n      }}\n    >\n      <div className=\"min-h-0 overflow-hidden\">\n        <p\n          id={id}\n          className={`pt-1.5 pl-3 text-[12.5px] leading-snug ${tone}`}\n          style={{\n            opacity: show ? 1 : 0,\n            filter: show ? \"blur(0px)\" : \"blur(4px)\",\n            transform: show ? \"none\" : \"translateY(-4px)\",\n            transition: reduced\n              ? \"none\"\n              : show\n                ? `opacity 280ms ${EASE_OUT} 60ms, filter 280ms ${EASE_OUT} 60ms, transform 380ms ${EASE_OUT}`\n                : `opacity 140ms ${EASE_OUT}, filter 140ms ${EASE_OUT}, transform 200ms ${EASE_OUT}`,\n          }}\n        >\n          {show ? children : kept}\n        </p>\n      </div>\n    </div>\n  );\n}\n\nexport function Field({\n  id,\n  label,\n  aside,\n  hint,\n  error,\n  required,\n  className = \"\",\n  children,\n}: FieldProps) {\n  const reduced = useInteractionReducedMotion();\n  const ids = { hint: `${id}-hint`, error: `${id}-error` };\n  return (\n    <div className={`flex w-full flex-col ${className}`}>\n      {(label || aside) && (\n        <div className=\"flex items-baseline justify-between gap-3 px-3 pb-1.5\">\n          {label && (\n            <label\n              htmlFor={id}\n              className=\"text-[13px] font-medium text-foreground\"\n            >\n              {label}\n              {required && (\n                <span\n                  aria-hidden=\"true\"\n                  className=\"ml-0.5 text-muted-foreground\"\n                >\n                  *\n                </span>\n              )}\n            </label>\n          )}\n          {aside && (\n            <span className=\"text-[12px] tabular-nums text-muted-foreground\">\n              {aside}\n            </span>\n          )}\n        </div>\n      )}\n      {children}\n      <Line\n        show={!error && !!hint}\n        id={ids.hint}\n        tone=\"text-muted-foreground\"\n        reduced={reduced}\n      >\n        {hint}\n      </Line>\n      <Line\n        show={!!error}\n        id={ids.error}\n        tone=\"text-red-600 dark:text-red-400\"\n        reduced={reduced}\n      >\n        {error}\n      </Line>\n    </div>\n  );\n}\n\nexport default Field;\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/imported-ui-interaction-motion.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport const EASE_OUT = \"cubic-bezier(0.16, 1, 0.3, 1)\";\nexport const EASE_SETTLE = \"cubic-bezier(0.22, 1.18, 0.36, 1)\";\n/** Thrown things (indicators, thumbs): a slight overshoot on transform only. */\nexport const EASE_THROW = \"cubic-bezier(0.34, 1.36, 0.64, 1)\";\n/**\n * The press every button primitive shares: a 3% give that eases in and settles back.\n * Tailwind v4's scale-* writes the `scale` property, so `scale` has to be in the list\n * or the press snaps.\n */\nexport const INTERACTION_PRESS =\n  \"transition-[background-color,color,box-shadow,opacity,scale] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100\";\nexport const INTERACTION_FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background\";\n\nconst query = \"(prefers-reduced-motion: reduce)\";\nconst subscribe = (notify: () => void) => {\n  const media = window.matchMedia(query);\n  media.addEventListener(\"change\", notify);\n  return () => media.removeEventListener(\"change\", notify);\n};\nexport const useInteractionReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false,\n  );\n\nexport function useInteractionActivity<T extends Element>() {\n  const ref = React.useRef<T>(null);\n  const [visible, setVisible] = React.useState(false);\n  const [hidden, setHidden] = React.useState(false);\n  React.useEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(([entry]) =>\n      setVisible(entry.isIntersecting),\n    );\n    observer.observe(el);\n    const visibility = () => setHidden(document.hidden);\n    visibility();\n    document.addEventListener(\"visibilitychange\", visibility);\n    return () => {\n      observer.disconnect();\n      document.removeEventListener(\"visibilitychange\", visibility);\n    };\n  }, []);\n  return { ref, active: visible && !hidden };\n}\n\nexport function interactionIcon(\n  on: boolean,\n  reduced: boolean,\n): React.CSSProperties {\n  return {\n    opacity: on ? 1 : 0,\n    transform: on ? \"none\" : \"scale(0.6)\",\n    filter: on ? \"blur(0px)\" : \"blur(3px)\",\n    transition: reduced\n      ? \"none\"\n      : `opacity 220ms ${EASE_OUT}, transform 380ms ${EASE_OUT}, filter 220ms ${EASE_OUT}`,\n  };\n}\n\n/** Sample recent movement rather than averaging a long drag and losing its release velocity. */\nexport type PointerSample = { x: number; time: number };\nexport function samplePointer(\n  samples: PointerSample[],\n  x: number,\n  time: number,\n) {\n  samples.push({ x, time });\n  while (samples.length > 2 && time - samples[0].time > 100) samples.shift();\n}\nexport function releaseVelocity(samples: PointerSample[], now: number) {\n  if (samples.length < 2 || now - samples[samples.length - 1].time > 100)\n    return 0;\n  const first = samples[0],\n    last = samples[samples.length - 1];\n  return (last.x - first.x) / Math.max(1, last.time - first.time);\n}\n\n/** Smooth Apple/rational rubber-band curve: continuous exponential-like resistance without linear kinks. */\nexport function rubberBand(\n  overshoot: number,\n  dimension = 320,\n  constant = 0.55,\n): number {\n  const d = dimension || 320;\n  const abs = Math.abs(overshoot);\n  return Math.sign(overshoot) * (1 - 1 / ((abs * constant) / d + 1)) * d;\n}\n\n/** Projects resting travel from release velocity (velocity in px/ms; time in seconds). */\nexport function projectInertia(\n  distance: number,\n  velocity: number,\n  time = 0.12,\n): number {\n  return distance + velocity * 1000 * time;\n}\n\n/** Smooths incoming release velocity toward a boundary so springs don't slam or clip into walls. */\nexport function softenVelocity(\n  velocity: number,\n  distanceToTarget: number,\n  factor = 10,\n): number {\n  const maxAllowed = Math.abs(distanceToTarget) * factor;\n  return Math.sign(velocity) * Math.min(Math.abs(velocity), maxAllowed);\n}\n\n/** A damped spring sampled by WAAPI: tuned for organic lightness with a hint of life (3% breath). */\nexport function springFrames(\n  from: number,\n  to: number,\n  velocity = 0,\n  duration = 480,\n  config: { omega?: number; damping?: number; steps?: number } = {},\n) {\n  const { omega = 16, damping = 0.74, steps = 36 } = config;\n  const damped = omega * Math.sqrt(Math.max(0.001, 1 - damping * damping));\n  const displacement = from - to;\n  const coefficient =\n    (velocity * 1000 + damping * omega * displacement) / damped;\n  return Array.from({ length: steps + 1 }, (_, i) => {\n    const t = (i / steps) * (duration / 1000);\n    const value =\n      to +\n      Math.exp(-damping * omega * t) *\n        (displacement * Math.cos(damped * t) +\n          coefficient * Math.sin(damped * t));\n    return { value: i === steps ? to : value, offset: i / steps };\n  });\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "input",
+      "exportName": "Input",
+      "categories": [
+        "forms"
+      ],
+      "isNew": true,
+      "usage": "import { Input } from \"@/components/input\";\n\n<Input label=\"Email\" type=\"email\" placeholder=\"you@fernhill.co\" hint=\"We'll send the receipt here.\" />\n<Input label=\"Workspace\" error={error} clearable />",
+      "accessibility": "- Shares field.tsx with every text control: one surface, one focus ring, one way of showing hints and errors.\n- Reduced motion: the hint and error change in place and nothing shakes.\n- The clear button hands focus back to the field.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "label",
+            "type": "ReactNode",
+            "description": "– · Shown above; becomes the accessible name."
+          },
+          {
+            "name": "hint",
+            "type": "ReactNode",
+            "description": "– · Line under the field while there is no error."
+          },
+          {
+            "name": "error",
+            "type": "ReactNode",
+            "description": "– · Turns the field red and takes the hint's place."
+          },
+          {
+            "name": "leading / trailing",
+            "type": "ReactNode",
+            "description": "– · Icon or text before and after the value."
+          },
+          {
+            "name": "clearable",
+            "type": "boolean",
+            "description": "false · A clear button once there is text."
+          },
+          {
+            "name": "size",
+            "type": "\"sm\" | \"md\"",
+            "description": "\"md\" · 28px or 36px tall."
+          },
+          {
+            "name": "onValueChange",
+            "type": "(value: string) => void",
+            "description": "– · The new text on every change."
+          },
+          {
+            "name": "...input props",
+            "type": "InputHTMLAttributes",
+            "description": "– · Everything a native input takes, including ref."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Sign-up and settings forms",
+            "description": "Name, email and URL fields with hints that turn into errors in place."
+          },
+          {
+            "title": "Filters above a table",
+            "description": "A clearable field that empties with one press."
+          },
+          {
+            "title": "Inline creation rows",
+            "description": "A compact 28px field inside a toolbar or list row."
+          },
+          {
+            "title": "Domain and handle fields",
+            "description": "Leading and trailing text such as https:// or .com."
+          }
+        ],
+        "features": [
+          {
+            "title": "Hint and error in one line",
+            "description": "The hint folds away as the error rises out of a blur, and back when it is fixed."
+          },
+          {
+            "title": "A clear button that makes room",
+            "description": "It opens its own width as you type, so the text never jumps under it."
+          },
+          {
+            "title": "Accessible by default",
+            "description": "Label, aria-invalid and aria-describedby are wired to the right ids."
+          },
+          {
+            "title": "Works with any form library",
+            "description": "Controlled or uncontrolled; onChange and onValueChange both fire, even from the clear button."
+          }
+        ],
+        "states": [
+          {
+            "title": "rest",
+            "description": "A thin line pill, 36px or 28px tall; hover darkens the line."
+          },
+          {
+            "title": "focus",
+            "description": "The line turns to the ring with a 3px halo (200ms)."
+          },
+          {
+            "title": "typing",
+            "description": "With clearable, a clear button opens its width as the first letter lands (320ms) and folds away when the field is empty."
+          },
+          {
+            "title": "error",
+            "description": "The line turns red, the hint folds away while the error rises from a 4px blur (320ms), and the field shakes once (380ms)."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
