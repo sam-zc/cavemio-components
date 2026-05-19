@@ -20,7 +20,7 @@
       "accessibility": "Semantic keycaps; interactive shortcuts use a native button with Enter/Space activation, focus feedback, disabled support, and aria-keyshortcuts. Repeated and composing key events do not trigger callbacks.",
       "previewNote": "Hold keys to see live feedback. Reduced motion keeps color and shadow feedback without movement; demo shortcuts stay local.",
       "categories": [
-        "interactions"
+        "display"
       ],
       "documentation": {
         "useCases": [],
@@ -68,7 +68,8 @@
             "description": "Optional. Button ref, available when onTrigger is supplied."
           }
         ]
-      }
+      },
+      "isNew": true
     }
   },
   "type": "registry:component"
