@@ -1,0 +1,117 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-logo-marquee",
+  "title": "Logo marquee",
+  "description": "A quiet strip of logos that notices you: it eases to a stop on hover and the logo you point at stays bright.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/logo-marquee.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * LOGO MARQUEE: a quiet strip of logos that notices you\n *\n *   moving   logos drift past at a steady speed, fading out at\n *            both edges; any width, any number of logos\n *   hover    the strip eases to a stop instead of halting, the\n *            logo you point at stays bright and the rest dim\n *   leave    it eases back up to speed\n *\n * The speed is in pixels per second, so a longer strip doesn't\n * move faster. With reduced motion the logos simply sit in a row.\n * ───────────────────────────────────────────────────────── */\n\nexport interface LogoMarqueeProps extends React.HTMLAttributes<HTMLDivElement> {\n  /** The logos, each an image or an inline SVG with an accessible name. */\n  logos: React.ReactNode[];\n  /** Pixels per second. */\n  speed?: number;\n  /** Space between logos (px). */\n  gap?: number;\n  direction?: \"left\" | \"right\";\n  /** Ease to a stop on hover. */\n  pauseOnHover?: boolean;\n}\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\nexport function LogoMarquee({\n  logos,\n  speed = 36,\n  gap = 56,\n  direction = \"left\",\n  pauseOnHover = true,\n  className = \"\",\n  ...props\n}: LogoMarqueeProps) {\n  const reduced = useReducedMotion();\n  const trackRef = React.useRef<HTMLDivElement>(null);\n  const animation = React.useRef<Animation | null>(null);\n  const tween = React.useRef(0);\n\n  // One loop is exactly one set of logos; its duration follows from the set's width and the speed.\n  React.useEffect(() => {\n    const track = trackRef.current;\n    if (!track || reduced) return;\n    const set = () => track.scrollWidth / 2;\n    const keyframes =\n      direction === \"left\"\n        ? [{ transform: \"translateX(0)\" }, { transform: \"translateX(-50%)\" }]\n        : [{ transform: \"translateX(-50%)\" }, { transform: \"translateX(0)\" }];\n    const a = track.animate(keyframes, {\n      duration: (set() / speed) * 1000,\n      iterations: Infinity,\n      easing: \"linear\",\n    });\n    animation.current = a;\n    const observer = new ResizeObserver(() =>\n      a.effect?.updateTiming({ duration: (set() / speed) * 1000 }),\n    );\n    observer.observe(track);\n    return () => {\n      observer.disconnect();\n      cancelAnimationFrame(tween.current);\n      a.cancel();\n      animation.current = null;\n    };\n  }, [speed, direction, reduced, logos.length]);\n\n  // Ease the playback rate toward a target, so stopping and starting feel physical.\n  const easeTo = (target: number) => {\n    const a = animation.current;\n    if (!a) return;\n    cancelAnimationFrame(tween.current);\n    const from = a.playbackRate;\n    const start = performance.now();\n    const step = (now: number) => {\n      const t = Math.min(1, (now - start) / 650);\n      const eased = 1 - Math.pow(1 - t, 3);\n      // Never below zero, or the strip would briefly run backwards.\n      a.playbackRate =\n        t < 1 ? Math.max(0, from + (target - from) * eased) : target;\n      if (t < 1) tween.current = requestAnimationFrame(step);\n    };\n    tween.current = requestAnimationFrame(step);\n  };\n\n  const items = (copy: number) =>\n    logos.map((logo, i) => (\n      <li\n        key={`${copy}-${i}`}\n        aria-hidden={copy > 0 || undefined}\n        className=\"flex shrink-0 items-center text-muted-foreground transition-[opacity,color,filter] duration-500 group-hover/marquee:opacity-35 hover:!opacity-100 hover:text-foreground\"\n        style={{ marginRight: gap }}\n      >\n        {logo}\n      </li>\n    ));\n\n  if (reduced) {\n    return (\n      <div className={`w-full ${className}`} {...props}>\n        <ul\n          className=\"flex flex-wrap items-center justify-center gap-y-6\"\n          style={{ columnGap: gap }}\n        >\n          {logos.map((logo, i) => (\n            <li key={i} className=\"flex items-center text-muted-foreground\">\n              {logo}\n            </li>\n          ))}\n        </ul>\n      </div>\n    );\n  }\n\n  return (\n    <div\n      className={`group/marquee w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,#000_12%,#000_88%,transparent)] ${className}`}\n      onPointerEnter={() => pauseOnHover && easeTo(0)}\n      onPointerLeave={() => pauseOnHover && easeTo(1)}\n      {...props}\n    >\n      <div ref={trackRef} className=\"flex w-max will-change-transform\">\n        <ul className=\"flex shrink-0 items-center\">{items(0)}</ul>\n        <ul aria-hidden=\"true\" className=\"flex shrink-0 items-center\">\n          {items(1)}\n        </ul>\n      </div>\n    </div>\n  );\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "logo-marquee",
+      "exportName": "LogoMarquee",
+      "categories": [
+        "motion"
+      ],
+      "isNew": false,
+      "usage": "import { LogoMarquee } from \"@/components/logo-marquee\";\n\n<LogoMarquee logos={[<img key=\"a\" src=\"/logos/acme.svg\" alt=\"Acme\" className=\"h-6\" />, …]} />",
+      "accessibility": "- Screen readers get one list of logos; the copy that makes the loop seamless is hidden.\n- Runs on the Web Animations API with a single transform, so it costs nothing per frame; the stop is a tween of playbackRate, not a jump.\n- With reduced motion the logos sit still in a centred, wrapping row.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "logos",
+            "type": "ReactNode[]",
+            "description": "– · Images or inline SVGs, each with an accessible name."
+          },
+          {
+            "name": "speed",
+            "type": "number",
+            "description": "36 · Pixels per second, whatever the strip’s length."
+          },
+          {
+            "name": "gap",
+            "type": "number",
+            "description": "56 · Space between logos (px)."
+          },
+          {
+            "name": "direction",
+            "type": "\"left\" | \"right\"",
+            "description": "\"left\" · Which way the strip drifts."
+          },
+          {
+            "name": "pauseOnHover",
+            "type": "boolean",
+            "description": "true · Ease to a stop while pointed at."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Customer logo strips",
+            "description": "The row of logos under a landing page hero."
+          },
+          {
+            "title": "“As seen in” press bars",
+            "description": "Publications that have written about the product."
+          },
+          {
+            "title": "Partner and integration strips",
+            "description": "The tools and platforms the product works with."
+          },
+          {
+            "title": "Sponsors and tech stacks",
+            "description": "Show who backs a project or what it is built on."
+          }
+        ],
+        "features": [
+          {
+            "title": "A seamless loop",
+            "description": "The speed is set in pixels per second, so a longer strip never moves faster."
+          },
+          {
+            "title": "Soft edges",
+            "description": "The strip fades out over the outer 12% on each side."
+          },
+          {
+            "title": "It eases to a stop",
+            "description": "Point at it and it slows to a halt instead of freezing. The logo under the pointer stays bright and the rest dim."
+          },
+          {
+            "title": "Either direction",
+            "description": "Choose left or right, and the space between logos."
+          },
+          {
+            "title": "Cheap to run",
+            "description": "One transform on the Web Animations API, so it costs nothing per frame."
+          },
+          {
+            "title": "Accessible",
+            "description": "Screen readers get one list of logos. With reduced motion the logos sit still in a centred, wrapping row."
+          }
+        ],
+        "states": [
+          {
+            "title": "moving",
+            "description": "Two copies of the set loop seamlessly at speed px/s, masked to fade over the outer 12% on each side."
+          },
+          {
+            "title": "hover",
+            "description": "The playback rate eases from 1 to 0 over 650ms; the hovered logo goes to full ink, the others to 35%."
+          },
+          {
+            "title": "leave",
+            "description": "The rate eases back to 1 from wherever it was."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
