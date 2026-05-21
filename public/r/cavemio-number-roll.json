@@ -135,8 +135,9 @@
         ]
       },
       "categories": [
-        "text"
-      ]
+        "motion"
+      ],
+      "isNew": false
     }
   },
   "type": "registry:component"
