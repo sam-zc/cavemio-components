@@ -1,0 +1,117 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-morphing-nav",
+  "title": "Morphing nav",
+  "description": "One dropdown that follows you along the menu, gliding and resizing to each item’s content.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/morphing-nav.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * MORPHING NAV: one dropdown that follows you along the menu\n *\n *   hover    a soft highlight slides under the item you point at\n *   open     a single panel drops in under the item, sized to its\n *            content\n *   move     going to another item, the same panel glides over\n *            and resizes to the new content while the content\n *            slides in from the side you moved toward\n *   close    leave the menu (or press Escape) and it fades away\n *\n * Items with content open the panel; items with only an href\n * are plain links. Arrow keys move between items; Enter or Down\n * opens one and moves into it.\n * ───────────────────────────────────────────────────────── */\n\nexport interface NavItem {\n  id: string;\n  label: string;\n  /** A plain link. */\n  href?: string;\n  /** What the panel shows for this item; give it its own width. */\n  content?: React.ReactNode;\n}\n\nexport interface MorphingNavProps extends React.HTMLAttributes<HTMLElement> {\n  items: NavItem[];\n  /** Space to keep from the screen edges. */\n  collisionPadding?: number;\n}\n\ntype Shown = { id: string; dir: number; key: number };\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\nconst MORPH = 380;\nconst FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40\";\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\n/** A panel's content, sliding in from one side and out to the other. */\nfunction Slide({\n  children,\n  dir,\n  leaving,\n  reduced,\n  measureRef,\n}: {\n  children: React.ReactNode;\n  dir: number;\n  leaving: boolean;\n  reduced: boolean;\n  measureRef?: (el: HTMLDivElement | null) => void;\n}) {\n  const ref = React.useRef<HTMLDivElement>(null);\n  React.useLayoutEffect(() => {\n    const el = ref.current;\n    if (!el || reduced || dir === 0) return;\n    const shift = 28 * dir;\n    const animation = leaving\n      ? el.animate(\n          [\n            { opacity: 1, transform: \"none\" },\n            { opacity: 0, transform: `translateX(${-shift}px)` },\n          ],\n          { duration: MORPH * 0.7, easing: EASE, fill: \"forwards\" },\n        )\n      : el.animate(\n          [\n            { opacity: 0, transform: `translateX(${shift}px)` },\n            { opacity: 1, transform: \"none\" },\n          ],\n          { duration: MORPH, easing: EASE },\n        );\n    return () => animation.cancel();\n  }, [dir, leaving, reduced]);\n  return (\n    <div\n      ref={(el) => {\n        ref.current = el;\n        measureRef?.(el);\n      }}\n      aria-hidden={leaving || undefined}\n      inert={leaving}\n      className={`absolute left-0 top-0 w-max max-w-[calc(100vw-32px)] ${leaving ? \"pointer-events-none\" : \"\"}`}\n    >\n      {children}\n    </div>\n  );\n}\n\nexport function MorphingNav({\n  items,\n  collisionPadding = 16,\n  className = \"\",\n  ...props\n}: MorphingNavProps) {\n  const reduced = useReducedMotion();\n  const id = React.useId();\n  const rootRef = React.useRef<HTMLElement>(null);\n  const triggerRefs = React.useRef(new Map<string, HTMLElement>());\n  const contentRef = React.useRef<HTMLDivElement | null>(null);\n  const setContent = React.useCallback((el: HTMLDivElement | null) => {\n    contentRef.current = el;\n  }, []);\n  const panelRef = React.useRef<HTMLDivElement>(null);\n  const closeTimer = React.useRef(0);\n  const keyCounter = React.useRef(0);\n  const viaKeyboard = React.useRef(false);\n\n  const [open, setOpen] = React.useState<string | null>(null);\n  const [shown, setShown] = React.useState<Shown | null>(null);\n  const [leaving, setLeaving] = React.useState<Shown[]>([]);\n  const [visible, setVisible] = React.useState(false);\n  const [box, setBox] = React.useState({\n    left: 0,\n    width: 0,\n    height: 0,\n    ready: false,\n  });\n  const [hover, setHover] = React.useState<{\n    left: number;\n    width: number;\n  } | null>(null);\n\n  const index = (itemId: string | null) =>\n    items.findIndex((i) => i.id === itemId);\n\n  const show = (itemId: string) => {\n    window.clearTimeout(closeTimer.current);\n    const item = items.find((i) => i.id === itemId);\n    if (!item?.content) return;\n    if (open === itemId) return;\n    const dir = open ? Math.sign(index(itemId) - index(open)) : 0;\n    if (shown && open) setLeaving((l) => [...l, { ...shown, dir }]);\n    setShown({ id: itemId, dir, key: ++keyCounter.current });\n    setOpen(itemId);\n    setVisible(true);\n  };\n\n  const close = React.useCallback((delay = 0) => {\n    window.clearTimeout(closeTimer.current);\n    closeTimer.current = window.setTimeout(() => {\n      setOpen(null);\n      setVisible(false);\n      setHover(null);\n    }, delay);\n  }, []);\n\n  React.useEffect(() => () => window.clearTimeout(closeTimer.current), []);\n\n  // Once it has faded, forget the panel so the next open starts fresh.\n  React.useEffect(() => {\n    if (visible) return;\n    const timer = window.setTimeout(\n      () => {\n        setShown(null);\n        setLeaving([]);\n        setBox((b) => ({ ...b, ready: false }));\n      },\n      reduced ? 0 : 220,\n    );\n    return () => window.clearTimeout(timer);\n  }, [visible, reduced]);\n\n  React.useEffect(() => {\n    if (!leaving.length) return;\n    const timer = window.setTimeout(() => setLeaving([]), MORPH);\n    return () => window.clearTimeout(timer);\n  }, [leaving]);\n\n  // Size and place the panel for the content now showing: under its item, inside the screen.\n  React.useLayoutEffect(() => {\n    const content = contentRef.current;\n    const root = rootRef.current;\n    const trigger = open ? triggerRefs.current.get(open) : null;\n    if (!content || !root || !trigger) return;\n    const measure = () => {\n      const r = root.getBoundingClientRect();\n      const t = trigger.getBoundingClientRect();\n      const width = content.offsetWidth;\n      const height = content.offsetHeight;\n      const viewport = document.documentElement.clientWidth;\n      const center = t.left + t.width / 2;\n      const left =\n        Math.min(\n          Math.max(center - width / 2, collisionPadding),\n          viewport - collisionPadding - width,\n        ) - r.left;\n      setBox((b) =>\n        b.left === left && b.width === width && b.height === height && b.ready\n          ? b\n          : { left, width, height, ready: b.width > 0 },\n      );\n    };\n    measure();\n    const observer = new ResizeObserver(measure);\n    observer.observe(content);\n    return () => observer.disconnect();\n  }, [open, shown?.key, collisionPadding]);\n\n  // Opened from the keyboard: move focus into the panel.\n  React.useEffect(() => {\n    if (!open || !viaKeyboard.current) return;\n    viaKeyboard.current = false;\n    const first = panelRef.current?.querySelector<HTMLElement>(\n      \"a[href], button:not([disabled]), [tabindex]:not([tabindex='-1'])\",\n    );\n    first?.focus();\n  }, [open, shown?.key]);\n\n  // Escape closes and hands focus back; clicking elsewhere closes.\n  React.useEffect(() => {\n    if (!open) return;\n    const onKey = (e: KeyboardEvent) => {\n      if (e.key !== \"Escape\") return;\n      triggerRefs.current.get(open)?.focus();\n      close();\n    };\n    const onDown = (e: PointerEvent) => {\n      if (!rootRef.current?.contains(e.target as Node)) close();\n    };\n    document.addEventListener(\"keydown\", onKey);\n    document.addEventListener(\"pointerdown\", onDown);\n    return () => {\n      document.removeEventListener(\"keydown\", onKey);\n      document.removeEventListener(\"pointerdown\", onDown);\n    };\n  }, [open, close]);\n\n  const point = (itemId: string) => {\n    const el = triggerRefs.current.get(itemId);\n    if (el) setHover({ left: el.offsetLeft, width: el.offsetWidth });\n  };\n\n  const onTriggerKey = (e: React.KeyboardEvent, item: NavItem) => {\n    const i = index(item.id);\n    if (e.key === \"ArrowRight\" || e.key === \"ArrowLeft\") {\n      e.preventDefault();\n      const next =\n        items[\n          (i + (e.key === \"ArrowRight\" ? 1 : -1) + items.length) % items.length\n        ];\n      triggerRefs.current.get(next.id)?.focus();\n      if (open && next.content) show(next.id);\n    } else if (\n      item.content &&\n      (e.key === \"ArrowDown\" || e.key === \"Enter\" || e.key === \" \")\n    ) {\n      e.preventDefault();\n      viaKeyboard.current = true;\n      if (open === item.id) {\n        const first = panelRef.current?.querySelector<HTMLElement>(\n          \"a[href], button:not([disabled])\",\n        );\n        first?.focus();\n      } else show(item.id);\n    }\n  };\n\n  const content = shown ? items.find((i) => i.id === shown.id)?.content : null;\n  const size =\n    reduced || !box.ready\n      ? \"none\"\n      : `left ${MORPH}ms ${EASE}, width ${MORPH}ms ${EASE}, height ${MORPH}ms ${EASE}`;\n\n  return (\n    <nav\n      ref={rootRef}\n      aria-label=\"Main\"\n      className={`relative ${className}`}\n      onPointerEnter={() => window.clearTimeout(closeTimer.current)}\n      onPointerLeave={(e) => e.pointerType === \"mouse\" && close(140)}\n      onBlur={(e) => {\n        if (!rootRef.current?.contains(e.relatedTarget as Node)) close();\n      }}\n      {...props}\n    >\n      <ul className=\"relative flex items-center gap-0.5\">\n        <span\n          aria-hidden=\"true\"\n          className=\"absolute inset-y-0 left-0 rounded-full bg-accent\"\n          style={{\n            width: hover?.width ?? 0,\n            transform: `translateX(${hover?.left ?? 0}px)`,\n            opacity: hover ? 1 : 0,\n            transition: reduced\n              ? \"none\"\n              : `transform 300ms ${EASE}, width 300ms ${EASE}, opacity 200ms ease-out`,\n          }}\n        />\n        {items.map((item) => {\n          const isOpen = open === item.id;\n          const common = {\n            ref: (el: HTMLElement | null) => {\n              if (el) triggerRefs.current.set(item.id, el);\n              else triggerRefs.current.delete(item.id);\n            },\n            onPointerEnter: (e: React.PointerEvent) => {\n              point(item.id);\n              if (e.pointerType === \"mouse\") {\n                if (item.content) show(item.id);\n                else if (open) close(140);\n              }\n            },\n            onFocus: () => point(item.id),\n            className: `relative flex h-9 cursor-pointer items-center gap-1 rounded-full px-3.5 text-[13.5px] transition-colors duration-200 ${FOCUS} ${\n              isOpen\n                ? \"text-foreground\"\n                : \"text-muted-foreground hover:text-foreground\"\n            }`,\n          };\n          return (\n            <li key={item.id}>\n              {item.content ? (\n                <button\n                  {...common}\n                  ref={common.ref}\n                  type=\"button\"\n                  aria-expanded={isOpen}\n                  aria-controls={isOpen ? `${id}-panel` : undefined}\n                  onClick={() => (isOpen ? close() : show(item.id))}\n                  onKeyDown={(e) => onTriggerKey(e, item)}\n                >\n                  {item.label}\n                  <svg\n                    aria-hidden=\"true\"\n                    viewBox=\"0 0 12 12\"\n                    className=\"size-3 opacity-60\"\n                    style={{\n                      transform: isOpen ? \"rotate(180deg)\" : \"none\",\n                      transition: reduced ? \"none\" : `transform 300ms ${EASE}`,\n                    }}\n                  >\n                    <path\n                      d=\"M3 4.5 6 7.5 9 4.5\"\n                      fill=\"none\"\n                      stroke=\"currentColor\"\n                      strokeWidth=\"1.5\"\n                      strokeLinecap=\"round\"\n                      strokeLinejoin=\"round\"\n                    />\n                  </svg>\n                </button>\n              ) : (\n                <a\n                  {...common}\n                  ref={common.ref}\n                  href={item.href}\n                  onKeyDown={(e) => onTriggerKey(e, item)}\n                >\n                  {item.label}\n                </a>\n              )}\n            </li>\n          );\n        })}\n      </ul>\n\n      {shown && (\n        <div\n          ref={panelRef}\n          id={`${id}-panel`}\n          className=\"absolute top-full z-50 mt-2 overflow-hidden rounded-[20px] border border-border bg-popover text-popover-foreground animate-[ui-pop-in_240ms_cubic-bezier(0.16,1,0.3,1)_backwards] motion-reduce:animate-none\"\n          style={{\n            left: box.left,\n            width: box.width + 2,\n            height: box.height + 2,\n            opacity: visible ? 1 : 0,\n            transform: visible ? \"none\" : \"translateY(-4px) scale(0.98)\",\n            transformOrigin: \"top center\",\n            transition: reduced\n              ? \"none\"\n              : `${size === \"none\" ? \"\" : `${size}, `}opacity 200ms ease-out, transform 260ms ${EASE}`,\n          }}\n        >\n          {leaving.map((l) => (\n            <Slide key={l.key} dir={l.dir} leaving reduced={reduced}>\n              {items.find((i) => i.id === l.id)?.content}\n            </Slide>\n          ))}\n          <Slide\n            key={shown.key}\n            dir={shown.dir}\n            leaving={false}\n            reduced={reduced}\n            measureRef={setContent}\n          >\n            {content}\n          </Slide>\n        </div>\n      )}\n    </nav>\n  );\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {
+    "@keyframes ui-pop-in": {
+      "from": {
+        "opacity": "0",
+        "transform": "translateY(-4px) scale(0.96)"
+      },
+      "to": {
+        "opacity": "1",
+        "transform": "none"
+      }
+    }
+  },
+  "meta": {
+    "cavemio": {
+      "component": "morphing-nav",
+      "exportName": "MorphingNav",
+      "categories": [
+        "display"
+      ],
+      "isNew": false,
+      "usage": "import { MorphingNav } from \"@/components/morphing-nav\";\n\n<MorphingNav\n  items={[\n    { id: \"product\", label: \"Product\", content: <ProductMenu /> },\n    { id: \"pricing\", label: \"Pricing\", href: \"/pricing\" },\n  ]}\n/>",
+      "accessibility": "- A labelled navigation landmark. Items that open a panel are buttons with aria-expanded and aria-controls; links stay links.\n- Left and Right move between items, Enter, Space or Down opens one and moves focus into it, and Escape closes it and returns focus.\n- On touch screens, items open and close with a tap; with a mouse, a short delay lets you cross the gap to the panel.\n- With reduced motion the panel switches content in place without gliding.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "items",
+            "type": "{ id; label; href?; content? }[]",
+            "description": "– · Items with content open the panel; items with only an href are links."
+          },
+          {
+            "name": "collisionPadding",
+            "type": "number",
+            "description": "16 · Space kept from the screen edges when placing the panel."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Product and solutions menus",
+            "description": "A site header where Product, Solutions and Resources each open a panel."
+          },
+          {
+            "title": "Documentation headers",
+            "description": "Group guides, references and examples under a few top-level items."
+          },
+          {
+            "title": "Marketplace categories",
+            "description": "Let people jump into a category from the header."
+          },
+          {
+            "title": "App top bars",
+            "description": "Grouped destinations in a product, with links and short descriptions."
+          }
+        ],
+        "features": [
+          {
+            "title": "One panel for every item",
+            "description": "Point at an item and the panel drops in, sized to that item’s content. Give each panel its own width."
+          },
+          {
+            "title": "Content slides from where you came",
+            "description": "Moving to the next item glides and resizes the same panel, with the new content arriving from the side you moved toward."
+          },
+          {
+            "title": "A highlight that follows",
+            "description": "A soft highlight slides under the item you point at or focus."
+          },
+          {
+            "title": "Time to cross the gap",
+            "description": "With a mouse, a short delay lets you reach the panel. On touch, items open and close with a tap."
+          },
+          {
+            "title": "It stays on screen",
+            "description": "The panel keeps a margin from the screen edges and shifts to stay inside them."
+          },
+          {
+            "title": "Links stay links",
+            "description": "Items with only an href are links. Arrow keys move along the bar, and Escape closes the panel and returns focus."
+          }
+        ],
+        "states": [
+          {
+            "title": "hover",
+            "description": "A soft highlight slides and resizes under the item you point at or focus."
+          },
+          {
+            "title": "open",
+            "description": "The panel drops in under the item, sized to its content and kept inside the screen."
+          },
+          {
+            "title": "move",
+            "description": "The panel glides and resizes (380ms) to the next item’s content; old content slides out one way, new content in from the other."
+          },
+          {
+            "title": "close",
+            "description": "Leaving the menu, Escape or a click elsewhere fades the panel away; Escape returns focus to the item."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
