@@ -1,0 +1,124 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-radio-group",
+  "title": "Radio group",
+  "description": "One choice from a few: the dot pops into the new circle, or, as cards, one selection frame glides from card to card.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/radio-group.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport {\n  EASE_OUT,\n  EASE_THROW,\n  useInteractionReducedMotion,\n} from \"./imported-ui-interaction-motion\";\n\n/* ─────────────────────────────────────────────────────────\n * RADIO GROUP: one choice, one moving mark\n *\n *   list    the dot shrinks out of the old circle as it pops\n *           into the new one (a slight overshoot)\n *   cards   options are cards; the selection is one frame that\n *           glides from card to card, its height easing when\n *           the cards differ, instead of rings blinking\n *\n * Real radio inputs underneath: arrow keys, forms and screen\n * readers behave exactly as native radios do.\n * ───────────────────────────────────────────────────────── */\n\nexport interface RadioOption {\n  value: string;\n  label: React.ReactNode;\n  description?: React.ReactNode;\n  /** Right side of a card, e.g. a price. */\n  aside?: React.ReactNode;\n  disabled?: boolean;\n}\n\nexport interface RadioGroupProps {\n  options: RadioOption[];\n  value?: string;\n  defaultValue?: string;\n  onValueChange?: (value: string) => void;\n  /** Form name; one is made up if you don't pass it. */\n  name?: string;\n  /** Accessible name of the group (shown as a legend when `showLabel`). */\n  label: string;\n  showLabel?: boolean;\n  variant?: \"list\" | \"cards\";\n  orientation?: \"vertical\" | \"horizontal\";\n  disabled?: boolean;\n  className?: string;\n}\n\ntype Mark = { y: number; x: number; w: number; h: number };\n\nexport function RadioGroup({\n  options,\n  value,\n  defaultValue,\n  onValueChange,\n  name,\n  label,\n  showLabel = false,\n  variant = \"list\",\n  orientation = \"vertical\",\n  disabled,\n  className = \"\",\n}: RadioGroupProps) {\n  const reduced = useInteractionReducedMotion();\n  const auto = React.useId();\n  const group = name ?? auto;\n  const [own, setOwn] = React.useState(defaultValue ?? null);\n  const current = value !== undefined ? value : own;\n  const listRef = React.useRef<HTMLDivElement>(null);\n  const [mark, setMark] = React.useState<Mark | null>(null);\n  const [ready, setReady] = React.useState(false);\n  const cards = variant === \"cards\";\n\n  React.useLayoutEffect(() => {\n    if (!cards) return;\n    const list = listRef.current;\n    if (!list) return;\n    const measure = () => {\n      const el = current\n        ? list.querySelector<HTMLElement>(\n            `[data-radio=\"${CSS.escape(current)}\"]`,\n          )\n        : null;\n      if (!el) return setMark(null);\n      const next = {\n        x: el.offsetLeft,\n        y: el.offsetTop,\n        w: el.offsetWidth,\n        h: el.offsetHeight,\n      };\n      setMark((p) =>\n        p &&\n        p.x === next.x &&\n        p.y === next.y &&\n        p.w === next.w &&\n        p.h === next.h\n          ? p\n          : next,\n      );\n    };\n    measure();\n    const ro = new ResizeObserver(measure);\n    ro.observe(list);\n    return () => ro.disconnect();\n  }, [cards, current, options]);\n\n  React.useEffect(() => {\n    if (!mark || ready) return;\n    const frame = requestAnimationFrame(() => setReady(true));\n    return () => cancelAnimationFrame(frame);\n  }, [mark, ready]);\n\n  const pick = (v: string) => {\n    if (value === undefined) setOwn(v);\n    onValueChange?.(v);\n  };\n\n  return (\n    <fieldset\n      className={`m-0 min-w-0 border-0 p-0 ${className}`}\n      disabled={disabled}\n    >\n      <legend\n        className={\n          showLabel\n            ? \"mb-2 px-0.5 text-[13px] font-medium text-foreground\"\n            : \"sr-only\"\n        }\n      >\n        {label}\n      </legend>\n      <div\n        ref={listRef}\n        className={`relative flex ${orientation === \"horizontal\" ? \"flex-row flex-wrap\" : \"flex-col\"} ${cards ? \"gap-2\" : orientation === \"horizontal\" ? \"gap-x-5 gap-y-2\" : \"gap-2.5\"}`}\n      >\n        {cards && (\n          <span\n            aria-hidden=\"true\"\n            className=\"pointer-events-none absolute left-0 top-0 z-10 rounded-[14px] shadow-[inset_0_0_0_1.5px_var(--primary)]\"\n            style={{\n              transform: `translate3d(${mark?.x ?? 0}px, ${mark?.y ?? 0}px, 0)`,\n              width: mark?.w ?? 0,\n              height: mark?.h ?? 0,\n              opacity: mark ? 1 : 0,\n              transition:\n                reduced || !ready\n                  ? \"none\"\n                  : `transform 420ms ${EASE_THROW}, width 380ms ${EASE_OUT}, height 380ms ${EASE_OUT}, opacity 200ms ${EASE_OUT}`,\n            }}\n          />\n        )}\n        {options.map((option) => {\n          const on = current === option.value;\n          const off = disabled || option.disabled;\n          return (\n            <label\n              key={option.value}\n              data-radio={option.value}\n              className={`group/radio relative flex select-none items-start gap-2.5 ${off ? \"cursor-default opacity-50\" : \"cursor-pointer\"} ${\n                cards\n                  ? `rounded-[14px] bg-background p-3.5 shadow-[inset_0_0_0_1px_var(--border)] transition-[background-color] duration-200 ${on ? \"bg-accent/50\" : \"hover:bg-accent/40\"}`\n                  : \"\"\n              }`}\n            >\n              <span className=\"relative mt-[2px] inline-flex size-4 shrink-0\">\n                <input\n                  type=\"radio\"\n                  name={group}\n                  value={option.value}\n                  checked={on}\n                  disabled={off}\n                  onChange={() => pick(option.value)}\n                  className=\"peer absolute inset-0 m-0 size-full cursor-[inherit] appearance-none rounded-full outline-none\"\n                />\n                <span\n                  aria-hidden=\"true\"\n                  className={`pointer-events-none absolute inset-0 rounded-full bg-background transition-[box-shadow,scale] duration-200 group-active/radio:scale-[0.88] peer-focus-visible:shadow-[inset_0_0_0_1px_var(--ring),0_0_0_3px_color-mix(in_oklab,var(--ring)_20%,transparent)] motion-reduce:group-active/radio:scale-100 ${\n                    on\n                      ? \"shadow-[inset_0_0_0_1.5px_var(--primary)]\"\n                      : \"shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_22%,var(--border))] group-hover/radio:shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_40%,var(--border))]\"\n                  }`}\n                >\n                  <span\n                    className=\"absolute inset-[4px] rounded-full bg-primary\"\n                    style={{\n                      transform: on ? \"scale(1)\" : \"scale(0)\",\n                      transition: reduced\n                        ? \"none\"\n                        : on\n                          ? `transform 380ms ${EASE_THROW}`\n                          : `transform 200ms ${EASE_OUT}`,\n                    }}\n                  />\n                </span>\n              </span>\n              <span className=\"flex min-w-0 flex-1 flex-col gap-0.5\">\n                <span className=\"text-[13.5px] font-medium leading-5 text-foreground\">\n                  {option.label}\n                </span>\n                {option.description && (\n                  <span className=\"text-[12.5px] leading-snug text-muted-foreground\">\n                    {option.description}\n                  </span>\n                )}\n              </span>\n              {option.aside && (\n                <span className=\"shrink-0 text-[13px] tabular-nums text-foreground\">\n                  {option.aside}\n                </span>\n              )}\n            </label>\n          );\n        })}\n      </div>\n    </fieldset>\n  );\n}\n\nexport default RadioGroup;\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/imported-ui-interaction-motion.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport const EASE_OUT = \"cubic-bezier(0.16, 1, 0.3, 1)\";\nexport const EASE_SETTLE = \"cubic-bezier(0.22, 1.18, 0.36, 1)\";\n/** Thrown things (indicators, thumbs): a slight overshoot on transform only. */\nexport const EASE_THROW = \"cubic-bezier(0.34, 1.36, 0.64, 1)\";\n/**\n * The press every button primitive shares: a 3% give that eases in and settles back.\n * Tailwind v4's scale-* writes the `scale` property, so `scale` has to be in the list\n * or the press snaps.\n */\nexport const INTERACTION_PRESS =\n  \"transition-[background-color,color,box-shadow,opacity,scale] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100\";\nexport const INTERACTION_FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background\";\n\nconst query = \"(prefers-reduced-motion: reduce)\";\nconst subscribe = (notify: () => void) => {\n  const media = window.matchMedia(query);\n  media.addEventListener(\"change\", notify);\n  return () => media.removeEventListener(\"change\", notify);\n};\nexport const useInteractionReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false,\n  );\n\nexport function useInteractionActivity<T extends Element>() {\n  const ref = React.useRef<T>(null);\n  const [visible, setVisible] = React.useState(false);\n  const [hidden, setHidden] = React.useState(false);\n  React.useEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(([entry]) =>\n      setVisible(entry.isIntersecting),\n    );\n    observer.observe(el);\n    const visibility = () => setHidden(document.hidden);\n    visibility();\n    document.addEventListener(\"visibilitychange\", visibility);\n    return () => {\n      observer.disconnect();\n      document.removeEventListener(\"visibilitychange\", visibility);\n    };\n  }, []);\n  return { ref, active: visible && !hidden };\n}\n\nexport function interactionIcon(\n  on: boolean,\n  reduced: boolean,\n): React.CSSProperties {\n  return {\n    opacity: on ? 1 : 0,\n    transform: on ? \"none\" : \"scale(0.6)\",\n    filter: on ? \"blur(0px)\" : \"blur(3px)\",\n    transition: reduced\n      ? \"none\"\n      : `opacity 220ms ${EASE_OUT}, transform 380ms ${EASE_OUT}, filter 220ms ${EASE_OUT}`,\n  };\n}\n\n/** Sample recent movement rather than averaging a long drag and losing its release velocity. */\nexport type PointerSample = { x: number; time: number };\nexport function samplePointer(\n  samples: PointerSample[],\n  x: number,\n  time: number,\n) {\n  samples.push({ x, time });\n  while (samples.length > 2 && time - samples[0].time > 100) samples.shift();\n}\nexport function releaseVelocity(samples: PointerSample[], now: number) {\n  if (samples.length < 2 || now - samples[samples.length - 1].time > 100)\n    return 0;\n  const first = samples[0],\n    last = samples[samples.length - 1];\n  return (last.x - first.x) / Math.max(1, last.time - first.time);\n}\n\n/** Smooth Apple/rational rubber-band curve: continuous exponential-like resistance without linear kinks. */\nexport function rubberBand(\n  overshoot: number,\n  dimension = 320,\n  constant = 0.55,\n): number {\n  const d = dimension || 320;\n  const abs = Math.abs(overshoot);\n  return Math.sign(overshoot) * (1 - 1 / ((abs * constant) / d + 1)) * d;\n}\n\n/** Projects resting travel from release velocity (velocity in px/ms; time in seconds). */\nexport function projectInertia(\n  distance: number,\n  velocity: number,\n  time = 0.12,\n): number {\n  return distance + velocity * 1000 * time;\n}\n\n/** Smooths incoming release velocity toward a boundary so springs don't slam or clip into walls. */\nexport function softenVelocity(\n  velocity: number,\n  distanceToTarget: number,\n  factor = 10,\n): number {\n  const maxAllowed = Math.abs(distanceToTarget) * factor;\n  return Math.sign(velocity) * Math.min(Math.abs(velocity), maxAllowed);\n}\n\n/** A damped spring sampled by WAAPI: tuned for organic lightness with a hint of life (3% breath). */\nexport function springFrames(\n  from: number,\n  to: number,\n  velocity = 0,\n  duration = 480,\n  config: { omega?: number; damping?: number; steps?: number } = {},\n) {\n  const { omega = 16, damping = 0.74, steps = 36 } = config;\n  const damped = omega * Math.sqrt(Math.max(0.001, 1 - damping * damping));\n  const displacement = from - to;\n  const coefficient =\n    (velocity * 1000 + damping * omega * displacement) / damped;\n  return Array.from({ length: steps + 1 }, (_, i) => {\n    const t = (i / steps) * (duration / 1000);\n    const value =\n      to +\n      Math.exp(-damping * omega * t) *\n        (displacement * Math.cos(damped * t) +\n          coefficient * Math.sin(damped * t));\n    return { value: i === steps ? to : value, offset: i / steps };\n  });\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "radio-group",
+      "exportName": "RadioGroup",
+      "categories": [
+        "forms"
+      ],
+      "isNew": true,
+      "usage": "import { RadioGroup } from \"@/components/radio-group\";\n\n<RadioGroup\n  label=\"Plan\"\n  variant=\"cards\"\n  defaultValue=\"pro\"\n  options={[\n    { value: \"starter\", label: \"Starter\", description: \"One template\", aside: \"$39\" },\n    { value: \"pro\", label: \"All access\", description: \"Every template, every update\", aside: \"$149\" },\n  ]}\n/>",
+      "accessibility": "- A fieldset with a legend; disabled disables the whole group.\n- Reduced motion: the frame and dot move at once.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "options",
+            "type": "RadioOption[]",
+            "description": "– · value, label, description, aside, disabled."
+          },
+          {
+            "name": "value / defaultValue",
+            "type": "string",
+            "description": "– · Chosen value."
+          },
+          {
+            "name": "onValueChange",
+            "type": "(value: string) => void",
+            "description": "– · Called on choice."
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "description": "– · Accessible name (a legend)."
+          },
+          {
+            "name": "showLabel",
+            "type": "boolean",
+            "description": "false · Show the legend."
+          },
+          {
+            "name": "variant",
+            "type": "\"list\" | \"cards\"",
+            "description": "\"list\" · Plain dots or cards."
+          },
+          {
+            "name": "orientation",
+            "type": "\"vertical\" | \"horizontal\"",
+            "description": "\"vertical\" · Direction of the options."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Plan pickers",
+            "description": "Cards with a price on the right."
+          },
+          {
+            "title": "Shipping and delivery",
+            "description": "Options with a description line each."
+          },
+          {
+            "title": "Settings",
+            "description": "A short vertical list of exclusive choices."
+          },
+          {
+            "title": "Onboarding questions",
+            "description": "Horizontal options in a single row."
+          }
+        ],
+        "features": [
+          {
+            "title": "One moving frame",
+            "description": "Measured from layout, thrown to the new card with a slight overshoot."
+          },
+          {
+            "title": "Native keyboard",
+            "description": "Arrow keys move and select, Tab enters at the chosen one."
+          },
+          {
+            "title": "Cards or list",
+            "description": "Same API; cards add a description and an aside."
+          },
+          {
+            "title": "Forms",
+            "description": "A real name and value for each option."
+          }
+        ],
+        "states": [
+          {
+            "title": "list",
+            "description": "The dot pops into the new circle (380ms, slight overshoot) as it shrinks out of the old."
+          },
+          {
+            "title": "cards",
+            "description": "The frame glides to the new card (420ms) and its height eases (380ms)."
+          },
+          {
+            "title": "focus",
+            "description": "The ring and halo on the circle, from the keyboard."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
