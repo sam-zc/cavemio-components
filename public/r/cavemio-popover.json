@@ -1,0 +1,124 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-popover",
+  "title": "Popover",
+  "description": "A small panel that belongs to a button: it rises off the trigger from the nearest point, flips to fit, and hands focus to what is inside.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/popover.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport { createPortal } from \"react-dom\";\nimport {\n  enterStyle,\n  themeVars,\n  useDismiss,\n  useFloating,\n  usePresence,\n  type Align,\n  type Side,\n} from \"./floating\";\nimport { useInteractionReducedMotion } from \"./imported-ui-interaction-motion\";\n\n/* ─────────────────────────────────────────────────────────\n * POPOVER: a small panel that belongs to a button\n *\n *   open     the panel rises off its trigger out of a blur, from\n *            the point on the trigger nearest to it, and flips\n *            or shifts to stay in the window\n *   inside   focus moves to the first field in it (or the panel)\n *   close    Escape returns focus to the trigger; a press\n *            outside just closes; `close()` from inside too\n *\n * For a list of actions use DropdownMenu; this is for content\n * (a short form, a colour picker, details).\n * ───────────────────────────────────────────────────────── */\n\nexport interface PopoverProps {\n  trigger: React.ReactElement<React.HTMLAttributes<HTMLElement>>;\n  /** The content, or a function that gets `close`. */\n  children: React.ReactNode | ((api: { close: () => void }) => React.ReactNode);\n  side?: Side;\n  align?: Align;\n  open?: boolean;\n  onOpenChange?: (open: boolean) => void;\n  /** Width of the panel in px. */\n  width?: number;\n  /** Accessible name of the panel. */\n  label?: string;\n  className?: string;\n}\n\nconst FOCUSABLE =\n  'input, textarea, select, button, [href], [tabindex]:not([tabindex=\"-1\"])';\n\nexport function Popover({\n  trigger,\n  children,\n  side = \"bottom\",\n  align = \"center\",\n  open: controlled,\n  onOpenChange,\n  width = 280,\n  label,\n  className = \"\",\n}: PopoverProps) {\n  const reduced = useInteractionReducedMotion();\n  const anchor = React.useRef<HTMLSpanElement>(null);\n  const surface = React.useRef<HTMLDivElement>(null);\n  const [own, setOwn] = React.useState(false);\n  const open = controlled ?? own;\n  const { mounted, shown } = usePresence(open, 180);\n  const place = useFloating({\n    open: mounted,\n    anchor,\n    floating: surface,\n    side,\n    align,\n    offset: 8,\n  });\n  const [vars, setVars] = React.useState<React.CSSProperties>({});\n  const id = React.useId();\n  const triggerId = React.useId();\n\n  const setOpen = (next: boolean, refocus = false) => {\n    if (controlled === undefined) setOwn(next);\n    onOpenChange?.(next);\n    // By id rather than a ref: this runs from handlers that are created while rendering.\n    if (!next && refocus)\n      document.getElementById(trigger.props.id ?? triggerId)?.focus();\n  };\n\n  useDismiss(open, (reason) => setOpen(false, reason === \"escape\"), [\n    anchor,\n    surface,\n  ]);\n\n  React.useLayoutEffect(() => {\n    if (mounted) setVars(themeVars(anchor.current));\n  }, [mounted]);\n\n  React.useEffect(() => {\n    if (!open || !place.ready) return;\n    const el = surface.current;\n    (el?.querySelector<HTMLElement>(FOCUSABLE) ?? el)?.focus({\n      preventScroll: true,\n    });\n  }, [open, place.ready]);\n\n  const close = () => setOpen(false, true);\n\n  return (\n    <>\n      <span ref={anchor} className=\"inline-flex\">\n        {React.cloneElement(trigger, {\n          id: trigger.props.id ?? triggerId,\n          \"aria-haspopup\": \"dialog\",\n          \"aria-expanded\": open,\n          \"aria-controls\": open ? id : undefined,\n          onClick: (e: React.MouseEvent<HTMLElement>) => {\n            trigger.props.onClick?.(e);\n            setOpen(!open);\n          },\n        })}\n      </span>\n      {mounted &&\n        createPortal(\n          <div\n            ref={surface}\n            id={id}\n            role=\"dialog\"\n            aria-label={label}\n            tabIndex={-1}\n            className={`fixed left-0 top-0 z-[55] max-w-[calc(100vw_-_16px)] rounded-[16px] bg-popover p-4 text-[13.5px] text-popover-foreground shadow-[0_0_0_1px_var(--border)] outline-none ${className}`}\n            style={{\n              ...vars,\n              width,\n              left: place.x,\n              top: place.y,\n              transformOrigin: place.origin,\n              ...enterStyle(shown, place.side, reduced),\n            }}\n          >\n            {typeof children === \"function\" ? children({ close }) : children}\n          </div>,\n          document.body,\n        )}\n    </>\n  );\n}\n\nexport default Popover;\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/floating.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * FLOATING: what every popover, menu and tooltip shares\n *\n *   place     beside an anchor on a side, lined up start, centre\n *             or end; flips to the other side when it doesn't fit\n *             and shifts to stay `padding` inside the viewport;\n *             follows scroll and resize\n *   presence  mounts on open, shows a frame later (so the entry\n *             transitions run), hides, then unmounts after `exit`\n *   dismiss   Escape and a press outside both close it\n *   theme     the portal carries the anchor's theme tokens, so a\n *             light specimen on a dark page stays light\n * ───────────────────────────────────────────────────────── */\n\nexport type Side = \"top\" | \"bottom\" | \"left\" | \"right\";\nexport type Align = \"start\" | \"center\" | \"end\";\n\nconst TOKENS = [\n  \"--background\",\n  \"--foreground\",\n  \"--popover\",\n  \"--popover-foreground\",\n  \"--border\",\n  \"--accent\",\n  \"--accent-foreground\",\n  \"--primary\",\n  \"--primary-foreground\",\n  \"--muted\",\n  \"--muted-foreground\",\n  \"--ring\",\n  \"--card\",\n];\n\n/** The anchor's theme tokens as inline styles for something portalled out of its tree. */\nexport function themeVars(anchor: Element | null): React.CSSProperties {\n  if (!anchor) return {};\n  const style = getComputedStyle(anchor);\n  const vars: Record<string, string> = {};\n  for (const t of TOKENS) {\n    const v = style.getPropertyValue(t);\n    if (v) vars[t] = v;\n  }\n  return vars as React.CSSProperties;\n}\n\nconst OPPOSITE: Record<Side, Side> = {\n  top: \"bottom\",\n  bottom: \"top\",\n  left: \"right\",\n  right: \"left\",\n};\n\nexport interface Placement {\n  x: number;\n  y: number;\n  side: Side;\n  /** Where the surface grows from, for transform-origin. */\n  origin: string;\n  ready: boolean;\n}\n\n/** Positions `floating` (position: fixed) next to `anchor` while `open`. Pass a point instead of an anchor for context menus. */\nexport function useFloating({\n  open,\n  anchor,\n  point,\n  floating,\n  side = \"bottom\",\n  align = \"center\",\n  offset = 8,\n  padding = 8,\n}: {\n  open: boolean;\n  anchor?: React.RefObject<Element | null>;\n  point?: { x: number; y: number } | null;\n  floating: React.RefObject<HTMLElement | null>;\n  side?: Side;\n  align?: Align;\n  offset?: number;\n  padding?: number;\n}): Placement {\n  const [place, setPlace] = React.useState<Placement>({\n    x: -9999,\n    y: -9999,\n    side,\n    origin: \"center\",\n    ready: false,\n  });\n\n  React.useLayoutEffect(() => {\n    if (!open) return;\n    let frame = 0;\n    const measure = () => {\n      const el = floating.current;\n      if (!el) return;\n      const a = point\n        ? {\n            left: point.x,\n            right: point.x,\n            top: point.y,\n            bottom: point.y,\n            width: 0,\n            height: 0,\n          }\n        : anchor?.current?.getBoundingClientRect();\n      if (!a) return;\n      const w = el.offsetWidth;\n      const h = el.offsetHeight;\n      const vw = window.innerWidth;\n      const vh = window.innerHeight;\n      const room: Record<Side, number> = {\n        top: a.top - padding,\n        bottom: vh - a.bottom - padding,\n        left: a.left - padding,\n        right: vw - a.right - padding,\n      };\n      const need =\n        side === \"top\" || side === \"bottom\" ? h + offset : w + offset;\n      const s =\n        room[side] < need && room[OPPOSITE[side]] > room[side]\n          ? OPPOSITE[side]\n          : side;\n      let x: number;\n      let y: number;\n      if (s === \"top\" || s === \"bottom\") {\n        y = s === \"bottom\" ? a.bottom + offset : a.top - offset - h;\n        x =\n          align === \"start\"\n            ? a.left\n            : align === \"end\"\n              ? a.right - w\n              : a.left + a.width / 2 - w / 2;\n        if (point) x = a.left;\n      } else {\n        x = s === \"right\" ? a.right + offset : a.left - offset - w;\n        y =\n          align === \"start\"\n            ? a.top\n            : align === \"end\"\n              ? a.bottom - h\n              : a.top + a.height / 2 - h / 2;\n      }\n      x = Math.max(padding, Math.min(vw - padding - w, x));\n      y = Math.max(padding, Math.min(vh - padding - h, y));\n      // Grow from the point on the anchor's edge nearest the surface.\n      const ox =\n        s === \"left\"\n          ? \"100%\"\n          : s === \"right\"\n            ? \"0%\"\n            : `${Math.max(0, Math.min(w, a.left + a.width / 2 - x))}px`;\n      const oy =\n        s === \"top\"\n          ? \"100%\"\n          : s === \"bottom\"\n            ? \"0%\"\n            : `${Math.max(0, Math.min(h, a.top + a.height / 2 - y))}px`;\n      const next = {\n        x: Math.round(x),\n        y: Math.round(y),\n        side: s,\n        origin: `${ox} ${oy}`,\n        ready: true,\n      };\n      setPlace((p) =>\n        p.x === next.x &&\n        p.y === next.y &&\n        p.side === next.side &&\n        p.origin === next.origin &&\n        p.ready\n          ? p\n          : next,\n      );\n    };\n    const schedule = () => {\n      cancelAnimationFrame(frame);\n      frame = requestAnimationFrame(measure);\n    };\n    measure();\n    const ro = new ResizeObserver(schedule);\n    if (floating.current) ro.observe(floating.current);\n    window.addEventListener(\"scroll\", schedule, {\n      capture: true,\n      passive: true,\n    });\n    window.addEventListener(\"resize\", schedule);\n    return () => {\n      cancelAnimationFrame(frame);\n      ro.disconnect();\n      window.removeEventListener(\"scroll\", schedule, { capture: true });\n      window.removeEventListener(\"resize\", schedule);\n    };\n  }, [open, anchor, point, floating, side, align, offset, padding]);\n\n  return open ? place : { ...place, ready: false };\n}\n\n/** Mount → show next frame → hide → unmount after `exit` ms. */\nexport function usePresence(open: boolean, exit = 160) {\n  const [mounted, setMounted] = React.useState(open);\n  const [shown, setShown] = React.useState(false);\n  if (open && !mounted) setMounted(true);\n  React.useEffect(() => {\n    if (open) {\n      let inner = 0;\n      const outer = requestAnimationFrame(() => {\n        inner = requestAnimationFrame(() => setShown(true));\n      });\n      return () => {\n        cancelAnimationFrame(outer);\n        cancelAnimationFrame(inner);\n      };\n    }\n    const timer = window.setTimeout(() => {\n      setMounted(false);\n      setShown(false);\n    }, exit);\n    return () => window.clearTimeout(timer);\n  }, [open, exit]);\n  return { mounted: mounted || open, shown: open && shown };\n}\n\n/** Escape and presses outside `refs` call onDismiss while `open`. */\nexport function useDismiss(\n  open: boolean,\n  onDismiss: (reason: \"escape\" | \"outside\") => void,\n  refs: React.RefObject<Element | null>[],\n) {\n  const latest = React.useRef({ onDismiss, refs });\n  React.useEffect(() => {\n    latest.current = { onDismiss, refs };\n  });\n  React.useEffect(() => {\n    if (!open) return;\n    const onKey = (e: KeyboardEvent) => {\n      if (e.key !== \"Escape\") return;\n      e.stopPropagation();\n      latest.current.onDismiss(\"escape\");\n    };\n    const onDown = (e: PointerEvent) => {\n      const target = e.target as Node;\n      if (latest.current.refs.some((r) => r.current?.contains(target))) return;\n      latest.current.onDismiss(\"outside\");\n    };\n    document.addEventListener(\"keydown\", onKey);\n    document.addEventListener(\"pointerdown\", onDown, true);\n    return () => {\n      document.removeEventListener(\"keydown\", onKey);\n      document.removeEventListener(\"pointerdown\", onDown, true);\n    };\n  }, [open]);\n}\n\n/** The entry pose for a surface on `side`: it comes 6px from the anchor, 0.96 and blurred. */\nexport function enterStyle(\n  shown: boolean,\n  side: Side,\n  reduced: boolean,\n  ease = \"cubic-bezier(0.16,1,0.3,1)\",\n): React.CSSProperties {\n  const d = 6;\n  const shift =\n    side === \"top\"\n      ? `0 ${d}px`\n      : side === \"bottom\"\n        ? `0 -${d}px`\n        : side === \"left\"\n          ? `${d}px 0`\n          : `-${d}px 0`;\n  return {\n    opacity: shown ? 1 : 0,\n    translate: shown || reduced ? \"0 0\" : shift,\n    scale: shown || reduced ? \"1\" : \"0.96\",\n    filter: shown || reduced ? \"blur(0px)\" : \"blur(4px)\",\n    transition: reduced\n      ? \"opacity 120ms ease-out\"\n      : shown\n        ? `opacity 220ms ${ease}, translate 320ms ${ease}, scale 320ms ${ease}, filter 220ms ${ease}`\n        : `opacity 140ms ${ease}, translate 180ms ${ease}, scale 180ms ${ease}, filter 140ms ${ease}`,\n  };\n}\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/imported-ui-interaction-motion.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport const EASE_OUT = \"cubic-bezier(0.16, 1, 0.3, 1)\";\nexport const EASE_SETTLE = \"cubic-bezier(0.22, 1.18, 0.36, 1)\";\n/** Thrown things (indicators, thumbs): a slight overshoot on transform only. */\nexport const EASE_THROW = \"cubic-bezier(0.34, 1.36, 0.64, 1)\";\n/**\n * The press every button primitive shares: a 3% give that eases in and settles back.\n * Tailwind v4's scale-* writes the `scale` property, so `scale` has to be in the list\n * or the press snaps.\n */\nexport const INTERACTION_PRESS =\n  \"transition-[background-color,color,box-shadow,opacity,scale] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100\";\nexport const INTERACTION_FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background\";\n\nconst query = \"(prefers-reduced-motion: reduce)\";\nconst subscribe = (notify: () => void) => {\n  const media = window.matchMedia(query);\n  media.addEventListener(\"change\", notify);\n  return () => media.removeEventListener(\"change\", notify);\n};\nexport const useInteractionReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false,\n  );\n\nexport function useInteractionActivity<T extends Element>() {\n  const ref = React.useRef<T>(null);\n  const [visible, setVisible] = React.useState(false);\n  const [hidden, setHidden] = React.useState(false);\n  React.useEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(([entry]) =>\n      setVisible(entry.isIntersecting),\n    );\n    observer.observe(el);\n    const visibility = () => setHidden(document.hidden);\n    visibility();\n    document.addEventListener(\"visibilitychange\", visibility);\n    return () => {\n      observer.disconnect();\n      document.removeEventListener(\"visibilitychange\", visibility);\n    };\n  }, []);\n  return { ref, active: visible && !hidden };\n}\n\nexport function interactionIcon(\n  on: boolean,\n  reduced: boolean,\n): React.CSSProperties {\n  return {\n    opacity: on ? 1 : 0,\n    transform: on ? \"none\" : \"scale(0.6)\",\n    filter: on ? \"blur(0px)\" : \"blur(3px)\",\n    transition: reduced\n      ? \"none\"\n      : `opacity 220ms ${EASE_OUT}, transform 380ms ${EASE_OUT}, filter 220ms ${EASE_OUT}`,\n  };\n}\n\n/** Sample recent movement rather than averaging a long drag and losing its release velocity. */\nexport type PointerSample = { x: number; time: number };\nexport function samplePointer(\n  samples: PointerSample[],\n  x: number,\n  time: number,\n) {\n  samples.push({ x, time });\n  while (samples.length > 2 && time - samples[0].time > 100) samples.shift();\n}\nexport function releaseVelocity(samples: PointerSample[], now: number) {\n  if (samples.length < 2 || now - samples[samples.length - 1].time > 100)\n    return 0;\n  const first = samples[0],\n    last = samples[samples.length - 1];\n  return (last.x - first.x) / Math.max(1, last.time - first.time);\n}\n\n/** Smooth Apple/rational rubber-band curve: continuous exponential-like resistance without linear kinks. */\nexport function rubberBand(\n  overshoot: number,\n  dimension = 320,\n  constant = 0.55,\n): number {\n  const d = dimension || 320;\n  const abs = Math.abs(overshoot);\n  return Math.sign(overshoot) * (1 - 1 / ((abs * constant) / d + 1)) * d;\n}\n\n/** Projects resting travel from release velocity (velocity in px/ms; time in seconds). */\nexport function projectInertia(\n  distance: number,\n  velocity: number,\n  time = 0.12,\n): number {\n  return distance + velocity * 1000 * time;\n}\n\n/** Smooths incoming release velocity toward a boundary so springs don't slam or clip into walls. */\nexport function softenVelocity(\n  velocity: number,\n  distanceToTarget: number,\n  factor = 10,\n): number {\n  const maxAllowed = Math.abs(distanceToTarget) * factor;\n  return Math.sign(velocity) * Math.min(Math.abs(velocity), maxAllowed);\n}\n\n/** A damped spring sampled by WAAPI: tuned for organic lightness with a hint of life (3% breath). */\nexport function springFrames(\n  from: number,\n  to: number,\n  velocity = 0,\n  duration = 480,\n  config: { omega?: number; damping?: number; steps?: number } = {},\n) {\n  const { omega = 16, damping = 0.74, steps = 36 } = config;\n  const damped = omega * Math.sqrt(Math.max(0.001, 1 - damping * damping));\n  const displacement = from - to;\n  const coefficient =\n    (velocity * 1000 + damping * omega * displacement) / damped;\n  return Array.from({ length: steps + 1 }, (_, i) => {\n    const t = (i / steps) * (duration / 1000);\n    const value =\n      to +\n      Math.exp(-damping * omega * t) *\n        (displacement * Math.cos(damped * t) +\n          coefficient * Math.sin(damped * t));\n    return { value: i === steps ? to : value, offset: i / steps };\n  });\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "popover",
+      "exportName": "Popover",
+      "categories": [
+        "overlays"
+      ],
+      "isNew": true,
+      "usage": "import { Popover } from \"@/components/popover\";\n\n<Popover label=\"Rename\" trigger={<button>Rename</button>}>\n  {({ close }) => <form onSubmit={(e) => { e.preventDefault(); save(); close(); }}>…</form>}\n</Popover>",
+      "accessibility": "- Placement, presence and dismissal live in floating.ts, shared by tooltip, popover, dropdown and context menus: they all flip, shift, enter and leave the same way.\n- The panel is role=\"dialog\"; the trigger gets aria-haspopup and aria-expanded.\n- Reduced motion: it fades.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "trigger",
+            "type": "ReactElement",
+            "description": "– · The button; it gets aria-expanded and the click."
+          },
+          {
+            "name": "children",
+            "type": "ReactNode | ({ close }) => ReactNode",
+            "description": "– · The content."
+          },
+          {
+            "name": "side / align",
+            "type": "Side / Align",
+            "description": "\"bottom\" / \"center\" · Where it sits."
+          },
+          {
+            "name": "open / onOpenChange",
+            "type": "boolean / (open) => void",
+            "description": "– · Control it."
+          },
+          {
+            "name": "width",
+            "type": "number",
+            "description": "280 · Panel width."
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "description": "– · Accessible name of the panel."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Quick edits",
+            "description": "Rename a file or set a due date without leaving the list."
+          },
+          {
+            "title": "Share settings",
+            "description": "A link with access options under a Share button."
+          },
+          {
+            "title": "Filters",
+            "description": "A few fields behind a Filter button."
+          },
+          {
+            "title": "Details on demand",
+            "description": "More about a plan, a user or a status."
+          }
+        ],
+        "features": [
+          {
+            "title": "From the trigger",
+            "description": "transform-origin is the point on the trigger nearest the panel."
+          },
+          {
+            "title": "Stays in view",
+            "description": "Flips sides and shifts; follows scroll and resize."
+          },
+          {
+            "title": "Focus handover",
+            "description": "In to the first field, back to the trigger on Escape."
+          },
+          {
+            "title": "Close from inside",
+            "description": "children can be a function that receives close()."
+          }
+        ],
+        "states": [
+          {
+            "title": "open",
+            "description": "Rises 6px from its side, out of a 4px blur, from 0.96 (320ms)."
+          },
+          {
+            "title": "inside",
+            "description": "Focus on the first field or the panel."
+          },
+          {
+            "title": "close",
+            "description": "Escape returns focus to the trigger; a press outside just closes (180ms)."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
