@@ -25,7 +25,7 @@
       "accessibility": "Inactive scenes are inert and hidden from assistive technology. Reduced motion disables movement, fades and vote counting. Layout measures wrapping content to avoid clipping.",
       "previewNote": "Four lifecycle scenes with local demo content. Supply your own data and connect the selected stage to your application.",
       "categories": [
-        "blocks"
+        "app"
       ],
       "documentation": {
         "useCases": [],
