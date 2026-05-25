@@ -1,0 +1,119 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-segmented-control",
+  "title": "Segmented control",
+  "description": "One of a few options side by side: the thumb is thrown to the new segment while its width eases to the new label.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/segmented-control.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport {\n  EASE_OUT,\n  EASE_THROW,\n  INTERACTION_FOCUS,\n  useInteractionReducedMotion,\n} from \"./imported-ui-interaction-motion\";\n\n/* ─────────────────────────────────────────────────────────\n * SEGMENTED CONTROL: one of a few, side by side\n *\n *   pick     the thumb is thrown to the new segment with a slight\n *            overshoot while its width eases to the new label\n *   press    the thumb gives a little under the finger\n *   keys     a radiogroup: arrows move and select, Home/End jump;\n *            one tab stop for the whole control\n * ───────────────────────────────────────────────────────── */\n\nexport interface SegmentOption {\n  value: string;\n  label: React.ReactNode;\n  icon?: React.ReactNode;\n  /** Required when `label` isn't text (icon-only segments). */\n  ariaLabel?: string;\n  disabled?: boolean;\n}\n\nexport interface SegmentedControlProps {\n  options: SegmentOption[];\n  value?: string;\n  defaultValue?: string;\n  onValueChange?: (value: string) => void;\n  /** Accessible name of the group. */\n  label: string;\n  /** 28px, 34px, or 40px tall (matches tactile sliders). */\n  size?: \"sm\" | \"md\" | \"lg\";\n  /** Stretch to the parent's width with equal segments. */\n  block?: boolean;\n  className?: string;\n  /** Corner radius: \"full\" (pill, default) or \"rounded\" (concentric rounded container). */\n  radius?: \"full\" | \"rounded\";\n}\n\ntype Mark = { x: number; w: number };\n\nexport function SegmentedControl({\n  options,\n  value,\n  defaultValue,\n  onValueChange,\n  label,\n  size = \"md\",\n  block,\n  className = \"\",\n  radius = \"full\",\n}: SegmentedControlProps) {\n  const reduced = useInteractionReducedMotion();\n  const rootRef = React.useRef<HTMLDivElement>(null);\n  const [own, setOwn] = React.useState(defaultValue ?? options[0]?.value);\n  const current = value !== undefined ? value : own;\n  const [mark, setMark] = React.useState<Mark | null>(null);\n  const [ready, setReady] = React.useState(false);\n  const [pressing, setPressing] = React.useState(false);\n\n  React.useLayoutEffect(() => {\n    const root = rootRef.current;\n    if (!root) return;\n    const measure = () => {\n      const el = current\n        ? root.querySelector<HTMLElement>(\n            `[data-segment=\"${CSS.escape(current)}\"]`,\n          )\n        : null;\n      if (!el) return setMark(null);\n      const next = { x: el.offsetLeft, w: el.offsetWidth };\n      setMark((p) => (p && p.x === next.x && p.w === next.w ? p : next));\n    };\n    measure();\n    const ro = new ResizeObserver(measure);\n    ro.observe(root);\n    root.querySelectorAll(\"[data-segment]\").forEach((el) => ro.observe(el));\n    return () => ro.disconnect();\n  }, [current, options]);\n\n  React.useEffect(() => {\n    if (!mark || ready) return;\n    const frame = requestAnimationFrame(() => setReady(true));\n    return () => cancelAnimationFrame(frame);\n  }, [mark, ready]);\n\n  const pick = (v: string) => {\n    if (value === undefined) setOwn(v);\n    onValueChange?.(v);\n  };\n\n  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {\n    const enabled = options.filter((o) => !o.disabled);\n    const index = enabled.findIndex((o) => o.value === current);\n    let next = -1;\n    if (e.key === \"ArrowRight\" || e.key === \"ArrowDown\")\n      next = (index + 1) % enabled.length;\n    else if (e.key === \"ArrowLeft\" || e.key === \"ArrowUp\")\n      next = (index - 1 + enabled.length) % enabled.length;\n    else if (e.key === \"Home\") next = 0;\n    else if (e.key === \"End\") next = enabled.length - 1;\n    if (next < 0) return;\n    e.preventDefault();\n    const v = enabled[next].value;\n    pick(v);\n    rootRef.current\n      ?.querySelector<HTMLElement>(`[data-segment=\"${CSS.escape(v)}\"]`)\n      ?.focus();\n  };\n\n  const isLg = size === \"lg\";\n  const isSm = size === \"sm\";\n  const isPill = radius === \"full\";\n\n  // Concentric corner radius matching compact slider geometry\n  const rootRadius = isPill\n    ? \"rounded-full\"\n    : isLg\n      ? \"rounded-[13px]\"\n      : isSm\n        ? \"rounded-[9px]\"\n        : \"rounded-[11px]\";\n  const itemRadius = isPill\n    ? \"rounded-full\"\n    : isLg\n      ? \"rounded-[9px]\"\n      : isSm\n        ? \"rounded-[7px]\"\n        : \"rounded-[9px]\";\n\n  // Proportional sizing: \"md\" is compact 34px, \"lg\" is 40px, \"sm\" is 28px\n  const rootPadding = isLg ? \"p-1\" : \"p-0.5\";\n  const rootHeight = isLg ? \"h-10\" : isSm ? \"h-7\" : \"h-8.5\";\n  const indicatorInset = isLg ? \"top-1 bottom-1\" : \"top-0.5 bottom-0.5\";\n  const itemHeightClass = isLg\n    ? \"h-8 px-3 text-[13px]\"\n    : isSm\n      ? \"h-6 px-2 text-[11.5px]\"\n      : \"h-[30px] px-2.5 text-[12px]\";\n\n  return (\n    <div\n      ref={rootRef}\n      role=\"radiogroup\"\n      aria-label={label}\n      onKeyDown={onKeyDown}\n      className={`relative isolate select-none items-center ${rootHeight} ${rootRadius} ${rootPadding} border border-black/[0.04] dark:border-white/[0.06] bg-[#f4f4f6] dark:bg-zinc-900/50 ${\n        block ? \"flex w-full\" : \"inline-flex\"\n      } ${className}`}\n    >\n      <span\n        aria-hidden=\"true\"\n        className={`pointer-events-none absolute left-0 ${indicatorInset} ${itemRadius} bg-white dark:bg-zinc-800 border border-black/[0.05] dark:border-white/[0.1] shadow-[0_1px_2px_rgba(0,0,0,0.04)]`}\n        style={{\n          transform: `translate3d(${mark?.x ?? 0}px, 0, 0) scale(${pressing && !reduced ? 0.97 : 1})`,\n          width: mark?.w ?? 0,\n          opacity: mark ? 1 : 0,\n          transition:\n            reduced || !ready\n              ? \"none\"\n              : `transform 440ms ${EASE_THROW}, width 400ms ${EASE_OUT}, opacity 200ms ${EASE_OUT}`,\n        }}\n      />\n      {options.map((option) => {\n        const on = option.value === current;\n        return (\n          <button\n            key={option.value}\n            type=\"button\"\n            role=\"radio\"\n            aria-checked={on}\n            aria-label={option.ariaLabel}\n            data-segment={option.value}\n            disabled={option.disabled}\n            tabIndex={on ? 0 : -1}\n            onClick={() => pick(option.value)}\n            onPointerDown={() => on && setPressing(true)}\n            onPointerUp={() => setPressing(false)}\n            onPointerLeave={() => setPressing(false)}\n            className={`relative z-10 inline-flex items-center justify-center gap-1.5 whitespace-nowrap ${itemRadius} font-medium cursor-pointer transition-colors duration-200 disabled:cursor-default disabled:opacity-40 [&_svg]:size-3.5 ${itemHeightClass} ${\n              block ? \"flex-1\" : \"\"\n            } ${on ? \"text-zinc-950 font-semibold dark:text-white\" : \"text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100\"} ${INTERACTION_FOCUS}`}\n          >\n            {option.icon}\n            {option.label}\n          </button>\n        );\n      })}\n    </div>\n  );\n}\n\nexport default SegmentedControl;\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/imported-ui-interaction-motion.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport const EASE_OUT = \"cubic-bezier(0.16, 1, 0.3, 1)\";\nexport const EASE_SETTLE = \"cubic-bezier(0.22, 1.18, 0.36, 1)\";\n/** Thrown things (indicators, thumbs): a slight overshoot on transform only. */\nexport const EASE_THROW = \"cubic-bezier(0.34, 1.36, 0.64, 1)\";\n/**\n * The press every button primitive shares: a 3% give that eases in and settles back.\n * Tailwind v4's scale-* writes the `scale` property, so `scale` has to be in the list\n * or the press snaps.\n */\nexport const INTERACTION_PRESS =\n  \"transition-[background-color,color,box-shadow,opacity,scale] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100\";\nexport const INTERACTION_FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background\";\n\nconst query = \"(prefers-reduced-motion: reduce)\";\nconst subscribe = (notify: () => void) => {\n  const media = window.matchMedia(query);\n  media.addEventListener(\"change\", notify);\n  return () => media.removeEventListener(\"change\", notify);\n};\nexport const useInteractionReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false,\n  );\n\nexport function useInteractionActivity<T extends Element>() {\n  const ref = React.useRef<T>(null);\n  const [visible, setVisible] = React.useState(false);\n  const [hidden, setHidden] = React.useState(false);\n  React.useEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(([entry]) =>\n      setVisible(entry.isIntersecting),\n    );\n    observer.observe(el);\n    const visibility = () => setHidden(document.hidden);\n    visibility();\n    document.addEventListener(\"visibilitychange\", visibility);\n    return () => {\n      observer.disconnect();\n      document.removeEventListener(\"visibilitychange\", visibility);\n    };\n  }, []);\n  return { ref, active: visible && !hidden };\n}\n\nexport function interactionIcon(\n  on: boolean,\n  reduced: boolean,\n): React.CSSProperties {\n  return {\n    opacity: on ? 1 : 0,\n    transform: on ? \"none\" : \"scale(0.6)\",\n    filter: on ? \"blur(0px)\" : \"blur(3px)\",\n    transition: reduced\n      ? \"none\"\n      : `opacity 220ms ${EASE_OUT}, transform 380ms ${EASE_OUT}, filter 220ms ${EASE_OUT}`,\n  };\n}\n\n/** Sample recent movement rather than averaging a long drag and losing its release velocity. */\nexport type PointerSample = { x: number; time: number };\nexport function samplePointer(\n  samples: PointerSample[],\n  x: number,\n  time: number,\n) {\n  samples.push({ x, time });\n  while (samples.length > 2 && time - samples[0].time > 100) samples.shift();\n}\nexport function releaseVelocity(samples: PointerSample[], now: number) {\n  if (samples.length < 2 || now - samples[samples.length - 1].time > 100)\n    return 0;\n  const first = samples[0],\n    last = samples[samples.length - 1];\n  return (last.x - first.x) / Math.max(1, last.time - first.time);\n}\n\n/** Smooth Apple/rational rubber-band curve: continuous exponential-like resistance without linear kinks. */\nexport function rubberBand(\n  overshoot: number,\n  dimension = 320,\n  constant = 0.55,\n): number {\n  const d = dimension || 320;\n  const abs = Math.abs(overshoot);\n  return Math.sign(overshoot) * (1 - 1 / ((abs * constant) / d + 1)) * d;\n}\n\n/** Projects resting travel from release velocity (velocity in px/ms; time in seconds). */\nexport function projectInertia(\n  distance: number,\n  velocity: number,\n  time = 0.12,\n): number {\n  return distance + velocity * 1000 * time;\n}\n\n/** Smooths incoming release velocity toward a boundary so springs don't slam or clip into walls. */\nexport function softenVelocity(\n  velocity: number,\n  distanceToTarget: number,\n  factor = 10,\n): number {\n  const maxAllowed = Math.abs(distanceToTarget) * factor;\n  return Math.sign(velocity) * Math.min(Math.abs(velocity), maxAllowed);\n}\n\n/** A damped spring sampled by WAAPI: tuned for organic lightness with a hint of life (3% breath). */\nexport function springFrames(\n  from: number,\n  to: number,\n  velocity = 0,\n  duration = 480,\n  config: { omega?: number; damping?: number; steps?: number } = {},\n) {\n  const { omega = 16, damping = 0.74, steps = 36 } = config;\n  const damped = omega * Math.sqrt(Math.max(0.001, 1 - damping * damping));\n  const displacement = from - to;\n  const coefficient =\n    (velocity * 1000 + damping * omega * displacement) / damped;\n  return Array.from({ length: steps + 1 }, (_, i) => {\n    const t = (i / steps) * (duration / 1000);\n    const value =\n      to +\n      Math.exp(-damping * omega * t) *\n        (displacement * Math.cos(damped * t) +\n          coefficient * Math.sin(damped * t));\n    return { value: i === steps ? to : value, offset: i / steps };\n  });\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "segmented-control",
+      "exportName": "SegmentedControl",
+      "categories": [
+        "forms"
+      ],
+      "isNew": true,
+      "usage": "import { SegmentedControl } from \"@/components/segmented-control\";\n\n<SegmentedControl label=\"View\" defaultValue=\"week\" options={[\n  { value: \"day\", label: \"Day\" },\n  { value: \"week\", label: \"Week\" },\n  { value: \"month\", label: \"Month\" },\n]} />",
+      "accessibility": "- Reduced motion: the thumb moves at once.\n- Use Tabs when each choice shows its own panel.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "options",
+            "type": "SegmentOption[]",
+            "description": "– · value, label, icon, ariaLabel, disabled."
+          },
+          {
+            "name": "value / defaultValue",
+            "type": "string",
+            "description": "– · Chosen value."
+          },
+          {
+            "name": "onValueChange",
+            "type": "(value: string) => void",
+            "description": "– · Called on choice."
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "description": "– · Accessible name."
+          },
+          {
+            "name": "size",
+            "type": "\"sm\" | \"md\"",
+            "description": "\"md\" · 28px or 36px tall."
+          },
+          {
+            "name": "block",
+            "type": "boolean",
+            "description": "false · Fill the parent with equal segments."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "View switches",
+            "description": "Day, week and month on a calendar."
+          },
+          {
+            "title": "Billing period",
+            "description": "Monthly or yearly above a price."
+          },
+          {
+            "title": "Chart ranges",
+            "description": "7d, 30d, 90d on a dashboard card."
+          },
+          {
+            "title": "Editor modes",
+            "description": "Write and preview with icons."
+          }
+        ],
+        "features": [
+          {
+            "title": "One thrown thumb",
+            "description": "Measured from layout, retargets mid-flight, first placement without motion."
+          },
+          {
+            "title": "Radio semantics",
+            "description": "role=\"radiogroup\", arrows select, one tab stop."
+          },
+          {
+            "title": "Icons or text",
+            "description": "Icon-only segments take an ariaLabel."
+          },
+          {
+            "title": "Block",
+            "description": "Equal segments that fill the parent."
+          }
+        ],
+        "states": [
+          {
+            "title": "pick",
+            "description": "The thumb is thrown to the new segment (440ms, slight overshoot) and its width eases (400ms)."
+          },
+          {
+            "title": "press",
+            "description": "The thumb scales to 0.97 under the finger."
+          },
+          {
+            "title": "keys",
+            "description": "Arrows move and select; Home and End jump."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
