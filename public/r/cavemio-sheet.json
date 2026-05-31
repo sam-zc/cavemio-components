@@ -1,0 +1,124 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-sheet",
+  "title": "Sheet",
+  "description": "A panel that slides in from an edge and can be thrown back: drag it toward its edge and release speed decides whether it closes.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/sheet.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport { MODAL_ROOT, SCRIM, useModal } from \"./modal\";\nimport {\n  EASE_OUT,\n  INTERACTION_FOCUS,\n  INTERACTION_PRESS,\n  projectInertia,\n  rubberBand,\n  useInteractionReducedMotion,\n} from \"./imported-ui-interaction-motion\";\n\n/* ─────────────────────────────────────────────────────────\n * SHEET: a panel that slides in from an edge\n *\n *   open     the page fades back; the panel slides in from its\n *            edge (right, left or bottom) and settles\n *   drag     grab the panel's header (or the bottom sheet's grip)\n *            and pull it toward its edge: it follows 1:1, resists\n *            the other way, and a throw (projected from release\n *            speed) or a pull past a third closes it; otherwise\n *            it springs back\n *   close    Escape, the ✕ or the veil; focus returns to what\n *            opened it\n * ───────────────────────────────────────────────────────── */\n\n// The curve sheets slide on: a soft start and a long settle, like the system drawers on phones.\nconst DRAWER = \"cubic-bezier(0.32, 0.72, 0, 1)\";\n\nexport interface SheetProps {\n  open?: boolean;\n  defaultOpen?: boolean;\n  onOpenChange?: (open: boolean) => void;\n  trigger?: React.ReactElement<React.HTMLAttributes<HTMLElement>>;\n  side?: \"right\" | \"left\" | \"bottom\";\n  title: React.ReactNode;\n  description?: React.ReactNode;\n  children?:\n    React.ReactNode | ((api: { close: () => void }) => React.ReactNode);\n  footer?: React.ReactNode | ((api: { close: () => void }) => React.ReactNode);\n  /** Width of a side sheet in px. */\n  width?: number;\n  className?: string;\n}\n\nexport function Sheet({\n  open: controlled,\n  defaultOpen = false,\n  onOpenChange,\n  trigger,\n  side = \"right\",\n  title,\n  description,\n  children,\n  footer,\n  width = 400,\n  className = \"\",\n}: SheetProps) {\n  const reduced = useInteractionReducedMotion();\n  const [own, setOwn] = React.useState(defaultOpen);\n  const open = controlled ?? own;\n  const setOpen = (next: boolean) => {\n    if (controlled === undefined) setOwn(next);\n    onOpenChange?.(next);\n  };\n  const close = () => setOpen(false);\n  const { dialog, mounted, shown } = useModal(open, close, 320);\n  const panel = React.useRef<HTMLDivElement>(null);\n  const drag = React.useRef<{\n    start: number;\n    last: number;\n    t: number;\n    v: number;\n    d: number;\n    size: number;\n    moved: boolean;\n  } | null>(null);\n  const titleId = React.useId();\n  const bottom = side === \"bottom\";\n  // +1 when moving toward the edge closes it.\n  const sign = side === \"left\" ? -1 : 1;\n  const hidden = bottom\n    ? \"translate3d(0,100%,0)\"\n    : `translate3d(${sign * 100}%,0,0)`;\n\n  const write = (d: number, animate: boolean) => {\n    const el = panel.current;\n    if (!el) return;\n    el.style.transition = animate ? `transform 420ms ${DRAWER}` : \"none\";\n    el.style.transform = d\n      ? bottom\n        ? `translate3d(0,${d}px,0)`\n        : `translate3d(${sign * d}px,0,0)`\n      : \"\";\n  };\n\n  const onPointerDown = (e: React.PointerEvent) => {\n    if (\n      e.button !== 0 ||\n      (e.target as HTMLElement).closest(\"button, a, input, textarea, select\")\n    )\n      return;\n    const el = panel.current;\n    if (!el) return;\n    const at = bottom ? e.clientY : e.clientX * sign;\n    drag.current = {\n      start: at,\n      last: at,\n      t: performance.now(),\n      v: 0,\n      d: 0,\n      size: bottom ? el.offsetHeight : el.offsetWidth,\n      moved: false,\n    };\n    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);\n  };\n  const onPointerMove = (e: React.PointerEvent) => {\n    const g = drag.current;\n    if (!g) return;\n    const at = bottom ? e.clientY : e.clientX * sign;\n    if (!g.moved && Math.abs(at - g.start) < 6) return;\n    if (!g.moved) {\n      g.moved = true;\n      g.start = at; // no jump when the drag takes over from the slop\n    }\n    const now = performance.now();\n    g.v = (at - g.last) / Math.max(1, now - g.t);\n    g.last = at;\n    g.t = now;\n    const raw = at - g.start;\n    g.d = raw >= 0 ? raw : rubberBand(raw, g.size, 0.3);\n    write(g.d, false);\n  };\n  const onPointerUp = () => {\n    const g = drag.current;\n    drag.current = null;\n    if (!g || !g.moved) return;\n    // Closing leaves the panel where the finger let go; the slide out carries on from there.\n    if (projectInertia(g.d, g.v, 0.12) > g.size / 3) close();\n    else write(0, true);\n  };\n\n  const footerNode = typeof footer === \"function\" ? footer({ close }) : footer;\n  const grip = {\n    onPointerDown,\n    onPointerMove,\n    onPointerUp,\n    onPointerCancel: onPointerUp,\n  };\n\n  return (\n    <>\n      {trigger &&\n        React.cloneElement(trigger, {\n          \"aria-haspopup\": \"dialog\",\n          onClick: (e: React.MouseEvent<HTMLElement>) => {\n            trigger.props.onClick?.(e);\n            setOpen(true);\n          },\n        })}\n      {mounted && (\n        <dialog ref={dialog} aria-labelledby={titleId} className={MODAL_ROOT}>\n          <div\n            className={SCRIM}\n            onClick={close}\n            style={{\n              opacity: shown ? 1 : 0,\n              transition: `opacity ${shown ? 300 : 240}ms ${EASE_OUT}`,\n            }}\n          />\n          <div\n            className={`absolute flex ${bottom ? \"inset-x-0 bottom-0 justify-center\" : `inset-y-0 ${side === \"left\" ? \"left-0\" : \"right-0\"}`} pointer-events-none p-2`}\n            style={{ width: bottom ? undefined : `min(${width}px, 100vw)` }}\n          >\n            <div\n              className=\"pointer-events-auto flex size-full will-change-transform\"\n              style={{\n                transform: shown || reduced ? \"none\" : hidden,\n                opacity: reduced ? (shown ? 1 : 0) : 1,\n                transition: reduced\n                  ? \"opacity 160ms ease-out\"\n                  : `transform ${shown ? 500 : 320}ms ${DRAWER}`,\n              }}\n            >\n              <div\n                ref={panel}\n                data-modal-panel=\"\"\n                tabIndex={-1}\n                className={`flex w-full flex-col bg-background shadow-[0_0_0_1px_var(--border)] outline-none ${bottom ? \"max-h-[85dvh] max-w-[640px] rounded-[22px]\" : \"h-full rounded-[20px]\"} ${className}`}\n              >\n                {bottom && (\n                  <div\n                    {...grip}\n                    className=\"flex cursor-grab touch-none justify-center pb-1 pt-2.5 active:cursor-grabbing\"\n                  >\n                    <span className=\"h-1 w-9 rounded-full bg-border\" />\n                  </div>\n                )}\n                <div\n                  {...grip}\n                  className={`flex touch-none items-start gap-4 px-5 ${bottom ? \"pt-2\" : \"cursor-grab pt-5 active:cursor-grabbing\"} pb-3`}\n                >\n                  <div className=\"flex min-w-0 flex-1 flex-col gap-1\">\n                    <h2\n                      id={titleId}\n                      className=\"text-[16px] font-semibold tracking-[-0.01em] text-foreground\"\n                    >\n                      {title}\n                    </h2>\n                    {description && (\n                      <p className=\"text-[13.5px] leading-relaxed text-muted-foreground\">\n                        {description}\n                      </p>\n                    )}\n                  </div>\n                  <button\n                    type=\"button\"\n                    aria-label=\"Close\"\n                    onClick={close}\n                    className={`-mr-1.5 flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground cursor-pointer hover:bg-accent hover:text-foreground ${INTERACTION_PRESS} ${INTERACTION_FOCUS}`}\n                  >\n                    <svg viewBox=\"0 0 16 16\" fill=\"none\" className=\"size-3.5\">\n                      <path\n                        d=\"M4 4l8 8M12 4l-8 8\"\n                        stroke=\"currentColor\"\n                        strokeWidth=\"1.6\"\n                        strokeLinecap=\"round\"\n                      />\n                    </svg>\n                  </button>\n                </div>\n                <div className=\"min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 text-[13.5px] leading-relaxed text-foreground\">\n                  {typeof children === \"function\"\n                    ? children({ close })\n                    : children}\n                </div>\n                {footerNode !== undefined && (\n                  <div className=\"flex flex-col-reverse gap-2 border-t border-border px-5 py-4 sm:flex-row sm:justify-end\">\n                    {footerNode}\n                  </div>\n                )}\n              </div>\n            </div>\n          </div>\n        </dialog>\n      )}\n    </>\n  );\n}\n\nexport default Sheet;\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/modal.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * MODAL: the native <dialog> under Dialog and Sheet\n *\n *   open     showModal() (focus trap, inert page, top layer) and\n *            the next frame turns `shown` on for the entry motion\n *   close    Escape and the scrim ask to close; the surface plays\n *            its exit, then dialog.close() and focus goes back to\n *            whatever opened it\n *   scroll   wheel and touch scrolling outside a scrollable part\n *            of the panel are stopped at the dialog, so the page\n *            behind never moves (the page's own styles are never\n *            touched: no layout shift, no restyle of <html>)\n * ───────────────────────────────────────────────────────── */\n\nexport function useModal(open: boolean, onClose: () => void, exit = 220) {\n  const dialog = React.useRef<HTMLDialogElement>(null);\n  const [mounted, setMounted] = React.useState(open);\n  const [shown, setShown] = React.useState(false);\n  const opener = React.useRef<HTMLElement | null>(null);\n  const close = React.useRef(onClose);\n  React.useEffect(() => {\n    close.current = onClose;\n  });\n  if (open && !mounted) setMounted(true);\n\n  React.useEffect(() => {\n    const el = dialog.current;\n    if (!el) return;\n    if (open) {\n      opener.current = document.activeElement as HTMLElement | null;\n      if (!el.open) el.showModal();\n      // Start on the panel, not its first control: no keyboard popping up on phones, no\n      // slider bubble or tooltip showing uninvited.\n      el.querySelector<HTMLElement>(\"[data-modal-panel]\")?.focus({\n        preventScroll: true,\n      });\n      let inner = 0;\n      const outer = requestAnimationFrame(() => {\n        inner = requestAnimationFrame(() => setShown(true));\n      });\n      return () => {\n        cancelAnimationFrame(outer);\n        cancelAnimationFrame(inner);\n      };\n    }\n    const timer = window.setTimeout(() => {\n      if (el.open) el.close();\n      setMounted(false);\n      setShown(false);\n      opener.current?.focus?.({ preventScroll: true });\n    }, exit);\n    return () => window.clearTimeout(timer);\n  }, [open, mounted, exit]);\n\n  React.useEffect(() => {\n    const el = dialog.current;\n    if (!el || !mounted) return;\n    const onCancel = (e: Event) => {\n      e.preventDefault();\n      close.current();\n    };\n    // Stop scrolling from leaking to the page unless it happens inside something that scrolls.\n    const guard = (e: Event) => {\n      let node = e.target as HTMLElement | null;\n      while (node && node !== el) {\n        const style = getComputedStyle(node);\n        if (\n          /(auto|scroll)/.test(style.overflowY) &&\n          node.scrollHeight > node.clientHeight\n        )\n          return;\n        node = node.parentElement;\n      }\n      e.preventDefault();\n    };\n    el.addEventListener(\"cancel\", onCancel);\n    el.addEventListener(\"wheel\", guard, { passive: false });\n    el.addEventListener(\"touchmove\", guard, { passive: false });\n    return () => {\n      el.removeEventListener(\"cancel\", onCancel);\n      el.removeEventListener(\"wheel\", guard);\n      el.removeEventListener(\"touchmove\", guard);\n    };\n  }, [mounted]);\n\n  return { dialog, mounted: mounted || open, shown: open && shown };\n}\n\n/** Class for the full-window <dialog> both surfaces sit in. */\nexport const MODAL_ROOT =\n  // overflow: clip, never hidden: hidden can still be scrolled, and focusing something inside\n  // the off-screen panel scrolled the dialog mid-slide (the sheet's jerk on opening).\n  \"fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none overflow-clip bg-transparent p-0 text-foreground outline-none backdrop:bg-transparent\";\n\n/** The dim behind the surface: the page fades back under a veil of the background colour, no blur. */\nexport const SCRIM =\n  \"absolute inset-0 bg-[color-mix(in_oklab,var(--background)_62%,transparent)]\";\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/imported-ui-interaction-motion.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport const EASE_OUT = \"cubic-bezier(0.16, 1, 0.3, 1)\";\nexport const EASE_SETTLE = \"cubic-bezier(0.22, 1.18, 0.36, 1)\";\n/** Thrown things (indicators, thumbs): a slight overshoot on transform only. */\nexport const EASE_THROW = \"cubic-bezier(0.34, 1.36, 0.64, 1)\";\n/**\n * The press every button primitive shares: a 3% give that eases in and settles back.\n * Tailwind v4's scale-* writes the `scale` property, so `scale` has to be in the list\n * or the press snaps.\n */\nexport const INTERACTION_PRESS =\n  \"transition-[background-color,color,box-shadow,opacity,scale] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100\";\nexport const INTERACTION_FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background\";\n\nconst query = \"(prefers-reduced-motion: reduce)\";\nconst subscribe = (notify: () => void) => {\n  const media = window.matchMedia(query);\n  media.addEventListener(\"change\", notify);\n  return () => media.removeEventListener(\"change\", notify);\n};\nexport const useInteractionReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false,\n  );\n\nexport function useInteractionActivity<T extends Element>() {\n  const ref = React.useRef<T>(null);\n  const [visible, setVisible] = React.useState(false);\n  const [hidden, setHidden] = React.useState(false);\n  React.useEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(([entry]) =>\n      setVisible(entry.isIntersecting),\n    );\n    observer.observe(el);\n    const visibility = () => setHidden(document.hidden);\n    visibility();\n    document.addEventListener(\"visibilitychange\", visibility);\n    return () => {\n      observer.disconnect();\n      document.removeEventListener(\"visibilitychange\", visibility);\n    };\n  }, []);\n  return { ref, active: visible && !hidden };\n}\n\nexport function interactionIcon(\n  on: boolean,\n  reduced: boolean,\n): React.CSSProperties {\n  return {\n    opacity: on ? 1 : 0,\n    transform: on ? \"none\" : \"scale(0.6)\",\n    filter: on ? \"blur(0px)\" : \"blur(3px)\",\n    transition: reduced\n      ? \"none\"\n      : `opacity 220ms ${EASE_OUT}, transform 380ms ${EASE_OUT}, filter 220ms ${EASE_OUT}`,\n  };\n}\n\n/** Sample recent movement rather than averaging a long drag and losing its release velocity. */\nexport type PointerSample = { x: number; time: number };\nexport function samplePointer(\n  samples: PointerSample[],\n  x: number,\n  time: number,\n) {\n  samples.push({ x, time });\n  while (samples.length > 2 && time - samples[0].time > 100) samples.shift();\n}\nexport function releaseVelocity(samples: PointerSample[], now: number) {\n  if (samples.length < 2 || now - samples[samples.length - 1].time > 100)\n    return 0;\n  const first = samples[0],\n    last = samples[samples.length - 1];\n  return (last.x - first.x) / Math.max(1, last.time - first.time);\n}\n\n/** Smooth Apple/rational rubber-band curve: continuous exponential-like resistance without linear kinks. */\nexport function rubberBand(\n  overshoot: number,\n  dimension = 320,\n  constant = 0.55,\n): number {\n  const d = dimension || 320;\n  const abs = Math.abs(overshoot);\n  return Math.sign(overshoot) * (1 - 1 / ((abs * constant) / d + 1)) * d;\n}\n\n/** Projects resting travel from release velocity (velocity in px/ms; time in seconds). */\nexport function projectInertia(\n  distance: number,\n  velocity: number,\n  time = 0.12,\n): number {\n  return distance + velocity * 1000 * time;\n}\n\n/** Smooths incoming release velocity toward a boundary so springs don't slam or clip into walls. */\nexport function softenVelocity(\n  velocity: number,\n  distanceToTarget: number,\n  factor = 10,\n): number {\n  const maxAllowed = Math.abs(distanceToTarget) * factor;\n  return Math.sign(velocity) * Math.min(Math.abs(velocity), maxAllowed);\n}\n\n/** A damped spring sampled by WAAPI: tuned for organic lightness with a hint of life (3% breath). */\nexport function springFrames(\n  from: number,\n  to: number,\n  velocity = 0,\n  duration = 480,\n  config: { omega?: number; damping?: number; steps?: number } = {},\n) {\n  const { omega = 16, damping = 0.74, steps = 36 } = config;\n  const damped = omega * Math.sqrt(Math.max(0.001, 1 - damping * damping));\n  const displacement = from - to;\n  const coefficient =\n    (velocity * 1000 + damping * omega * displacement) / damped;\n  return Array.from({ length: steps + 1 }, (_, i) => {\n    const t = (i / steps) * (duration / 1000);\n    const value =\n      to +\n      Math.exp(-damping * omega * t) *\n        (displacement * Math.cos(damped * t) +\n          coefficient * Math.sin(damped * t));\n    return { value: i === steps ? to : value, offset: i / steps };\n  });\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "sheet",
+      "exportName": "Sheet",
+      "categories": [
+        "overlays"
+      ],
+      "isNew": true,
+      "usage": "import { Sheet } from \"@/components/sheet\";\n\n<Sheet trigger={<button>Filters</button>} side=\"bottom\" title=\"Filters\">\n  …\n</Sheet>",
+      "accessibility": "- Built on the native <dialog> (modal.ts, shared with the other modal surface): focus stays inside, the page is inert, Escape works, and it sits in the top layer.\n- Drag writes transforms to the panel directly: no re-render per move.\n- Reduced motion: it fades; drag still works.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "side",
+            "type": "\"right\" | \"left\" | \"bottom\"",
+            "description": "\"right\" · The edge it comes from."
+          },
+          {
+            "name": "open / defaultOpen / onOpenChange",
+            "type": "boolean / (open) => void",
+            "description": "– · State."
+          },
+          {
+            "name": "trigger",
+            "type": "ReactElement",
+            "description": "– · A button that opens it."
+          },
+          {
+            "name": "title / description",
+            "type": "ReactNode",
+            "description": "– · Header."
+          },
+          {
+            "name": "children / footer",
+            "type": "ReactNode | ({ close }) => ReactNode",
+            "description": "– · Body and buttons."
+          },
+          {
+            "name": "width",
+            "type": "number",
+            "description": "400 · Side sheet width."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Detail panels",
+            "description": "An order or ticket beside the list it came from."
+          },
+          {
+            "title": "Mobile menus and filters",
+            "description": "A bottom sheet that drags away."
+          },
+          {
+            "title": "Settings drawers",
+            "description": "Preferences without leaving the page."
+          },
+          {
+            "title": "Carts",
+            "description": "A cart that slides in from the right."
+          }
+        ],
+        "features": [
+          {
+            "title": "Thrown, not just dragged",
+            "description": "projectInertia decides with release velocity, so a short flick closes it."
+          },
+          {
+            "title": "Rubber band",
+            "description": "Pulling the wrong way resists instead of stopping dead."
+          },
+          {
+            "title": "Three edges",
+            "description": "right, left and bottom; the bottom one has a grip."
+          },
+          {
+            "title": "Native dialog",
+            "description": "Focus trap, Escape and an inert page."
+          }
+        ],
+        "states": [
+          {
+            "title": "open",
+            "description": "Slides in from its edge (460ms) as the page fades back."
+          },
+          {
+            "title": "drag",
+            "description": "Follows the finger 1:1 after 6px of slop; the wrong way resists."
+          },
+          {
+            "title": "release",
+            "description": "Projected past a third: it carries on out (300ms); otherwise it springs back (380ms)."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
