@@ -1,0 +1,109 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-skeleton",
+  "title": "Skeleton",
+  "description": "The shape of what's coming, with one soft band of light sweeping across, and a swap that hands over to the real content without a pop.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/skeleton.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport {\n  EASE_OUT,\n  useInteractionReducedMotion,\n} from \"./imported-ui-interaction-motion\";\n\n/* ─────────────────────────────────────────────────────────\n * SKELETON: the shape of what's coming\n *\n *   wait     muted shapes with one soft band of light sweeping\n *            across them all together, left to right\n *   arrive   with <Skeleton.Swap loading>, the shapes fade out as\n *            the real content rises out of a 4px blur in their\n *            place, so nothing pops; the box eases to the\n *            content's height\n * ───────────────────────────────────────────────────────── */\n\nexport interface SkeletonProps extends React.HTMLAttributes<HTMLSpanElement> {\n  /** \"line\" is text height, \"circle\" a round avatar, \"block\" a box. */\n  shape?: \"line\" | \"circle\" | \"block\";\n  width?: number | string;\n  height?: number | string;\n}\n\nexport function Skeleton({\n  shape = \"line\",\n  width,\n  height,\n  className = \"\",\n  style,\n  ...props\n}: SkeletonProps) {\n  const reduced = useInteractionReducedMotion();\n  const dims =\n    shape === \"circle\"\n      ? { width: width ?? 36, height: height ?? width ?? 36 }\n      : {\n          width: width ?? \"100%\",\n          height: height ?? (shape === \"line\" ? 12 : 80),\n        };\n  return (\n    <span\n      aria-hidden=\"true\"\n      className={`relative block overflow-hidden bg-muted ${shape === \"circle\" ? \"rounded-full\" : shape === \"line\" ? \"rounded-full\" : \"rounded-[12px]\"} ${className}`}\n      style={{ ...dims, ...style }}\n      {...props}\n    >\n      {!reduced && (\n        <span className=\"absolute inset-0 [animation:ui-skeleton_1.6s_cubic-bezier(0.4,0,0.2,1)_infinite] bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--background)_55%,transparent),transparent)]\" />\n      )}\n    </span>\n  );\n}\n\nexport interface SkeletonSwapProps {\n  loading: boolean;\n  /** The skeleton shown while loading. */\n  fallback: React.ReactNode;\n  children: React.ReactNode;\n  /** Accessible text while loading. */\n  label?: string;\n  className?: string;\n}\n\n/** Holds a skeleton while `loading`, then hands over to the content in one motion. */\nexport function SkeletonSwap({\n  loading,\n  fallback,\n  children,\n  label = \"Loading\",\n  className = \"\",\n}: SkeletonSwapProps) {\n  const reduced = useInteractionReducedMotion();\n  const inner = React.useRef<HTMLDivElement>(null);\n  const [height, setHeight] = React.useState<number | null>(null);\n  // True for the first frames after loading ends, so the content starts from its hidden pose.\n  const [arriving, setArriving] = React.useState(false);\n  const [wasLoading, setWasLoading] = React.useState(loading);\n  if (wasLoading !== loading) {\n    setWasLoading(loading);\n    setArriving(!loading);\n  }\n\n  React.useEffect(() => {\n    if (!arriving) return;\n    let second = 0;\n    const first = requestAnimationFrame(() => {\n      second = requestAnimationFrame(() => setArriving(false));\n    });\n    return () => {\n      cancelAnimationFrame(first);\n      cancelAnimationFrame(second);\n    };\n  }, [arriving]);\n\n  // The box eases between the skeleton's height and the content's.\n  React.useLayoutEffect(() => {\n    const el = inner.current;\n    if (!el) return;\n    const measure = () =>\n      setHeight((h) => (h === el.offsetHeight ? h : el.offsetHeight));\n    measure();\n    const ro = new ResizeObserver(measure);\n    ro.observe(el);\n    return () => ro.disconnect();\n  }, []);\n\n  const t = (ms: number, delay = 0) =>\n    reduced ? \"none\" : `${ms}ms ${EASE_OUT} ${delay}ms`;\n\n  return (\n    <div\n      aria-busy={loading || undefined}\n      className={`relative overflow-hidden ${className}`}\n      style={{\n        height: height ?? undefined,\n        transition: reduced ? \"none\" : `height 360ms ${EASE_OUT}`,\n      }}\n    >\n      {loading && (\n        <span className=\"sr-only\" role=\"status\">\n          {label}\n        </span>\n      )}\n      <div ref={inner}>\n        {loading ? (\n          fallback\n        ) : (\n          <div\n            style={{\n              opacity: arriving ? 0 : 1,\n              filter: arriving && !reduced ? \"blur(4px)\" : \"blur(0px)\",\n              translate: arriving && !reduced ? \"0 4px\" : \"0 0\",\n              transition: arriving\n                ? \"none\"\n                : `opacity ${t(300, 40)}, filter ${t(300, 40)}, translate ${t(420, 40)}`,\n            }}\n          >\n            {children}\n          </div>\n        )}\n      </div>\n    </div>\n  );\n}\n\nexport default Skeleton;\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/imported-ui-interaction-motion.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport const EASE_OUT = \"cubic-bezier(0.16, 1, 0.3, 1)\";\nexport const EASE_SETTLE = \"cubic-bezier(0.22, 1.18, 0.36, 1)\";\n/** Thrown things (indicators, thumbs): a slight overshoot on transform only. */\nexport const EASE_THROW = \"cubic-bezier(0.34, 1.36, 0.64, 1)\";\n/**\n * The press every button primitive shares: a 3% give that eases in and settles back.\n * Tailwind v4's scale-* writes the `scale` property, so `scale` has to be in the list\n * or the press snaps.\n */\nexport const INTERACTION_PRESS =\n  \"transition-[background-color,color,box-shadow,opacity,scale] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100\";\nexport const INTERACTION_FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background\";\n\nconst query = \"(prefers-reduced-motion: reduce)\";\nconst subscribe = (notify: () => void) => {\n  const media = window.matchMedia(query);\n  media.addEventListener(\"change\", notify);\n  return () => media.removeEventListener(\"change\", notify);\n};\nexport const useInteractionReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false,\n  );\n\nexport function useInteractionActivity<T extends Element>() {\n  const ref = React.useRef<T>(null);\n  const [visible, setVisible] = React.useState(false);\n  const [hidden, setHidden] = React.useState(false);\n  React.useEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(([entry]) =>\n      setVisible(entry.isIntersecting),\n    );\n    observer.observe(el);\n    const visibility = () => setHidden(document.hidden);\n    visibility();\n    document.addEventListener(\"visibilitychange\", visibility);\n    return () => {\n      observer.disconnect();\n      document.removeEventListener(\"visibilitychange\", visibility);\n    };\n  }, []);\n  return { ref, active: visible && !hidden };\n}\n\nexport function interactionIcon(\n  on: boolean,\n  reduced: boolean,\n): React.CSSProperties {\n  return {\n    opacity: on ? 1 : 0,\n    transform: on ? \"none\" : \"scale(0.6)\",\n    filter: on ? \"blur(0px)\" : \"blur(3px)\",\n    transition: reduced\n      ? \"none\"\n      : `opacity 220ms ${EASE_OUT}, transform 380ms ${EASE_OUT}, filter 220ms ${EASE_OUT}`,\n  };\n}\n\n/** Sample recent movement rather than averaging a long drag and losing its release velocity. */\nexport type PointerSample = { x: number; time: number };\nexport function samplePointer(\n  samples: PointerSample[],\n  x: number,\n  time: number,\n) {\n  samples.push({ x, time });\n  while (samples.length > 2 && time - samples[0].time > 100) samples.shift();\n}\nexport function releaseVelocity(samples: PointerSample[], now: number) {\n  if (samples.length < 2 || now - samples[samples.length - 1].time > 100)\n    return 0;\n  const first = samples[0],\n    last = samples[samples.length - 1];\n  return (last.x - first.x) / Math.max(1, last.time - first.time);\n}\n\n/** Smooth Apple/rational rubber-band curve: continuous exponential-like resistance without linear kinks. */\nexport function rubberBand(\n  overshoot: number,\n  dimension = 320,\n  constant = 0.55,\n): number {\n  const d = dimension || 320;\n  const abs = Math.abs(overshoot);\n  return Math.sign(overshoot) * (1 - 1 / ((abs * constant) / d + 1)) * d;\n}\n\n/** Projects resting travel from release velocity (velocity in px/ms; time in seconds). */\nexport function projectInertia(\n  distance: number,\n  velocity: number,\n  time = 0.12,\n): number {\n  return distance + velocity * 1000 * time;\n}\n\n/** Smooths incoming release velocity toward a boundary so springs don't slam or clip into walls. */\nexport function softenVelocity(\n  velocity: number,\n  distanceToTarget: number,\n  factor = 10,\n): number {\n  const maxAllowed = Math.abs(distanceToTarget) * factor;\n  return Math.sign(velocity) * Math.min(Math.abs(velocity), maxAllowed);\n}\n\n/** A damped spring sampled by WAAPI: tuned for organic lightness with a hint of life (3% breath). */\nexport function springFrames(\n  from: number,\n  to: number,\n  velocity = 0,\n  duration = 480,\n  config: { omega?: number; damping?: number; steps?: number } = {},\n) {\n  const { omega = 16, damping = 0.74, steps = 36 } = config;\n  const damped = omega * Math.sqrt(Math.max(0.001, 1 - damping * damping));\n  const displacement = from - to;\n  const coefficient =\n    (velocity * 1000 + damping * omega * displacement) / damped;\n  return Array.from({ length: steps + 1 }, (_, i) => {\n    const t = (i / steps) * (duration / 1000);\n    const value =\n      to +\n      Math.exp(-damping * omega * t) *\n        (displacement * Math.cos(damped * t) +\n          coefficient * Math.sin(damped * t));\n    return { value: i === steps ? to : value, offset: i / steps };\n  });\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {
+    "@keyframes ui-skeleton": {
+      "from": {
+        "transform": "translateX(-100%)"
+      },
+      "to": {
+        "transform": "translateX(100%)"
+      }
+    }
+  },
+  "meta": {
+    "cavemio": {
+      "component": "skeleton",
+      "exportName": "Skeleton",
+      "categories": [
+        "display"
+      ],
+      "isNew": true,
+      "usage": "import { Skeleton, SkeletonSwap } from \"@/components/skeleton\";\n\n<SkeletonSwap loading={!data} fallback={<><Skeleton shape=\"circle\" /><Skeleton width=\"60%\" /></>}>\n  <Profile user={data} />\n</SkeletonSwap>",
+      "accessibility": "- Skeleton shapes are aria-hidden; SkeletonSwap announces its label and sets aria-busy.\n- Reduced motion: no sweep; the content fades in.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "shape",
+            "type": "\"line\" | \"circle\" | \"block\"",
+            "description": "\"line\" · Skeleton shape."
+          },
+          {
+            "name": "width / height",
+            "type": "number | string",
+            "description": "– · Size."
+          },
+          {
+            "name": "SkeletonSwap",
+            "type": "{ loading, fallback, children, label }",
+            "description": "– · Holds the fallback, then hands over."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Dashboards",
+            "description": "Cards and charts while data loads."
+          },
+          {
+            "title": "Lists and tables",
+            "description": "Rows that keep their place."
+          },
+          {
+            "title": "Profiles",
+            "description": "An avatar and two lines of text."
+          },
+          {
+            "title": "Feeds",
+            "description": "Posts that arrive without shifting the page."
+          }
+        ],
+        "features": [
+          {
+            "title": "One sweep",
+            "description": "A light band crosses each shape in 1.6s."
+          },
+          {
+            "title": "Hand-over",
+            "description": "SkeletonSwap crossfades to content through a blur (300ms)."
+          },
+          {
+            "title": "No jump",
+            "description": "The box eases between the skeleton's height and the content's."
+          },
+          {
+            "title": "Shapes",
+            "description": "line, circle and block with any size."
+          }
+        ],
+        "states": [
+          {
+            "title": "waiting",
+            "description": "Muted shapes with a sweep (1.6s loop)."
+          },
+          {
+            "title": "arriving",
+            "description": "Content rises 4px out of a 4px blur (300–420ms); height eases (360ms)."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
