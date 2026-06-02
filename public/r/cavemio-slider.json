@@ -1,0 +1,123 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-slider",
+  "title": "Slider",
+  "description": "One value or a range: a press throws the nearest thumb there, a drag tracks the finger, and the value rises out of the thumb.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/slider.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport {\n  EASE_OUT,\n  EASE_THROW,\n  useInteractionReducedMotion,\n} from \"./imported-ui-interaction-motion\";\n\n/* ─────────────────────────────────────────────────────────\n * SLIDER: one value or a range\n *\n *   click    a press on the track throws the nearest thumb there\n *            (slight overshoot), the fill following it\n *   drag     then it tracks the finger 1:1, snapped to `step`;\n *            two thumbs never cross\n *   bubble   the value rises out of the thumb while you drag or\n *            move it by keyboard, and sinks back after\n *   keys     arrows step, Page Up/Down step ten, Home/End jump\n *\n * Vertical page scroll still works when a drag starts on it.\n * ───────────────────────────────────────────────────────── */\n\nexport interface SliderProps {\n  /** One number, or two for a range. */\n  value?: number | number[];\n  defaultValue?: number | number[];\n  onValueChange?: (value: number[]) => void;\n  /** Called once when a drag or key press ends. */\n  onValueCommit?: (value: number[]) => void;\n  min?: number;\n  max?: number;\n  step?: number;\n  /** How the bubble and screen readers say a value. */\n  format?: (value: number) => string;\n  /** Accessible name; for a range, the thumbs get \"… minimum\" and \"… maximum\". */\n  label: string;\n  disabled?: boolean;\n  className?: string;\n}\n\nconst toArray = (v: number | number[] | undefined, fallback: number[]) =>\n  v === undefined ? fallback : Array.isArray(v) ? v : [v];\n\nexport function Slider({\n  value,\n  defaultValue,\n  onValueChange,\n  onValueCommit,\n  min = 0,\n  max = 100,\n  step = 1,\n  format = (v) => String(v),\n  label,\n  disabled,\n  className = \"\",\n}: SliderProps) {\n  const reduced = useInteractionReducedMotion();\n  const trackRef = React.useRef<HTMLDivElement>(null);\n  const [own, setOwn] = React.useState(() => toArray(defaultValue, [min]));\n  const values = toArray(value, own);\n  const [active, setActive] = React.useState<number | null>(null);\n  const [mode, setMode] = React.useState<\"rest\" | \"throw\" | \"drag\">(\"rest\");\n  const [bubble, setBubble] = React.useState<number | null>(null);\n  const latest = React.useRef(values);\n  React.useLayoutEffect(() => {\n    latest.current = values;\n  });\n\n  React.useEffect(() => {\n    if (bubble === null || active !== null) return;\n    const timer = window.setTimeout(() => setBubble(null), 700);\n    return () => window.clearTimeout(timer);\n  }, [bubble, active]);\n\n  const snap = (v: number) => {\n    const stepped = Math.round((v - min) / step) * step + min;\n    return Math.min(max, Math.max(min, Number(stepped.toFixed(6))));\n  };\n  const pct = (v: number) => ((v - min) / (max - min)) * 100;\n\n  const commit = (index: number, raw: number) => {\n    const next = [...latest.current];\n    const lo = index > 0 ? next[index - 1] : min;\n    const hi = index < next.length - 1 ? next[index + 1] : max;\n    next[index] = Math.min(hi, Math.max(lo, snap(raw)));\n    if (next[index] === latest.current[index]) return latest.current;\n    if (value === undefined) setOwn(next);\n    onValueChange?.(next);\n    latest.current = next;\n    return next;\n  };\n\n  const fromPointer = (clientX: number) => {\n    const rect = trackRef.current!.getBoundingClientRect();\n    return min + ((clientX - rect.left) / rect.width) * (max - min);\n  };\n\n  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {\n    if (disabled || e.button !== 0) return;\n    const raw = fromPointer(e.clientX);\n    // The nearest thumb takes the press; on a tie, the one that can move that way.\n    let index = 0;\n    values.forEach((v, i) => {\n      if (\n        Math.abs(v - raw) < Math.abs(values[index] - raw) ||\n        (Math.abs(v - raw) === Math.abs(values[index] - raw) && raw > v)\n      )\n        index = i;\n    });\n    e.currentTarget.setPointerCapture(e.pointerId);\n    setActive(index);\n    setBubble(index);\n    setMode(\"throw\");\n    commit(index, raw);\n    trackRef.current?.parentElement\n      ?.querySelectorAll<HTMLElement>(\"[role=slider]\")\n      [index]?.focus({ preventScroll: true });\n  };\n\n  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {\n    if (active === null) return;\n    if (mode !== \"drag\") setMode(\"drag\");\n    commit(active, fromPointer(e.clientX));\n  };\n\n  const end = () => {\n    if (active === null) return;\n    setActive(null);\n    setMode(\"rest\");\n    onValueCommit?.(latest.current);\n  };\n\n  const onKeyDown =\n    (index: number) => (e: React.KeyboardEvent<HTMLSpanElement>) => {\n      if (disabled) return;\n      const big = step * 10;\n      const deltas: Record<string, number> = {\n        ArrowRight: step,\n        ArrowUp: step,\n        ArrowLeft: -step,\n        ArrowDown: -step,\n        PageUp: big,\n        PageDown: -big,\n      };\n      let target: number | null = null;\n      if (e.key in deltas) target = values[index] + deltas[e.key];\n      else if (e.key === \"Home\") target = min;\n      else if (e.key === \"End\") target = max;\n      if (target === null) return;\n      e.preventDefault();\n      setMode(\"throw\");\n      setBubble(index);\n      onValueCommit?.(commit(index, target));\n    };\n\n  const motion =\n    reduced || mode === \"drag\"\n      ? \"none\"\n      : `left 420ms ${EASE_THROW}, right 420ms ${EASE_THROW}`;\n  const range = values.length > 1;\n  const lo = range ? pct(values[0]) : 0;\n  const hi = pct(values[values.length - 1]);\n\n  return (\n    <div\n      className={`relative w-full select-none pb-2 pt-8 ${disabled ? \"opacity-50\" : \"\"} ${className}`}\n    >\n      <div className=\"relative\">\n        <div\n          ref={trackRef}\n          onPointerDown={onPointerDown}\n          onPointerMove={onPointerMove}\n          onPointerUp={end}\n          onPointerCancel={end}\n          onLostPointerCapture={end}\n          className={`relative h-5 [touch-action:pan-y] ${disabled ? \"\" : \"cursor-pointer\"}`}\n        >\n          <div className=\"absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 overflow-hidden rounded-full bg-muted shadow-[inset_0_0_0_1px_var(--border)]\">\n            <div\n              className=\"absolute inset-y-0 rounded-full bg-primary\"\n              style={{\n                left: `${lo}%`,\n                right: `${100 - hi}%`,\n                transition: motion,\n              }}\n            />\n          </div>\n        </div>\n        {values.map((v, i) => (\n          <span\n            key={i}\n            role=\"slider\"\n            tabIndex={disabled ? -1 : 0}\n            aria-label={\n              range ? `${label} ${i === 0 ? \"minimum\" : \"maximum\"}` : label\n            }\n            aria-valuemin={min}\n            aria-valuemax={max}\n            aria-valuenow={v}\n            aria-valuetext={format(v)}\n            aria-disabled={disabled || undefined}\n            onKeyDown={onKeyDown(i)}\n            onBlur={() => setBubble((b) => (b === i ? null : b))}\n            className=\"group/thumb pointer-events-none absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full outline-none\"\n            style={{ left: `${pct(v)}%`, transition: motion }}\n          >\n            <span\n              className={`absolute inset-0 rounded-full bg-background shadow-[0_0_0_1px_color-mix(in_oklab,var(--foreground)_18%,var(--border))] transition-[scale,box-shadow] duration-200 group-focus-visible/thumb:shadow-[0_0_0_1px_var(--ring),0_0_0_4px_color-mix(in_oklab,var(--ring)_20%,transparent)] ${\n                active === i && !reduced ? \"scale-[1.15]\" : \"\"\n              }`}\n            />\n            <span\n              aria-hidden=\"true\"\n              className=\"absolute bottom-[calc(100%_+_8px)] left-1/2 whitespace-nowrap rounded-full bg-foreground px-2 py-0.5 text-[11.5px] font-medium tabular-nums text-background\"\n              style={{\n                opacity: bubble === i ? 1 : 0,\n                transform: `translateX(-50%) ${bubble === i ? \"none\" : \"translateY(4px) scale(0.85)\"}`,\n                filter: bubble === i ? \"none\" : \"blur(3px)\",\n                transition: reduced\n                  ? \"none\"\n                  : `opacity 200ms ${EASE_OUT}, transform 320ms ${EASE_OUT}, filter 200ms ${EASE_OUT}`,\n              }}\n            >\n              {format(v)}\n            </span>\n          </span>\n        ))}\n      </div>\n    </div>\n  );\n}\n\nexport default Slider;\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/imported-ui-interaction-motion.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport const EASE_OUT = \"cubic-bezier(0.16, 1, 0.3, 1)\";\nexport const EASE_SETTLE = \"cubic-bezier(0.22, 1.18, 0.36, 1)\";\n/** Thrown things (indicators, thumbs): a slight overshoot on transform only. */\nexport const EASE_THROW = \"cubic-bezier(0.34, 1.36, 0.64, 1)\";\n/**\n * The press every button primitive shares: a 3% give that eases in and settles back.\n * Tailwind v4's scale-* writes the `scale` property, so `scale` has to be in the list\n * or the press snaps.\n */\nexport const INTERACTION_PRESS =\n  \"transition-[background-color,color,box-shadow,opacity,scale] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100\";\nexport const INTERACTION_FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background\";\n\nconst query = \"(prefers-reduced-motion: reduce)\";\nconst subscribe = (notify: () => void) => {\n  const media = window.matchMedia(query);\n  media.addEventListener(\"change\", notify);\n  return () => media.removeEventListener(\"change\", notify);\n};\nexport const useInteractionReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false,\n  );\n\nexport function useInteractionActivity<T extends Element>() {\n  const ref = React.useRef<T>(null);\n  const [visible, setVisible] = React.useState(false);\n  const [hidden, setHidden] = React.useState(false);\n  React.useEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(([entry]) =>\n      setVisible(entry.isIntersecting),\n    );\n    observer.observe(el);\n    const visibility = () => setHidden(document.hidden);\n    visibility();\n    document.addEventListener(\"visibilitychange\", visibility);\n    return () => {\n      observer.disconnect();\n      document.removeEventListener(\"visibilitychange\", visibility);\n    };\n  }, []);\n  return { ref, active: visible && !hidden };\n}\n\nexport function interactionIcon(\n  on: boolean,\n  reduced: boolean,\n): React.CSSProperties {\n  return {\n    opacity: on ? 1 : 0,\n    transform: on ? \"none\" : \"scale(0.6)\",\n    filter: on ? \"blur(0px)\" : \"blur(3px)\",\n    transition: reduced\n      ? \"none\"\n      : `opacity 220ms ${EASE_OUT}, transform 380ms ${EASE_OUT}, filter 220ms ${EASE_OUT}`,\n  };\n}\n\n/** Sample recent movement rather than averaging a long drag and losing its release velocity. */\nexport type PointerSample = { x: number; time: number };\nexport function samplePointer(\n  samples: PointerSample[],\n  x: number,\n  time: number,\n) {\n  samples.push({ x, time });\n  while (samples.length > 2 && time - samples[0].time > 100) samples.shift();\n}\nexport function releaseVelocity(samples: PointerSample[], now: number) {\n  if (samples.length < 2 || now - samples[samples.length - 1].time > 100)\n    return 0;\n  const first = samples[0],\n    last = samples[samples.length - 1];\n  return (last.x - first.x) / Math.max(1, last.time - first.time);\n}\n\n/** Smooth Apple/rational rubber-band curve: continuous exponential-like resistance without linear kinks. */\nexport function rubberBand(\n  overshoot: number,\n  dimension = 320,\n  constant = 0.55,\n): number {\n  const d = dimension || 320;\n  const abs = Math.abs(overshoot);\n  return Math.sign(overshoot) * (1 - 1 / ((abs * constant) / d + 1)) * d;\n}\n\n/** Projects resting travel from release velocity (velocity in px/ms; time in seconds). */\nexport function projectInertia(\n  distance: number,\n  velocity: number,\n  time = 0.12,\n): number {\n  return distance + velocity * 1000 * time;\n}\n\n/** Smooths incoming release velocity toward a boundary so springs don't slam or clip into walls. */\nexport function softenVelocity(\n  velocity: number,\n  distanceToTarget: number,\n  factor = 10,\n): number {\n  const maxAllowed = Math.abs(distanceToTarget) * factor;\n  return Math.sign(velocity) * Math.min(Math.abs(velocity), maxAllowed);\n}\n\n/** A damped spring sampled by WAAPI: tuned for organic lightness with a hint of life (3% breath). */\nexport function springFrames(\n  from: number,\n  to: number,\n  velocity = 0,\n  duration = 480,\n  config: { omega?: number; damping?: number; steps?: number } = {},\n) {\n  const { omega = 16, damping = 0.74, steps = 36 } = config;\n  const damped = omega * Math.sqrt(Math.max(0.001, 1 - damping * damping));\n  const displacement = from - to;\n  const coefficient =\n    (velocity * 1000 + damping * omega * displacement) / damped;\n  return Array.from({ length: steps + 1 }, (_, i) => {\n    const t = (i / steps) * (duration / 1000);\n    const value =\n      to +\n      Math.exp(-damping * omega * t) *\n        (displacement * Math.cos(damped * t) +\n          coefficient * Math.sin(damped * t));\n    return { value: i === steps ? to : value, offset: i / steps };\n  });\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "slider",
+      "exportName": "Slider",
+      "categories": [
+        "forms"
+      ],
+      "isNew": true,
+      "usage": "import { Slider } from \"@/components/slider\";\n\n<Slider label=\"Volume\" defaultValue={60} />\n<Slider label=\"Price\" min={0} max={200} step={5} defaultValue={[40, 120]} format={(v) => `$${v}`} />",
+      "accessibility": "- Each thumb is role=\"slider\" with aria-valuenow and aria-valuetext.\n- Reduced motion: thumbs move at once, no bubble motion.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "value / defaultValue",
+            "type": "number | number[]",
+            "description": "– · One number, or two for a range."
+          },
+          {
+            "name": "onValueChange",
+            "type": "(value: number[]) => void",
+            "description": "– · Every change."
+          },
+          {
+            "name": "onValueCommit",
+            "type": "(value: number[]) => void",
+            "description": "– · When a drag or key press ends."
+          },
+          {
+            "name": "min / max / step",
+            "type": "number",
+            "description": "0 / 100 / 1 · Range and snapping."
+          },
+          {
+            "name": "format",
+            "type": "(v: number) => string",
+            "description": "– · Bubble and aria-valuetext."
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "description": "– · Accessible name."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Price filters",
+            "description": "A range from $10 to $90 in a shop sidebar."
+          },
+          {
+            "title": "Volume and playback",
+            "description": "A single value with a live bubble."
+          },
+          {
+            "title": "Settings",
+            "description": "Thresholds such as \"alert above 80%\"."
+          },
+          {
+            "title": "Image and design tools",
+            "description": "Opacity, blur and size controls."
+          }
+        ],
+        "features": [
+          {
+            "title": "Thrown, then tracked",
+            "description": "A press animates the jump; the drag that follows has no lag."
+          },
+          {
+            "title": "Range that never crosses",
+            "description": "Pass two values; each thumb stops at the other."
+          },
+          {
+            "title": "Keyboard",
+            "description": "Arrows step, Page Up/Down step ten, Home/End jump."
+          },
+          {
+            "title": "Phone friendly",
+            "description": "Vertical page scroll still works when a drag starts on it."
+          }
+        ],
+        "states": [
+          {
+            "title": "press",
+            "description": "The nearest thumb is thrown to the point (420ms, slight overshoot) and grows to 1.15."
+          },
+          {
+            "title": "drag",
+            "description": "The thumb follows 1:1, snapped to step."
+          },
+          {
+            "title": "bubble",
+            "description": "The value rises from a 3px blur above the thumb and sinks 700ms after you stop."
+          },
+          {
+            "title": "focus",
+            "description": "Ring and halo on the thumb from the keyboard."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
