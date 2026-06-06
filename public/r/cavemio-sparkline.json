@@ -1,0 +1,155 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-sparkline",
+  "title": "Sparkline",
+  "description": "An ultra-compact inline trendline with magnetic scrubber and auto-trend color for table cells and stat cards.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/sparkline.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * SPARKLINE: an ultra-compact inline trendline with scrubber\n *\n *   path       smooth or linear SVG stroke with an optional\n *              subtle gradient fill that fades to transparent\n *   scrubber   pointer movement magnetically tracks the nearest\n *              point, showing a vertical thin line indicator,\n *              a snapped dot, and a micro-tooltip readout\n *   auto-trend colors dynamically: emerald for positive change,\n *              rose for negative, or follows your primary token\n *   table-safe zero layout shift, designed to fit inside a single\n *              data-table cell, stat strip, or card header\n * ───────────────────────────────────────────────────────── */\n\nexport type SparklinePoint =\n  number | { value: number; date?: string; label?: string };\n\nexport interface SparklineProps extends React.HTMLAttributes<HTMLDivElement> {\n  data: SparklinePoint[];\n  width?: number | string;\n  height?: number;\n  /** Stroke color mode: \"auto\" (green if up, red if down), \"primary\", or custom class. */\n  color?: \"auto\" | \"primary\" | \"muted\" | string;\n  /** Render style: line only or with gradient area fill. */\n  variant?: \"line\" | \"area\" | \"bars\";\n  /** Shows the interactive magnetic scrubber and micro-tooltip on hover. */\n  showScrubber?: boolean;\n  /** Highlights the latest (last) data point with a persistent dot when not hovering. */\n  showLastPoint?: boolean;\n  /** Stroke line width. Defaults to 1.35px thin line. */\n  strokeWidth?: number;\n  /** Value format for tooltip. */\n  format?: Intl.NumberFormatOptions;\n  prefix?: string;\n  suffix?: string;\n  /** Custom accessible label for screen readers. */\n  label?: string;\n}\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\nfunction parsePoint(p: SparklinePoint): {\n  val: number;\n  date?: string;\n  label?: string;\n} {\n  if (typeof p === \"number\") return { val: p };\n  return { val: p.value, date: p.date, label: p.label };\n}\n\nexport function Sparkline({\n  data,\n  width = \"100%\",\n  height = 32,\n  color = \"auto\",\n  variant = \"area\",\n  showScrubber = true,\n  showLastPoint = true,\n  strokeWidth = 1.35,\n  format,\n  prefix,\n  suffix,\n  label = \"Metric trend\",\n  className = \"\",\n  style,\n  ...rest\n}: SparklineProps) {\n  const uid = React.useId();\n  const gradId = `spark-grad-${uid.replace(/:/g, \"\")}`;\n  const reduced = useReducedMotion();\n  const containerRef = React.useRef<HTMLDivElement>(null);\n\n  const [hoverIndex, setHoverIndex] = React.useState<number | null>(null);\n  const [containerWidth, setContainerWidth] = React.useState<number>(100);\n\n  // Parse points\n  const points = React.useMemo(() => data.map(parsePoint), [data]);\n  const values = React.useMemo(() => points.map((p) => p.val), [points]);\n\n  // Track container width via ResizeObserver\n  React.useLayoutEffect(() => {\n    const el = containerRef.current;\n    if (!el) return;\n    const ro = new ResizeObserver((entries) => {\n      for (const entry of entries) {\n        const w = entry.contentRect.width;\n        if (w > 0) setContainerWidth(w);\n      }\n    });\n    ro.observe(el);\n    setContainerWidth(el.offsetWidth || 100);\n    return () => ro.disconnect();\n  }, []);\n\n  const minVal = values.length ? Math.min(...values) : 0;\n  const maxVal = values.length ? Math.max(...values) : 1;\n  const range = maxVal - minVal || 1;\n\n  // Compute trend color\n  const isPositive =\n    values.length >= 2 ? values[values.length - 1] >= values[0] : true;\n  const colorClass = React.useMemo(() => {\n    if (color === \"auto\") {\n      return isPositive\n        ? \"text-emerald-600 dark:text-emerald-400\"\n        : \"text-rose-600 dark:text-rose-400\";\n    }\n    if (color === \"primary\") return \"text-primary\";\n    if (color === \"muted\") return \"text-muted-foreground\";\n    return color;\n  }, [color, isPositive]);\n\n  // Coordinates\n  const padY = 4;\n  const usableH = Math.max(1, height - padY * 2);\n  const n = points.length;\n\n  const coords = React.useMemo(() => {\n    if (n === 0) return [];\n    if (n === 1) return [{ x: containerWidth / 2, y: height / 2 }];\n\n    return points.map((p, i) => {\n      const x = (i / (n - 1)) * containerWidth;\n      const normalizedY = (p.val - minVal) / range;\n      const y = height - padY - normalizedY * usableH;\n      return { x, y };\n    });\n  }, [containerWidth, height, minVal, n, padY, points, range, usableH]);\n\n  // Build SVG path strings\n  const { linePath, areaPath } = React.useMemo(() => {\n    if (coords.length < 2) return { linePath: \"\", areaPath: \"\" };\n\n    // Smooth bezier curve generator\n    let d = `M ${coords[0].x.toFixed(1)} ${coords[0].y.toFixed(1)}`;\n    for (let i = 0; i < coords.length - 1; i++) {\n      const p0 = coords[Math.max(0, i - 1)];\n      const p1 = coords[i];\n      const p2 = coords[i + 1];\n      const p3 = coords[Math.min(coords.length - 1, i + 2)];\n\n      const cp1x = p1.x + (p2.x - p0.x) / 6;\n      const cp1y = p1.y + (p2.y - p0.y) / 6;\n      const cp2x = p2.x - (p3.x - p1.x) / 6;\n      const cp2y = p2.y - (p3.y - p1.y) / 6;\n\n      d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;\n    }\n\n    const last = coords[coords.length - 1];\n    const first = coords[0];\n    const area = `${d} L ${last.x.toFixed(1)} ${height} L ${first.x.toFixed(1)} ${height} Z`;\n\n    return { linePath: d, areaPath: area };\n  }, [coords, height]);\n\n  // Pointer interactions for magnetic scrubber\n  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {\n    if (!showScrubber || n < 2 || !containerRef.current) return;\n    const rect = containerRef.current.getBoundingClientRect();\n    const relX = e.clientX - rect.left;\n    const ratio = Math.max(0, Math.min(1, relX / rect.width));\n    const nearestIdx = Math.round(ratio * (n - 1));\n    setHoverIndex(nearestIdx);\n  };\n\n  const handlePointerLeave = () => {\n    setHoverIndex(null);\n  };\n\n  const activeIdx = hoverIndex;\n  const activeCoord =\n    activeIdx !== null && coords[activeIdx] ? coords[activeIdx] : null;\n  const activePoint =\n    activeIdx !== null && points[activeIdx] ? points[activeIdx] : null;\n  const lastCoord = coords.length ? coords[coords.length - 1] : null;\n\n  return (\n    <div\n      ref={containerRef}\n      role=\"img\"\n      aria-label={label}\n      onPointerDown={handlePointerMove}\n      onPointerMove={handlePointerMove}\n      onPointerLeave={handlePointerLeave}\n      className={`relative inline-flex items-center overflow-visible select-none touch-pan-y ${colorClass} ${className}`}\n      style={{\n        width,\n        height,\n        ...style,\n      }}\n      {...rest}\n    >\n      <svg\n        width={containerWidth}\n        height={height}\n        className=\"overflow-visible\"\n        style={{ display: \"block\" }}\n      >\n        <defs>\n          <linearGradient id={gradId} x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n            <stop offset=\"0%\" stopColor=\"currentColor\" stopOpacity=\"0.18\" />\n            <stop offset=\"100%\" stopColor=\"currentColor\" stopOpacity=\"0.0\" />\n          </linearGradient>\n        </defs>\n\n        {/* Variant Area Fill */}\n        {variant === \"area\" && areaPath && (\n          <path\n            d={areaPath}\n            fill={`url(#${gradId})`}\n            className=\"transition-opacity duration-300\"\n          />\n        )}\n\n        {/* Variant Bars */}\n        {variant === \"bars\" && (\n          <g>\n            {coords.map((c, i) => {\n              const barW = Math.max(\n                2,\n                Math.min(8, (containerWidth / n) * 0.55),\n              );\n              const barH = height - c.y;\n              const isHovered = activeIdx === i;\n              return (\n                <rect\n                  key={i}\n                  x={c.x - barW / 2}\n                  y={c.y}\n                  width={barW}\n                  height={Math.max(2, barH)}\n                  rx={1.5}\n                  fill=\"currentColor\"\n                  opacity={isHovered ? 1 : 0.45}\n                  className=\"transition-[opacity,height] duration-200\"\n                />\n              );\n            })}\n          </g>\n        )}\n\n        {/* Stroke Line */}\n        {variant !== \"bars\" && linePath && (\n          <path\n            d={linePath}\n            fill=\"none\"\n            stroke=\"currentColor\"\n            strokeWidth={strokeWidth}\n            strokeLinecap=\"round\"\n            strokeLinejoin=\"round\"\n            style={{\n              transition: reduced\n                ? \"none\"\n                : \"d 300ms cubic-bezier(0.16,1,0.3,1)\",\n            }}\n          />\n        )}\n\n        {/* Persistent Last Point dot */}\n        {showLastPoint &&\n          lastCoord &&\n          activeIdx === null &&\n          variant !== \"bars\" && (\n            <circle\n              cx={lastCoord.x}\n              cy={lastCoord.y}\n              r={2.25}\n              fill=\"currentColor\"\n              className=\"transition-transform duration-200\"\n            />\n          )}\n\n        {/* Scrubber Vertical Line & Snapped Dot */}\n        {activeCoord && showScrubber && (\n          <g className=\"transition-opacity duration-150\">\n            {/* 1px Vertical Guide thin line */}\n            <line\n              x1={activeCoord.x}\n              y1={0}\n              x2={activeCoord.x}\n              y2={height}\n              stroke=\"var(--border)\"\n              strokeWidth={1}\n              strokeDasharray=\"2 2\"\n            />\n\n            {/* Glowing Scrubber Dot */}\n            <circle\n              cx={activeCoord.x}\n              cy={activeCoord.y}\n              r={3.25}\n              fill=\"var(--background)\"\n              stroke=\"currentColor\"\n              strokeWidth={1.75}\n            />\n          </g>\n        )}\n      </svg>\n\n      {/* Floating Micro-Tooltip */}\n      {activeCoord && activePoint && showScrubber && (\n        <div\n          aria-hidden=\"true\"\n          className=\"pointer-events-none absolute -top-8 z-30 flex -translate-x-1/2 flex-col items-center whitespace-nowrap rounded-md border border-border bg-popover px-1.5 py-0.5 text-popover-foreground shadow-[0_1px_4px_rgba(0,0,0,0.06)] dark:shadow-none animate-in fade-in-0 zoom-in-95 duration-100\"\n          style={{\n            left: `${activeCoord.x}px`,\n          }}\n        >\n          <div className=\"flex items-center gap-1 font-mono text-[11px] font-medium leading-none\">\n            {prefix && <span>{prefix}</span>}\n            <span>\n              {format\n                ? activePoint.val.toLocaleString(undefined, format)\n                : activePoint.val.toLocaleString()}\n            </span>\n            {suffix && <span>{suffix}</span>}\n          </div>\n          {activePoint.date && (\n            <span className=\"mt-0.5 text-[9.5px] text-muted-foreground leading-none\">\n              {activePoint.date}\n            </span>\n          )}\n        </div>\n      )}\n\n      {/* Screen reader summary */}\n      <span className=\"sr-only\">\n        {label}: start {values[0] ?? 0}, end {values[values.length - 1] ?? 0},{\" \"}\n        {isPositive ? \"upward trend\" : \"downward trend\"}.\n      </span>\n    </div>\n  );\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "sparkline",
+      "exportName": "Sparkline",
+      "categories": [
+        "charts"
+      ],
+      "isNew": false,
+      "usage": "import { Sparkline } from \"@/components/sparkline\";\n\n<Sparkline\n  data={[12, 14, 18, 16, 22, 28, 24, 32]}\n  height={28}\n  variant=\"area\"\n  prefix=\"$\"\n/>",
+      "accessibility": "- Uses ResizeObserver to continuously measure parent container width, re-projecting curves without layout thrashing.\n- Scrubber calculations use pure relative coordinate offsets and render tooltips within absolute coordinates.\n- Auto-trend color evaluation respects shadcn dark mode with explicit dark: variant tokens.\n- Screen readers receive an accessible summary with starting value, ending value, and directional trend description.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "data",
+            "type": "(number | { value: number; date?: string; label?: string })[]",
+            "description": "– · Array of data points or point objects with value and date."
+          },
+          {
+            "name": "width",
+            "type": "number | string",
+            "description": "\"100%\" · Component width (can be percentage or pixel number)."
+          },
+          {
+            "name": "height",
+            "type": "number",
+            "description": "32 · Component height in pixels."
+          },
+          {
+            "name": "color",
+            "type": "\"auto\" | \"primary\" | \"muted\" | string",
+            "description": "\"auto\" · Color scheme: auto (green/red based on trend), primary, or custom class."
+          },
+          {
+            "name": "variant",
+            "type": "\"line\" | \"area\" | \"bars\"",
+            "description": "\"area\" · Visual rendering style: line, area gradient, or bars."
+          },
+          {
+            "name": "showScrubber",
+            "type": "boolean",
+            "description": "true · Enables magnetic hover scrubber and micro-tooltip."
+          },
+          {
+            "name": "showLastPoint",
+            "type": "boolean",
+            "description": "true · Displays persistent anchor dot on the latest data point."
+          },
+          {
+            "name": "strokeWidth",
+            "type": "number",
+            "description": "1.35 · thin line stroke width in pixels."
+          },
+          {
+            "name": "prefix",
+            "type": "string",
+            "description": "– · Prefix symbol for tooltip values (e.g. \"$\")."
+          },
+          {
+            "name": "suffix",
+            "type": "string",
+            "description": "– · Suffix symbol for tooltip values (e.g. \"%\")."
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "description": "\"Metric trend\" · Accessible label for assistive tech."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Data table rows",
+            "description": "Show 30-day activity, revenue, or usage trends directly inside table cells."
+          },
+          {
+            "title": "Stat & metric cards",
+            "description": "Sit beside a prominent KPI number to provide immediate historical context."
+          },
+          {
+            "title": "Financial watchlists",
+            "description": "Compact stock, crypto, or commodity price tickers with green/red directional indicators."
+          },
+          {
+            "title": "Server & CPU monitors",
+            "description": "Display live CPU load, memory usage, or ping latency across a grid of instances."
+          }
+        ],
+        "features": [
+          {
+            "title": "Zero layout shift",
+            "description": "Renders cleanly within table cells and flex rows without shifting surrounding cell boundaries or altering line heights."
+          },
+          {
+            "title": "Smooth cubic curves",
+            "description": "Generates tangent-continuous cubic bezier curves rather than harsh jagged polylines."
+          },
+          {
+            "title": "Magnetic scrubber",
+            "description": "Tracks mouse or touch coordinates and snaps to the nearest discrete data point with a guide line and snapped dot."
+          },
+          {
+            "title": "Floating micro-tooltip",
+            "description": "Shows the exact value and optional date timestamp directly above the active point, constrained within viewport bounds."
+          },
+          {
+            "title": "Dynamic auto-trend",
+            "description": "Automatically detects whether the final point is higher than the initial point, applying emerald or rose tokens accordingly."
+          },
+          {
+            "title": "Multiple visual styles",
+            "description": "Switches seamlessly between smooth line, area gradient fill, and discrete vertical bars."
+          }
+        ],
+        "states": [
+          {
+            "title": "rest",
+            "description": "Clean thin line SVG curve with an optional subtle gradient fill. A subtle dot anchors the latest data point."
+          },
+          {
+            "title": "hover / scrub",
+            "description": "Pointer movement snaps to the nearest data point, rendering a dashed vertical guide and a micro-tooltip with exact values."
+          },
+          {
+            "title": "positive trend",
+            "description": "When the last point is greater than or equal to the first, applies theme emerald tokens."
+          },
+          {
+            "title": "negative trend",
+            "description": "When the last point dips below the first, applies theme rose tokens."
+          },
+          {
+            "title": "bars",
+            "description": "Renders discrete rounded vertical bars with proportional opacity highlighting hovered columns."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
