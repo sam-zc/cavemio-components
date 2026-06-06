@@ -1,0 +1,118 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-spinner",
+  "title": "Spinner",
+  "description": "Something is happening: a ring with one sweeping arc, three rising dots, or eight petals fading round, in currentColor.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/spinner.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * SPINNER: something is happening\n *\n *   ring     a thin line circle with one arc that sweeps round\n *   dots     three dots that rise in turn\n *   bars     eight petals that fade round like a clock face\n *\n * It takes currentColor and says \"Loading\" (or your label) to\n * screen readers. Reduced motion turns the ring into a calm\n * pulse and holds the dots and petals still.\n * ───────────────────────────────────────────────────────── */\n\nexport interface SpinnerProps extends React.HTMLAttributes<HTMLSpanElement> {\n  variant?: \"ring\" | \"dots\" | \"bars\";\n  /** 12, 16, 20 or 28px. */\n  size?: \"xs\" | \"sm\" | \"md\" | \"lg\";\n  label?: string;\n}\n\nconst PX = { xs: 12, sm: 16, md: 20, lg: 28 };\n\nexport function Spinner({\n  variant = \"ring\",\n  size = \"sm\",\n  label = \"Loading\",\n  className = \"\",\n  style,\n  ...props\n}: SpinnerProps) {\n  const px = PX[size];\n  return (\n    <span\n      role=\"status\"\n      className={`inline-flex shrink-0 items-center justify-center text-current ${className}`}\n      style={{ width: px, height: px, ...style }}\n      {...props}\n    >\n      <span className=\"sr-only\">{label}</span>\n      {variant === \"ring\" && (\n        <svg\n          viewBox=\"0 0 24 24\"\n          fill=\"none\"\n          aria-hidden=\"true\"\n          className=\"size-full animate-spin [animation-duration:800ms] motion-reduce:animate-pulse\"\n        >\n          <circle\n            cx=\"12\"\n            cy=\"12\"\n            r=\"9.5\"\n            stroke=\"currentColor\"\n            strokeOpacity=\"0.18\"\n            strokeWidth=\"2.5\"\n          />\n          <path\n            d=\"M21.5 12a9.5 9.5 0 0 0-9.5-9.5\"\n            stroke=\"currentColor\"\n            strokeWidth=\"2.5\"\n            strokeLinecap=\"round\"\n          />\n        </svg>\n      )}\n      {variant === \"dots\" && (\n        <span\n          aria-hidden=\"true\"\n          className=\"flex items-center\"\n          style={{ gap: px * 0.14 }}\n        >\n          {[0, 1, 2].map((i) => (\n            <span\n              key={i}\n              className=\"rounded-full bg-current [animation:ui-bounce_1.1s_ease-in-out_infinite] motion-reduce:[animation:none]\"\n              style={{\n                width: px * 0.24,\n                height: px * 0.24,\n                animationDelay: `${i * 140}ms`,\n              }}\n            />\n          ))}\n        </span>\n      )}\n      {variant === \"bars\" && (\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" className=\"size-full\">\n          {Array.from({ length: 8 }, (_, i) => (\n            <rect\n              key={i}\n              x=\"11\"\n              y=\"2\"\n              width=\"2\"\n              height=\"6\"\n              rx=\"1\"\n              fill=\"currentColor\"\n              transform={`rotate(${i * 45} 12 12)`}\n              className=\"[animation:ui-blink_0.8s_linear_infinite] motion-reduce:[animation:none]\"\n              style={{ animationDelay: `${(i - 8) * 100}ms`, opacity: 0.25 }}\n            />\n          ))}\n        </svg>\n      )}\n    </span>\n  );\n}\n\nexport default Spinner;\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {
+    "@keyframes ui-bounce": {
+      "0%, 80%, 100%": {
+        "transform": "translateY(0)",
+        "opacity": "0.35"
+      },
+      "40%": {
+        "transform": "translateY(-3px)",
+        "opacity": "1"
+      }
+    },
+    "@keyframes ui-blink": {
+      "0%, 100%": {
+        "opacity": "1"
+      },
+      "50%": {
+        "opacity": "0"
+      }
+    }
+  },
+  "meta": {
+    "cavemio": {
+      "component": "spinner",
+      "exportName": "Spinner",
+      "categories": [
+        "display"
+      ],
+      "isNew": true,
+      "usage": "import { Spinner } from \"@/components/spinner\";\n\n<Spinner />\n<Spinner variant=\"dots\" size=\"md\" label=\"Writing a reply\" />",
+      "accessibility": "- Reduced motion: the ring pulses slowly; dots and petals hold still.\n- Use Progress when you know how far along it is.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "variant",
+            "type": "\"ring\" | \"dots\" | \"bars\"",
+            "description": "\"ring\" · Drawing."
+          },
+          {
+            "name": "size",
+            "type": "\"xs\" | \"sm\" | \"md\" | \"lg\"",
+            "description": "\"sm\" · 12, 16, 20 or 28px."
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "description": "\"Loading\" · For screen readers."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Buttons and inputs",
+            "description": "A 12px ring inside a busy button."
+          },
+          {
+            "title": "Panels and cards",
+            "description": "A 20px ring while a section loads."
+          },
+          {
+            "title": "Chat and AI replies",
+            "description": "Three dots while something is typed."
+          },
+          {
+            "title": "Full screens",
+            "description": "A 28px ring in the middle of an empty page."
+          }
+        ],
+        "features": [
+          {
+            "title": "Three drawings",
+            "description": "ring, dots and bars."
+          },
+          {
+            "title": "Sizes",
+            "description": "12, 16, 20 and 28px."
+          },
+          {
+            "title": "currentColor",
+            "description": "Inherits the colour of what it sits in."
+          },
+          {
+            "title": "Announced",
+            "description": "role=\"status\" with a label."
+          }
+        ],
+        "states": [
+          {
+            "title": "ring",
+            "description": "One arc sweeps round every 800ms."
+          },
+          {
+            "title": "dots",
+            "description": "Each dot rises in turn, 140ms apart."
+          },
+          {
+            "title": "bars",
+            "description": "Petals fade round a clock face (800ms)."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
