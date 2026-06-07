@@ -1,0 +1,148 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-split-pane",
+  "title": "Split pane",
+  "description": "A desktop-grade resizable dual panel. Zero-lag drag, rubber-band spring limits, and double-click preset snapping.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/split-pane.tsx",
+      "content": "\"use client\";\n\n/* ─────────────────────────────────────────────────────────\n * SPLIT PANE: desktop-grade resizable dual surface\n *\n *   divider    1px thin line border with a centered grab pill;\n *              hover expands the line to an active primary accent\n *   drag       zero-lag direct DOM updates; dragging beyond\n *              min/max limits introduces logarithmic rubber-band\n *              resistance\n *   spring     releasing past boundary limits triggers an\n *              analytical WAAPI damped harmonic spring back\n *              to the boundary threshold\n *   snapping   double-clicking the divider smoothly cycles\n *              between 50%, 25%, and 75% preset layouts\n *   collapse   built-in controls fold either pane to 0 width,\n *              docking the thin line divider flush to the edge\n *   touch      expanded touch targets enable fluid dragging on\n *              mobile devices\n *\n * Fully accessible separator semantics with keyboard step.\n * ───────────────────────────────────────────────────────── */\n\nimport * as React from \"react\";\nimport { ChevronLeft, ChevronRight, GripVertical } from \"lucide-react\";\nimport {\n  INTERACTION_FOCUS,\n  useInteractionReducedMotion,\n} from \"./imported-ui-interaction-motion\";\nimport { useSplitPane } from \"./use-split-pane\";\n\nexport interface SplitPaneProps extends Omit<\n  React.HTMLAttributes<HTMLDivElement>,\n  \"onChange\"\n> {\n  first: React.ReactNode;\n  second: React.ReactNode;\n  split?: number;\n  defaultSplit?: number;\n  minSize?: number;\n  maxSize?: number;\n  orientation?: \"horizontal\" | \"vertical\";\n  collapsible?: boolean;\n  disabled?: boolean;\n  onSplitChange?: (split: number) => void;\n  onSplitCommit?: (split: number) => void;\n}\n\nexport function SplitPane({\n  first,\n  second,\n  split,\n  defaultSplit = 50,\n  minSize = 15,\n  maxSize = 85,\n  orientation = \"horizontal\",\n  collapsible = true,\n  disabled = false,\n  onSplitChange,\n  onSplitCommit,\n  className = \"\",\n  ...props\n}: SplitPaneProps) {\n  const reduced = useInteractionReducedMotion();\n  const isHorizontal = orientation !== \"vertical\";\n\n  const pane = useSplitPane({\n    orientation,\n    split,\n    defaultSplit,\n    minSize,\n    maxSize,\n    disabled,\n    reduced,\n    onChange: onSplitChange,\n    onCommit: onSplitCommit,\n  });\n\n  return (\n    <div\n      {...props}\n      ref={(el) => pane.attachContainer(el)}\n      className={`relative flex select-none overflow-hidden rounded-[14px] border border-border bg-background ${\n        isHorizontal ? \"flex-row\" : \"flex-col\"\n      } ${className}`}\n    >\n      {/* First Pane */}\n      <div\n        ref={(el) => pane.attachFirstPane(el)}\n        className={`relative min-h-0 min-w-0 overflow-hidden ${\n          pane.collapsed === \"first\" ? \"pointer-events-none\" : \"\"\n        }`}\n        style={{ flexBasis: `${defaultSplit}%` }}\n      >\n        <div className=\"size-full overflow-auto\">{first}</div>\n      </div>\n\n      {/* 1px thin line Divider Container */}\n      <div\n        className={`relative z-10 shrink-0 touch-none ${\n          isHorizontal ? \"w-px cursor-col-resize\" : \"h-px cursor-row-resize\"\n        }`}\n      >\n        {/* Full thin line Line */}\n        <div\n          className={`absolute inset-0 bg-border transition-colors ${\n            pane.dragging ? \"bg-primary\" : \"hover:bg-primary/70\"\n          }`}\n        />\n\n        {/* Dead-Centered Draggable Grab Handle Button */}\n        <button\n          ref={(el) => pane.attachDivider(el)}\n          {...pane.dividerProps}\n          type=\"button\"\n          role=\"separator\"\n          disabled={disabled}\n          aria-orientation={isHorizontal ? \"vertical\" : \"horizontal\"}\n          aria-valuenow={Math.round(split ?? defaultSplit)}\n          aria-valuemin={minSize}\n          aria-valuemax={maxSize}\n          aria-label=\"Resize split panes\"\n          style={{\n            position: \"absolute\",\n            left: \"50%\",\n            top: \"50%\",\n            transform: \"translate(-50%, -50%)\",\n            touchAction: \"none\",\n          }}\n          className={`group flex items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground active:scale-95 disabled:cursor-default disabled:opacity-40 before:absolute before:-inset-3 before:content-[''] ${\n            isHorizontal\n              ? \"h-8 w-4.5 cursor-col-resize\"\n              : \"h-4.5 w-8 cursor-row-resize\"\n          } ${INTERACTION_FOCUS}`}\n        >\n          <GripVertical className=\"size-3.5 opacity-60 transition-opacity group-hover:opacity-100\" />\n        </button>\n\n        {/* Optional Collapsible Controls */}\n        {collapsible && !pane.dragging && (\n          <div\n            style={{\n              position: \"absolute\",\n              left: isHorizontal ? \"50%\" : \"12px\",\n              top: isHorizontal ? \"12px\" : \"50%\",\n              transform: isHorizontal\n                ? \"translate(-50%, 0)\"\n                : \"translate(0, -50%)\",\n            }}\n            className={`z-20 flex items-center gap-0.5 ${\n              isHorizontal ? \"flex-col\" : \"flex-row\"\n            }`}\n          >\n            {pane.collapsed === \"first\" ? (\n              <button\n                type=\"button\"\n                onClick={pane.expand}\n                title=\"Restore pane\"\n                className=\"cursor-pointer rounded-full border border-border bg-surface p-0.5 text-muted-foreground transition-colors hover:text-foreground\"\n              >\n                <ChevronRight className=\"size-3\" />\n              </button>\n            ) : pane.collapsed === \"second\" ? (\n              <button\n                type=\"button\"\n                onClick={pane.expand}\n                title=\"Restore pane\"\n                className=\"cursor-pointer rounded-full border border-border bg-surface p-0.5 text-muted-foreground transition-colors hover:text-foreground\"\n              >\n                <ChevronLeft className=\"size-3\" />\n              </button>\n            ) : (\n              <div className=\"flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 hover:opacity-100\">\n                <button\n                  type=\"button\"\n                  onClick={() => pane.collapse(\"first\")}\n                  title=\"Collapse left\"\n                  className=\"cursor-pointer rounded border border-border bg-surface p-0.5 text-muted-foreground hover:text-foreground\"\n                >\n                  <ChevronLeft className=\"size-2.5\" />\n                </button>\n                <button\n                  type=\"button\"\n                  onClick={() => pane.collapse(\"second\")}\n                  title=\"Collapse right\"\n                  className=\"cursor-pointer rounded border border-border bg-surface p-0.5 text-muted-foreground hover:text-foreground\"\n                >\n                  <ChevronRight className=\"size-2.5\" />\n                </button>\n              </div>\n            )}\n          </div>\n        )}\n      </div>\n\n      {/* Second Pane */}\n      <div\n        className={`relative min-h-0 min-w-0 flex-1 overflow-hidden ${\n          pane.collapsed === \"second\" ? \"pointer-events-none\" : \"\"\n        }`}\n      >\n        <div className=\"size-full overflow-auto\">{second}</div>\n      </div>\n    </div>\n  );\n}\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/imported-ui-interaction-motion.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport const EASE_OUT = \"cubic-bezier(0.16, 1, 0.3, 1)\";\nexport const EASE_SETTLE = \"cubic-bezier(0.22, 1.18, 0.36, 1)\";\n/** Thrown things (indicators, thumbs): a slight overshoot on transform only. */\nexport const EASE_THROW = \"cubic-bezier(0.34, 1.36, 0.64, 1)\";\n/**\n * The press every button primitive shares: a 3% give that eases in and settles back.\n * Tailwind v4's scale-* writes the `scale` property, so `scale` has to be in the list\n * or the press snaps.\n */\nexport const INTERACTION_PRESS =\n  \"transition-[background-color,color,box-shadow,opacity,scale] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100\";\nexport const INTERACTION_FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background\";\n\nconst query = \"(prefers-reduced-motion: reduce)\";\nconst subscribe = (notify: () => void) => {\n  const media = window.matchMedia(query);\n  media.addEventListener(\"change\", notify);\n  return () => media.removeEventListener(\"change\", notify);\n};\nexport const useInteractionReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false,\n  );\n\nexport function useInteractionActivity<T extends Element>() {\n  const ref = React.useRef<T>(null);\n  const [visible, setVisible] = React.useState(false);\n  const [hidden, setHidden] = React.useState(false);\n  React.useEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(([entry]) =>\n      setVisible(entry.isIntersecting),\n    );\n    observer.observe(el);\n    const visibility = () => setHidden(document.hidden);\n    visibility();\n    document.addEventListener(\"visibilitychange\", visibility);\n    return () => {\n      observer.disconnect();\n      document.removeEventListener(\"visibilitychange\", visibility);\n    };\n  }, []);\n  return { ref, active: visible && !hidden };\n}\n\nexport function interactionIcon(\n  on: boolean,\n  reduced: boolean,\n): React.CSSProperties {\n  return {\n    opacity: on ? 1 : 0,\n    transform: on ? \"none\" : \"scale(0.6)\",\n    filter: on ? \"blur(0px)\" : \"blur(3px)\",\n    transition: reduced\n      ? \"none\"\n      : `opacity 220ms ${EASE_OUT}, transform 380ms ${EASE_OUT}, filter 220ms ${EASE_OUT}`,\n  };\n}\n\n/** Sample recent movement rather than averaging a long drag and losing its release velocity. */\nexport type PointerSample = { x: number; time: number };\nexport function samplePointer(\n  samples: PointerSample[],\n  x: number,\n  time: number,\n) {\n  samples.push({ x, time });\n  while (samples.length > 2 && time - samples[0].time > 100) samples.shift();\n}\nexport function releaseVelocity(samples: PointerSample[], now: number) {\n  if (samples.length < 2 || now - samples[samples.length - 1].time > 100)\n    return 0;\n  const first = samples[0],\n    last = samples[samples.length - 1];\n  return (last.x - first.x) / Math.max(1, last.time - first.time);\n}\n\n/** Smooth Apple/rational rubber-band curve: continuous exponential-like resistance without linear kinks. */\nexport function rubberBand(\n  overshoot: number,\n  dimension = 320,\n  constant = 0.55,\n): number {\n  const d = dimension || 320;\n  const abs = Math.abs(overshoot);\n  return Math.sign(overshoot) * (1 - 1 / ((abs * constant) / d + 1)) * d;\n}\n\n/** Projects resting travel from release velocity (velocity in px/ms; time in seconds). */\nexport function projectInertia(\n  distance: number,\n  velocity: number,\n  time = 0.12,\n): number {\n  return distance + velocity * 1000 * time;\n}\n\n/** Smooths incoming release velocity toward a boundary so springs don't slam or clip into walls. */\nexport function softenVelocity(\n  velocity: number,\n  distanceToTarget: number,\n  factor = 10,\n): number {\n  const maxAllowed = Math.abs(distanceToTarget) * factor;\n  return Math.sign(velocity) * Math.min(Math.abs(velocity), maxAllowed);\n}\n\n/** A damped spring sampled by WAAPI: tuned for organic lightness with a hint of life (3% breath). */\nexport function springFrames(\n  from: number,\n  to: number,\n  velocity = 0,\n  duration = 480,\n  config: { omega?: number; damping?: number; steps?: number } = {},\n) {\n  const { omega = 16, damping = 0.74, steps = 36 } = config;\n  const damped = omega * Math.sqrt(Math.max(0.001, 1 - damping * damping));\n  const displacement = from - to;\n  const coefficient =\n    (velocity * 1000 + damping * omega * displacement) / damped;\n  return Array.from({ length: steps + 1 }, (_, i) => {\n    const t = (i / steps) * (duration / 1000);\n    const value =\n      to +\n      Math.exp(-damping * omega * t) *\n        (displacement * Math.cos(damped * t) +\n          coefficient * Math.sin(damped * t));\n    return { value: i === steps ? to : value, offset: i / steps };\n  });\n}\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/use-split-pane.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport {\n  EASE_OUT,\n  rubberBand,\n  springFrames,\n} from \"./imported-ui-interaction-motion\";\n\ntype Orientation = \"horizontal\" | \"vertical\";\n\ntype SplitPaneOptions = {\n  orientation?: Orientation;\n  split?: number; // 0 to 100\n  defaultSplit?: number;\n  minSize?: number; // default 15\n  maxSize?: number; // default 85\n  disabled?: boolean;\n  reduced?: boolean;\n  onChange?: (split: number) => void;\n  onCommit?: (split: number) => void;\n};\n\nexport function useSplitPane(options: SplitPaneOptions) {\n  const containerRef = React.useRef<HTMLDivElement>(null);\n  const firstPaneRef = React.useRef<HTMLDivElement>(null);\n  const dividerRef = React.useRef<HTMLButtonElement>(null);\n\n  const optionsRef = React.useRef(options);\n  React.useLayoutEffect(() => {\n    optionsRef.current = options;\n  });\n\n  const [dragging, setDragging] = React.useState(false);\n  const [collapsed, setCollapsed] = React.useState<\"first\" | \"second\" | null>(\n    null,\n  );\n\n  const gesture = React.useRef<{\n    id: number;\n    startSplit: number;\n    currentSplit: number;\n    containerSize: number;\n    containerStart: number;\n  } | null>(null);\n\n  const min = options.minSize ?? 15;\n  const max = options.maxSize ?? 85;\n\n  const paint = React.useCallback((splitPercent: number, animate: boolean) => {\n    const o = optionsRef.current;\n    const pane = firstPaneRef.current;\n    if (pane) {\n      pane.style.transition =\n        animate && !o.reduced ? `flex-basis 380ms ${EASE_OUT}` : \"none\";\n      pane.style.flexBasis = `${splitPercent}%`;\n    }\n    dividerRef.current?.setAttribute(\n      \"aria-valuenow\",\n      String(Math.round(splitPercent)),\n    );\n  }, []);\n\n  const commit = React.useCallback(\n    (splitPercent: number, animate = true) => {\n      const clean = Math.max(min, Math.min(max, splitPercent));\n      paint(clean, animate);\n      setCollapsed(null);\n      optionsRef.current.onChange?.(clean);\n      optionsRef.current.onCommit?.(clean);\n    },\n    [min, max, paint],\n  );\n\n  const collapse = React.useCallback(\n    (side: \"first\" | \"second\") => {\n      const pane = firstPaneRef.current;\n      if (!pane) return;\n      setCollapsed(side);\n      const targetPercent = side === \"first\" ? 0 : 100;\n      paint(targetPercent, true);\n      optionsRef.current.onChange?.(targetPercent);\n      optionsRef.current.onCommit?.(targetPercent);\n    },\n    [paint],\n  );\n\n  const expand = React.useCallback(() => {\n    setCollapsed(null);\n    commit(optionsRef.current.defaultSplit ?? 50, true);\n  }, [commit]);\n\n  const snapCycle = React.useCallback(() => {\n    const o = optionsRef.current;\n    const current = o.split ?? o.defaultSplit ?? 50;\n    let next = 50;\n    if (Math.abs(current - 50) < 3) next = 25;\n    else if (Math.abs(current - 25) < 3) next = 75;\n    else next = 50;\n    commit(next, true);\n  }, [commit]);\n\n  const finish = React.useCallback(\n    (cancelled: boolean) => {\n      const g = gesture.current;\n      if (!g) return;\n      gesture.current = null;\n      setDragging(false);\n\n      if (cancelled) {\n        paint(g.startSplit, true);\n        optionsRef.current.onChange?.(g.startSplit);\n      } else {\n        // If release was in rubber-band territory beyond min or max, spring back smoothly\n        const o = optionsRef.current;\n        const current = g.currentSplit;\n        if (current < min || current > max) {\n          const target = current < min ? min : max;\n          const pane = firstPaneRef.current;\n          if (pane && !o.reduced) {\n            const frames = springFrames(current, target, 0, 480);\n            const keyframes = frames.map((f) => ({ flexBasis: `${f.value}%` }));\n            const anim = pane.animate(keyframes, {\n              duration: 480,\n              fill: \"forwards\",\n            });\n            anim.onfinish = () => {\n              pane.style.flexBasis = `${target}%`;\n              anim.cancel();\n              commit(target, false);\n            };\n          } else {\n            commit(target, false);\n          }\n        } else {\n          commit(g.currentSplit, false);\n        }\n      }\n    },\n    [min, max, commit, paint],\n  );\n\n  React.useLayoutEffect(() => {\n    if (!gesture.current && collapsed === null) {\n      const val = options.split ?? options.defaultSplit ?? 50;\n      paint(val, true);\n    }\n  }, [options.split, options.defaultSplit, options.reduced, collapsed, paint]);\n\n  const startDrag = React.useCallback(\n    (event: React.PointerEvent<HTMLButtonElement>) => {\n      if (event.button !== 0 || !event.isPrimary || optionsRef.current.disabled)\n        return;\n      const container = containerRef.current;\n      if (!container) return;\n\n      const rect = container.getBoundingClientRect();\n      const isHorizontal = optionsRef.current.orientation !== \"vertical\";\n      const containerSize = isHorizontal ? rect.width : rect.height;\n      const containerStart = isHorizontal ? rect.left : rect.top;\n\n      event.currentTarget.setPointerCapture(event.pointerId);\n      event.currentTarget.focus({ preventScroll: true });\n\n      const currentSplit =\n        optionsRef.current.split ?? optionsRef.current.defaultSplit ?? 50;\n\n      gesture.current = {\n        id: event.pointerId,\n        startSplit: currentSplit,\n        currentSplit,\n        containerSize: Math.max(1, containerSize),\n        containerStart,\n      };\n\n      setDragging(true);\n      setCollapsed(null);\n      paint(currentSplit, false);\n    },\n    [paint],\n  );\n\n  const onPointerMove = React.useCallback(\n    (event: React.PointerEvent<HTMLButtonElement>) => {\n      const g = gesture.current;\n      const o = optionsRef.current;\n      if (!g || g.id !== event.pointerId) return;\n\n      const isHorizontal = o.orientation !== \"vertical\";\n      const clientPos = isHorizontal ? event.clientX : event.clientY;\n      const rawPercent =\n        ((clientPos - g.containerStart) / g.containerSize) * 100;\n\n      // Rubber-band resistance curve beyond min/max limits\n      let dampedPercent = rawPercent;\n      if (rawPercent < min) {\n        const overflow = min - rawPercent;\n        dampedPercent = min - rubberBand(overflow, 25, 0.4);\n      } else if (rawPercent > max) {\n        const overflow = rawPercent - max;\n        dampedPercent = max + rubberBand(overflow, 25, 0.4);\n      }\n\n      g.currentSplit = dampedPercent;\n      paint(dampedPercent, false);\n      o.onChange?.(dampedPercent);\n    },\n    [min, max, paint],\n  );\n\n  const onKeyDown = React.useCallback(\n    (event: React.KeyboardEvent<HTMLButtonElement>) => {\n      if (event.key === \"Escape\") {\n        event.preventDefault();\n        finish(true);\n        return;\n      }\n\n      const isHorizontal = optionsRef.current.orientation !== \"vertical\";\n      const prevKey = isHorizontal ? \"ArrowLeft\" : \"ArrowUp\";\n      const nextKey = isHorizontal ? \"ArrowRight\" : \"ArrowDown\";\n\n      if (![prevKey, nextKey, \"Home\", \"End\", \"Enter\"].includes(event.key))\n        return;\n      event.preventDefault();\n\n      if (event.key === \"Enter\") {\n        snapCycle();\n        return;\n      }\n\n      const current =\n        optionsRef.current.split ?? optionsRef.current.defaultSplit ?? 50;\n      if (event.key === \"Home\") {\n        commit(min);\n        return;\n      }\n      if (event.key === \"End\") {\n        commit(max);\n        return;\n      }\n\n      const mult = event.shiftKey ? 10 : 1;\n      const delta = (event.key === nextKey ? 1 : -1) * mult;\n      commit(current + delta);\n    },\n    [min, max, snapCycle, commit, finish],\n  );\n\n  const attachContainer = React.useCallback((el: HTMLDivElement | null) => {\n    containerRef.current = el;\n  }, []);\n  const attachFirstPane = React.useCallback((el: HTMLDivElement | null) => {\n    firstPaneRef.current = el;\n  }, []);\n  const attachDivider = React.useCallback((el: HTMLButtonElement | null) => {\n    dividerRef.current = el;\n  }, []);\n\n  const onPointerUp = React.useCallback(\n    (e: React.PointerEvent<HTMLButtonElement>) => {\n      if (e.pointerId === gesture.current?.id) finish(false);\n    },\n    [finish],\n  );\n  const onPointerCancel = React.useCallback(\n    (e: React.PointerEvent<HTMLButtonElement>) => {\n      if (e.pointerId === gesture.current?.id) finish(true);\n    },\n    [finish],\n  );\n  const onLostPointerCapture = React.useCallback(\n    (e: React.PointerEvent<HTMLButtonElement>) => {\n      if (e.pointerId === gesture.current?.id) finish(true);\n    },\n    [finish],\n  );\n  const onBlur = React.useCallback(() => finish(true), [finish]);\n\n  const dividerProps = React.useMemo(\n    () => ({\n      onPointerDown: startDrag,\n      onPointerMove,\n      onPointerUp,\n      onPointerCancel,\n      onLostPointerCapture,\n      onDoubleClick: snapCycle,\n      onBlur,\n      onKeyDown,\n    }),\n    [\n      startDrag,\n      onPointerMove,\n      onPointerUp,\n      onPointerCancel,\n      onLostPointerCapture,\n      snapCycle,\n      onBlur,\n      onKeyDown,\n    ],\n  );\n\n  return {\n    attachContainer,\n    attachFirstPane,\n    attachDivider,\n    dragging,\n    collapsed,\n    collapse,\n    expand,\n    snapCycle,\n    dividerProps,\n  };\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "split-pane",
+      "exportName": "SplitPane",
+      "categories": [
+        "motion"
+      ],
+      "isNew": false,
+      "usage": "import { SplitPane } from \"@/components/split-pane\";\n\n<SplitPane\n  defaultSplit={50}\n  first={<div className=\"p-4\">Left Editor</div>}\n  second={<div className=\"p-4\">Right Preview</div>}\n  onSplitCommit={setSplit}\n/>",
+      "accessibility": "- The divider button acts as a semantic role=\"separator\" with aria-valuenow.\n- Arrow keys step by 1% (10% with Shift); Enter snaps to 50/50; Home and End jump to minimum and maximum limits.\n- Past boundary limits, WAAPI springFrames computes 33 keyframe values for fluid physical return.\n- Reduced motion removes transitions and settles snapped positions immediately.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "first / second",
+            "type": "React.ReactNode",
+            "description": "– · Content rendered inside the left/top and right/bottom panes."
+          },
+          {
+            "name": "split / defaultSplit",
+            "type": "number",
+            "description": "50 · Controlled or initial percentage allocated to the first pane."
+          },
+          {
+            "name": "minSize / maxSize",
+            "type": "number",
+            "description": "15 / 85 · Boundary thresholds in percentage before rubber-band resistance begins."
+          },
+          {
+            "name": "orientation",
+            "type": "\"horizontal\" | \"vertical\"",
+            "description": "\"horizontal\" · Primary axis of separation."
+          },
+          {
+            "name": "collapsible",
+            "type": "boolean",
+            "description": "true · Enables pane collapse buttons on the divider."
+          },
+          {
+            "name": "disabled",
+            "type": "boolean",
+            "description": "false · Locks the divider in place and prevents resizing."
+          },
+          {
+            "name": "onSplitChange",
+            "type": "(split: number) => void",
+            "description": "– · Fired during pointer movement with raw split percentages."
+          },
+          {
+            "name": "onSplitCommit",
+            "type": "(split: number) => void",
+            "description": "– · Fired upon pointer release or keyboard snap with normalized value."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Code and docs editors",
+            "description": "An editor on one side and a live preview on the other."
+          },
+          {
+            "title": "Master and detail layouts",
+            "description": "A list on the left with the selected item on the right."
+          },
+          {
+            "title": "Consoles and logs",
+            "description": "Output beside the tool that produced it."
+          },
+          {
+            "title": "Comparison screens",
+            "description": "Two versions or two documents side by side."
+          }
+        ],
+        "features": [
+          {
+            "title": "Dragging with no lag",
+            "description": "The divider updates the panes directly, without React re-rendering them."
+          },
+          {
+            "title": "Rubber-band limits",
+            "description": "Pulling past the minimum or maximum meets resistance, then springs back."
+          },
+          {
+            "title": "Double-click to snap",
+            "description": "Double-clicking the divider eases between 50/50, 25/75 and 75/25."
+          },
+          {
+            "title": "Collapse either pane",
+            "description": "Arrows on the divider fold a pane away so the other fills the frame."
+          },
+          {
+            "title": "Horizontal or vertical",
+            "description": "Split side by side or top and bottom."
+          },
+          {
+            "title": "Keyboard control",
+            "description": "The divider is a separator: arrow keys step by 1% (10% with Shift), Enter snaps to 50/50, and Home and End jump to the limits."
+          }
+        ],
+        "states": [
+          {
+            "title": "resize",
+            "description": "Divider movement updates pane flex-basis directly without React state re-renders."
+          },
+          {
+            "title": "rubber-band",
+            "description": "Dragging beyond min/max bounds introduces logarithmic resistance; release triggers a WAAPI spring back."
+          },
+          {
+            "title": "snap",
+            "description": "Double-clicking the divider smoothly animates between 50/50, 25/75, and 75/25 presets over 380ms."
+          },
+          {
+            "title": "collapse",
+            "description": "Collapse arrows fold either pane to 0 width, docking the thin line divider flush against the frame."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
