@@ -25,8 +25,7 @@
       "accessibility": "Native buttons with pressed and expanded states, arrow/Home/End navigation, disabled support, and a pause control. Playback pauses on hover, keyboard focus, offscreen, and hidden tabs. Reduced motion disables timed progression and transitions.",
       "previewNote": "An expanding stage selector with controlled selection and optional autoplay.",
       "categories": [
-        "blocks",
-        "interactions"
+        "display"
       ],
       "documentation": {
         "useCases": [],
