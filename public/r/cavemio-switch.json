@@ -1,0 +1,118 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-switch",
+  "title": "Switch",
+  "description": "A switch with weight: the thumb stretches on press, is thrown across with a slight overshoot, and spins while an async save settles.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/switch.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport {\n  EASE_OUT,\n  EASE_THROW,\n  INTERACTION_FOCUS,\n  interactionIcon,\n  useInteractionReducedMotion,\n} from \"./imported-ui-interaction-motion\";\n\n/* ─────────────────────────────────────────────────────────\n * SWITCH: on and off, with weight\n *\n *   press    the thumb stretches toward the side it will go\n *   flip     it's thrown across with a slight overshoot while the\n *            track fills; the fill and thumb move as one\n *   async    if onCheckedChange returns a promise, the switch\n *            flips at once and the thumb spins until it settles;\n *            a rejection throws it back and shakes the track\n * ───────────────────────────────────────────────────────── */\n\nexport interface SwitchProps extends Omit<\n  React.ButtonHTMLAttributes<HTMLButtonElement>,\n  \"onChange\" | \"value\"\n> {\n  checked?: boolean;\n  defaultChecked?: boolean;\n  /** Return a promise to show the pending thumb; throw to put it back. */\n  onCheckedChange?: (checked: boolean) => void | Promise<unknown>;\n  label?: React.ReactNode;\n  description?: React.ReactNode;\n  /** 16px or 20px tall. */\n  size?: \"sm\" | \"md\";\n  /** Put the label before the switch (settings rows). */\n  labelPosition?: \"start\" | \"end\";\n  ref?: React.Ref<HTMLButtonElement>;\n}\n\nconst SIZES = { sm: { w: 28, h: 16, pad: 2 }, md: { w: 36, h: 20, pad: 2 } };\n\nexport function Switch({\n  checked,\n  defaultChecked = false,\n  onCheckedChange,\n  label,\n  description,\n  size = \"md\",\n  labelPosition = \"end\",\n  disabled,\n  className = \"\",\n  id,\n  ref,\n  ...props\n}: SwitchProps) {\n  const reduced = useInteractionReducedMotion();\n  const auto = React.useId();\n  const switchId = id ?? auto;\n  const track = React.useRef<HTMLSpanElement>(null);\n  const [own, setOwn] = React.useState(defaultChecked);\n  const [optimistic, setOptimistic] = React.useState<boolean | null>(null);\n  const [pressed, setPressed] = React.useState(false);\n  const on = optimistic ?? (checked !== undefined ? checked : own);\n  const pending = optimistic !== null;\n  const s = SIZES[size];\n  const thumb = s.h - s.pad * 2;\n  const travel = s.w - thumb - s.pad * 2;\n  const stretch = pressed && !reduced ? 4 : 0;\n\n  const toggle = () => {\n    if (disabled || pending) return;\n    const next = !on;\n    const result = onCheckedChange?.(next);\n    if (result && typeof (result as Promise<unknown>).then === \"function\") {\n      setOptimistic(next);\n      (result as Promise<unknown>).then(\n        () => {\n          if (checked === undefined) setOwn(next);\n          setOptimistic(null);\n        },\n        () => {\n          setOptimistic(null);\n          if (!reduced)\n            track.current?.animate(\n              [\n                { transform: \"none\" },\n                { transform: \"translateX(-3px)\" },\n                { transform: \"translateX(3px)\" },\n                { transform: \"none\" },\n              ],\n              { duration: 320, easing: \"ease-out\" },\n            );\n        },\n      );\n    } else if (checked === undefined) setOwn(next);\n  };\n\n  const control = (\n    <button\n      ref={ref}\n      id={switchId}\n      type=\"button\"\n      role=\"switch\"\n      aria-checked={on}\n      aria-busy={pending || undefined}\n      disabled={disabled}\n      onClick={toggle}\n      onPointerDown={() => setPressed(true)}\n      onPointerUp={() => setPressed(false)}\n      onPointerLeave={() => setPressed(false)}\n      onBlur={() => setPressed(false)}\n      className={`relative inline-flex shrink-0 rounded-full cursor-pointer disabled:cursor-default disabled:opacity-50 ${INTERACTION_FOCUS}`}\n      style={{ width: s.w, height: s.h }}\n      {...props}\n    >\n      <span\n        ref={track}\n        className=\"absolute inset-0 overflow-hidden rounded-full bg-[color-mix(in_oklab,var(--foreground)_12%,var(--muted))] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_10%,transparent)]\"\n      >\n        <span\n          className=\"absolute inset-0 rounded-full bg-primary\"\n          style={{\n            opacity: on ? 1 : 0,\n            transition: reduced ? \"none\" : `opacity 260ms ${EASE_OUT}`,\n          }}\n        />\n      </span>\n      <span\n        className=\"absolute rounded-full bg-background shadow-[0_0_0_1px_color-mix(in_oklab,var(--foreground)_10%,transparent)]\"\n        style={{\n          top: s.pad,\n          left: s.pad,\n          height: thumb,\n          width: thumb + stretch,\n          // Stretching toward where it's going: grow from the far edge when on.\n          transform: `translateX(${on ? travel - stretch : 0}px)`,\n          transition: reduced\n            ? \"none\"\n            : `transform 420ms ${EASE_THROW}, width 260ms ${EASE_OUT}`,\n        }}\n      >\n        <span\n          className=\"absolute inset-0 flex items-center justify-center text-primary\"\n          style={interactionIcon(pending, reduced)}\n        >\n          <span\n            className={`size-[60%] rounded-full border-[1.5px] border-current border-t-transparent ${pending ? \"animate-spin\" : \"\"}`}\n          />\n        </span>\n      </span>\n    </button>\n  );\n\n  if (!label && !description)\n    return <span className={className}>{control}</span>;\n\n  return (\n    <div\n      className={`flex items-start gap-3 ${labelPosition === \"start\" ? \"flex-row-reverse justify-between\" : \"\"} ${className}`}\n    >\n      <span className=\"mt-0.5\">{control}</span>\n      <label\n        htmlFor={switchId}\n        className={`flex min-w-0 flex-col gap-0.5 ${disabled ? \"opacity-50\" : \"cursor-pointer\"}`}\n      >\n        {label && (\n          <span className=\"text-[13.5px] font-medium leading-5 text-foreground\">\n            {label}\n          </span>\n        )}\n        {description && (\n          <span className=\"text-[12.5px] leading-snug text-muted-foreground\">\n            {description}\n          </span>\n        )}\n      </label>\n    </div>\n  );\n}\n\nexport default Switch;\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/imported-ui-interaction-motion.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport const EASE_OUT = \"cubic-bezier(0.16, 1, 0.3, 1)\";\nexport const EASE_SETTLE = \"cubic-bezier(0.22, 1.18, 0.36, 1)\";\n/** Thrown things (indicators, thumbs): a slight overshoot on transform only. */\nexport const EASE_THROW = \"cubic-bezier(0.34, 1.36, 0.64, 1)\";\n/**\n * The press every button primitive shares: a 3% give that eases in and settles back.\n * Tailwind v4's scale-* writes the `scale` property, so `scale` has to be in the list\n * or the press snaps.\n */\nexport const INTERACTION_PRESS =\n  \"transition-[background-color,color,box-shadow,opacity,scale] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100\";\nexport const INTERACTION_FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background\";\n\nconst query = \"(prefers-reduced-motion: reduce)\";\nconst subscribe = (notify: () => void) => {\n  const media = window.matchMedia(query);\n  media.addEventListener(\"change\", notify);\n  return () => media.removeEventListener(\"change\", notify);\n};\nexport const useInteractionReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false,\n  );\n\nexport function useInteractionActivity<T extends Element>() {\n  const ref = React.useRef<T>(null);\n  const [visible, setVisible] = React.useState(false);\n  const [hidden, setHidden] = React.useState(false);\n  React.useEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(([entry]) =>\n      setVisible(entry.isIntersecting),\n    );\n    observer.observe(el);\n    const visibility = () => setHidden(document.hidden);\n    visibility();\n    document.addEventListener(\"visibilitychange\", visibility);\n    return () => {\n      observer.disconnect();\n      document.removeEventListener(\"visibilitychange\", visibility);\n    };\n  }, []);\n  return { ref, active: visible && !hidden };\n}\n\nexport function interactionIcon(\n  on: boolean,\n  reduced: boolean,\n): React.CSSProperties {\n  return {\n    opacity: on ? 1 : 0,\n    transform: on ? \"none\" : \"scale(0.6)\",\n    filter: on ? \"blur(0px)\" : \"blur(3px)\",\n    transition: reduced\n      ? \"none\"\n      : `opacity 220ms ${EASE_OUT}, transform 380ms ${EASE_OUT}, filter 220ms ${EASE_OUT}`,\n  };\n}\n\n/** Sample recent movement rather than averaging a long drag and losing its release velocity. */\nexport type PointerSample = { x: number; time: number };\nexport function samplePointer(\n  samples: PointerSample[],\n  x: number,\n  time: number,\n) {\n  samples.push({ x, time });\n  while (samples.length > 2 && time - samples[0].time > 100) samples.shift();\n}\nexport function releaseVelocity(samples: PointerSample[], now: number) {\n  if (samples.length < 2 || now - samples[samples.length - 1].time > 100)\n    return 0;\n  const first = samples[0],\n    last = samples[samples.length - 1];\n  return (last.x - first.x) / Math.max(1, last.time - first.time);\n}\n\n/** Smooth Apple/rational rubber-band curve: continuous exponential-like resistance without linear kinks. */\nexport function rubberBand(\n  overshoot: number,\n  dimension = 320,\n  constant = 0.55,\n): number {\n  const d = dimension || 320;\n  const abs = Math.abs(overshoot);\n  return Math.sign(overshoot) * (1 - 1 / ((abs * constant) / d + 1)) * d;\n}\n\n/** Projects resting travel from release velocity (velocity in px/ms; time in seconds). */\nexport function projectInertia(\n  distance: number,\n  velocity: number,\n  time = 0.12,\n): number {\n  return distance + velocity * 1000 * time;\n}\n\n/** Smooths incoming release velocity toward a boundary so springs don't slam or clip into walls. */\nexport function softenVelocity(\n  velocity: number,\n  distanceToTarget: number,\n  factor = 10,\n): number {\n  const maxAllowed = Math.abs(distanceToTarget) * factor;\n  return Math.sign(velocity) * Math.min(Math.abs(velocity), maxAllowed);\n}\n\n/** A damped spring sampled by WAAPI: tuned for organic lightness with a hint of life (3% breath). */\nexport function springFrames(\n  from: number,\n  to: number,\n  velocity = 0,\n  duration = 480,\n  config: { omega?: number; damping?: number; steps?: number } = {},\n) {\n  const { omega = 16, damping = 0.74, steps = 36 } = config;\n  const damped = omega * Math.sqrt(Math.max(0.001, 1 - damping * damping));\n  const displacement = from - to;\n  const coefficient =\n    (velocity * 1000 + damping * omega * displacement) / damped;\n  return Array.from({ length: steps + 1 }, (_, i) => {\n    const t = (i / steps) * (duration / 1000);\n    const value =\n      to +\n      Math.exp(-damping * omega * t) *\n        (displacement * Math.cos(damped * t) +\n          coefficient * Math.sin(damped * t));\n    return { value: i === steps ? to : value, offset: i / steps };\n  });\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "switch",
+      "exportName": "Switch",
+      "categories": [
+        "forms"
+      ],
+      "isNew": true,
+      "usage": "import { Switch } from \"@/components/switch\";\n\n<Switch\n  label=\"Weekly digest\"\n  description=\"A summary every Monday.\"\n  labelPosition=\"start\"\n  defaultChecked\n  onCheckedChange={(on) => saveSetting(\"digest\", on)}\n/>",
+      "accessibility": "- Reduced motion: the thumb moves at once and nothing shakes.\n- While pending, aria-busy is set and further presses are ignored.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "checked / defaultChecked",
+            "type": "boolean",
+            "description": "– · State."
+          },
+          {
+            "name": "onCheckedChange",
+            "type": "(checked) => void | Promise",
+            "description": "– · Return a promise for the pending thumb; reject to put it back."
+          },
+          {
+            "name": "label / description",
+            "type": "ReactNode",
+            "description": "– · Text beside the switch."
+          },
+          {
+            "name": "labelPosition",
+            "type": "\"start\" | \"end\"",
+            "description": "\"end\" · Label before or after."
+          },
+          {
+            "name": "size",
+            "type": "\"sm\" | \"md\"",
+            "description": "\"md\" · 16px or 20px tall."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Settings pages",
+            "description": "Notification and privacy toggles that save as you flip them."
+          },
+          {
+            "title": "Feature flags",
+            "description": "Turning a flag on in an admin panel with the request in flight."
+          },
+          {
+            "title": "Table rows",
+            "description": "An Active column you can flip inline."
+          },
+          {
+            "title": "Pricing",
+            "description": "A compact on/off beside an option."
+          }
+        ],
+        "features": [
+          {
+            "title": "Async without wiring",
+            "description": "Return a promise from onCheckedChange: pending spinner, then settled or thrown back."
+          },
+          {
+            "title": "Weight in the motion",
+            "description": "The thumb stretches 4px on press and is thrown with an overshoot (420ms)."
+          },
+          {
+            "title": "role=\"switch\"",
+            "description": "aria-checked and aria-busy, Space and Enter."
+          },
+          {
+            "title": "Label either side",
+            "description": "labelPosition=\"start\" for settings rows with the switch on the right."
+          }
+        ],
+        "states": [
+          {
+            "title": "off / on",
+            "description": "The thumb is thrown across (420ms, slight overshoot) and the primary fill fades in (260ms)."
+          },
+          {
+            "title": "press",
+            "description": "The thumb stretches 4px toward its next side."
+          },
+          {
+            "title": "pending",
+            "description": "The thumb shows a spinner; the switch ignores presses."
+          },
+          {
+            "title": "failed",
+            "description": "The thumb is thrown back and the track shakes (320ms)."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
