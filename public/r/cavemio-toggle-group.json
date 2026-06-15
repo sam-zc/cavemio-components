@@ -1,0 +1,115 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-toggle-group",
+  "title": "Toggle group",
+  "description": "On/off choices side by side whose fills merge: two pressed toggles next to each other square off their inner corners and read as one shape.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/toggle-group.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport {\n  EASE_OUT,\n  INTERACTION_FOCUS,\n  useInteractionReducedMotion,\n} from \"./imported-ui-interaction-motion\";\n\n/* ─────────────────────────────────────────────────────────\n * TOGGLE GROUP: several on/off choices side by side\n *\n *   press    each toggle fills when it's on and empties when off\n *   merge    toggles that are on next to each other join into one\n *            shape: the corners between them square off, so Bold +\n *            Italic read as one pill instead of two blobs\n *   single   <Toggle> on its own is one pressed/unpressed button\n *\n * For one choice out of several, use the segmented control.\n * ───────────────────────────────────────────────────────── */\n\nexport interface ToggleOption {\n  value: string;\n  label: string;\n  icon?: React.ReactNode;\n  /** Show only the icon; `label` becomes the accessible name. */\n  iconOnly?: boolean;\n  disabled?: boolean;\n}\n\nexport interface ToggleGroupProps {\n  options: ToggleOption[];\n  value?: string[];\n  defaultValue?: string[];\n  onValueChange?: (value: string[]) => void;\n  /** Accessible name of the group. */\n  label: string;\n  size?: \"sm\" | \"md\";\n  className?: string;\n}\n\nconst R = 999;\n\nexport function ToggleGroup({\n  options,\n  value,\n  defaultValue = [],\n  onValueChange,\n  label,\n  size = \"md\",\n  className = \"\",\n}: ToggleGroupProps) {\n  const reduced = useInteractionReducedMotion();\n  const [own, setOwn] = React.useState(defaultValue);\n  const on = value ?? own;\n  const sm = size === \"sm\";\n\n  const flip = (v: string) => {\n    const next = on.includes(v) ? on.filter((x) => x !== v) : [...on, v];\n    if (value === undefined) setOwn(next);\n    onValueChange?.(next);\n  };\n\n  return (\n    <div\n      role=\"group\"\n      aria-label={label}\n      className={`inline-flex items-center rounded-full bg-card p-0.5 shadow-[inset_0_0_0_1px_var(--border)] ${className}`}\n    >\n      {options.map((o, i) => {\n        const pressed = on.includes(o.value);\n        const left = pressed && on.includes(options[i - 1]?.value ?? \"\");\n        const right = pressed && on.includes(options[i + 1]?.value ?? \"\");\n        return (\n          <button\n            key={o.value}\n            type=\"button\"\n            aria-pressed={pressed}\n            aria-label={o.iconOnly ? o.label : undefined}\n            disabled={o.disabled}\n            onClick={() => flip(o.value)}\n            className={`group/tg relative inline-flex shrink-0 items-center justify-center gap-1.5 font-medium cursor-pointer disabled:cursor-default disabled:opacity-40 [&_svg]:size-3.5 ${\n              sm ? \"h-6 text-[12px]\" : \"h-8 text-[13px]\"\n            } ${o.iconOnly ? (sm ? \"w-6\" : \"w-8\") : sm ? \"px-2.5\" : \"px-3\"} rounded-full ${pressed ? \"text-foreground\" : \"text-muted-foreground hover:text-foreground\"} ${INTERACTION_FOCUS}`}\n          >\n            {/* The fill: corners next to another pressed toggle square off so they read as one. */}\n            <span\n              aria-hidden=\"true\"\n              className=\"absolute inset-0 bg-[color-mix(in_oklab,var(--foreground)_9%,transparent)] transition-[scale] duration-200 group-active/tg:scale-[0.96] motion-reduce:group-active/tg:scale-100\"\n              style={{\n                opacity: pressed ? 1 : 0,\n                borderTopLeftRadius: left ? 4 : R,\n                borderBottomLeftRadius: left ? 4 : R,\n                borderTopRightRadius: right ? 4 : R,\n                borderBottomRightRadius: right ? 4 : R,\n                transition: reduced\n                  ? \"none\"\n                  : `opacity 220ms ${EASE_OUT}, border-radius 320ms ${EASE_OUT}, scale 200ms ${EASE_OUT}`,\n              }}\n            />\n            <span className=\"relative inline-flex items-center gap-1.5\">\n              {o.icon}\n              {!o.iconOnly && o.label}\n            </span>\n          </button>\n        );\n      })}\n    </div>\n  );\n}\n\nexport interface ToggleProps extends Omit<\n  React.ButtonHTMLAttributes<HTMLButtonElement>,\n  \"onChange\"\n> {\n  pressed?: boolean;\n  defaultPressed?: boolean;\n  onPressedChange?: (pressed: boolean) => void;\n  size?: \"sm\" | \"md\";\n}\n\n/** One pressed/unpressed button. Icon-only toggles need an aria-label. */\nexport function Toggle({\n  pressed: controlled,\n  defaultPressed = false,\n  onPressedChange,\n  size = \"md\",\n  className = \"\",\n  children,\n  onClick,\n  ...props\n}: ToggleProps) {\n  const reduced = useInteractionReducedMotion();\n  const [own, setOwn] = React.useState(defaultPressed);\n  const pressed = controlled ?? own;\n  return (\n    <button\n      type=\"button\"\n      aria-pressed={pressed}\n      onClick={(e) => {\n        onClick?.(e);\n        if (e.defaultPrevented) return;\n        if (controlled === undefined) setOwn(!pressed);\n        onPressedChange?.(!pressed);\n      }}\n      className={`group/tg relative inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full font-medium cursor-pointer disabled:cursor-default disabled:opacity-40 [&_svg]:size-3.5 ${\n        size === \"sm\"\n          ? \"h-7 min-w-7 px-2 text-[12px]\"\n          : \"h-9 min-w-9 px-2.5 text-[13px]\"\n      } ${pressed ? \"text-foreground\" : \"text-muted-foreground hover:bg-accent/50 hover:text-foreground\"} ${INTERACTION_FOCUS} ${className}`}\n      {...props}\n    >\n      <span\n        aria-hidden=\"true\"\n        className=\"absolute inset-0 rounded-full bg-accent shadow-[inset_0_0_0_1px_var(--border)] transition-[scale] duration-200 group-active/tg:scale-[0.94] motion-reduce:group-active/tg:scale-100\"\n        style={{\n          opacity: pressed ? 1 : 0,\n          transition: reduced\n            ? \"none\"\n            : `opacity 220ms ${EASE_OUT}, scale 200ms ${EASE_OUT}`,\n        }}\n      />\n      <span className=\"relative inline-flex items-center gap-1.5\">\n        {children}\n      </span>\n    </button>\n  );\n}\n\nexport default ToggleGroup;\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/imported-ui-interaction-motion.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport const EASE_OUT = \"cubic-bezier(0.16, 1, 0.3, 1)\";\nexport const EASE_SETTLE = \"cubic-bezier(0.22, 1.18, 0.36, 1)\";\n/** Thrown things (indicators, thumbs): a slight overshoot on transform only. */\nexport const EASE_THROW = \"cubic-bezier(0.34, 1.36, 0.64, 1)\";\n/**\n * The press every button primitive shares: a 3% give that eases in and settles back.\n * Tailwind v4's scale-* writes the `scale` property, so `scale` has to be in the list\n * or the press snaps.\n */\nexport const INTERACTION_PRESS =\n  \"transition-[background-color,color,box-shadow,opacity,scale] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100\";\nexport const INTERACTION_FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background\";\n\nconst query = \"(prefers-reduced-motion: reduce)\";\nconst subscribe = (notify: () => void) => {\n  const media = window.matchMedia(query);\n  media.addEventListener(\"change\", notify);\n  return () => media.removeEventListener(\"change\", notify);\n};\nexport const useInteractionReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false,\n  );\n\nexport function useInteractionActivity<T extends Element>() {\n  const ref = React.useRef<T>(null);\n  const [visible, setVisible] = React.useState(false);\n  const [hidden, setHidden] = React.useState(false);\n  React.useEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(([entry]) =>\n      setVisible(entry.isIntersecting),\n    );\n    observer.observe(el);\n    const visibility = () => setHidden(document.hidden);\n    visibility();\n    document.addEventListener(\"visibilitychange\", visibility);\n    return () => {\n      observer.disconnect();\n      document.removeEventListener(\"visibilitychange\", visibility);\n    };\n  }, []);\n  return { ref, active: visible && !hidden };\n}\n\nexport function interactionIcon(\n  on: boolean,\n  reduced: boolean,\n): React.CSSProperties {\n  return {\n    opacity: on ? 1 : 0,\n    transform: on ? \"none\" : \"scale(0.6)\",\n    filter: on ? \"blur(0px)\" : \"blur(3px)\",\n    transition: reduced\n      ? \"none\"\n      : `opacity 220ms ${EASE_OUT}, transform 380ms ${EASE_OUT}, filter 220ms ${EASE_OUT}`,\n  };\n}\n\n/** Sample recent movement rather than averaging a long drag and losing its release velocity. */\nexport type PointerSample = { x: number; time: number };\nexport function samplePointer(\n  samples: PointerSample[],\n  x: number,\n  time: number,\n) {\n  samples.push({ x, time });\n  while (samples.length > 2 && time - samples[0].time > 100) samples.shift();\n}\nexport function releaseVelocity(samples: PointerSample[], now: number) {\n  if (samples.length < 2 || now - samples[samples.length - 1].time > 100)\n    return 0;\n  const first = samples[0],\n    last = samples[samples.length - 1];\n  return (last.x - first.x) / Math.max(1, last.time - first.time);\n}\n\n/** Smooth Apple/rational rubber-band curve: continuous exponential-like resistance without linear kinks. */\nexport function rubberBand(\n  overshoot: number,\n  dimension = 320,\n  constant = 0.55,\n): number {\n  const d = dimension || 320;\n  const abs = Math.abs(overshoot);\n  return Math.sign(overshoot) * (1 - 1 / ((abs * constant) / d + 1)) * d;\n}\n\n/** Projects resting travel from release velocity (velocity in px/ms; time in seconds). */\nexport function projectInertia(\n  distance: number,\n  velocity: number,\n  time = 0.12,\n): number {\n  return distance + velocity * 1000 * time;\n}\n\n/** Smooths incoming release velocity toward a boundary so springs don't slam or clip into walls. */\nexport function softenVelocity(\n  velocity: number,\n  distanceToTarget: number,\n  factor = 10,\n): number {\n  const maxAllowed = Math.abs(distanceToTarget) * factor;\n  return Math.sign(velocity) * Math.min(Math.abs(velocity), maxAllowed);\n}\n\n/** A damped spring sampled by WAAPI: tuned for organic lightness with a hint of life (3% breath). */\nexport function springFrames(\n  from: number,\n  to: number,\n  velocity = 0,\n  duration = 480,\n  config: { omega?: number; damping?: number; steps?: number } = {},\n) {\n  const { omega = 16, damping = 0.74, steps = 36 } = config;\n  const damped = omega * Math.sqrt(Math.max(0.001, 1 - damping * damping));\n  const displacement = from - to;\n  const coefficient =\n    (velocity * 1000 + damping * omega * displacement) / damped;\n  return Array.from({ length: steps + 1 }, (_, i) => {\n    const t = (i / steps) * (duration / 1000);\n    const value =\n      to +\n      Math.exp(-damping * omega * t) *\n        (displacement * Math.cos(damped * t) +\n          coefficient * Math.sin(damped * t));\n    return { value: i === steps ? to : value, offset: i / steps };\n  });\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "toggle-group",
+      "exportName": "ToggleGroup",
+      "categories": [
+        "display"
+      ],
+      "isNew": true,
+      "usage": "import { ToggleGroup } from \"@/components/toggle-group\";\n\n<ToggleGroup label=\"Format\" defaultValue={[\"bold\"]} options={[\n  { value: \"bold\", label: \"Bold\", icon: <Bold />, iconOnly: true },\n  { value: \"italic\", label: \"Italic\", icon: <Italic />, iconOnly: true },\n]} />",
+      "accessibility": "- For one choice, use the segmented control.\n- Reduced motion: fills and corners change at once.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "options",
+            "type": "ToggleOption[]",
+            "description": "– · value, label, icon, iconOnly, disabled."
+          },
+          {
+            "name": "value / defaultValue",
+            "type": "string[]",
+            "description": "– · Pressed values."
+          },
+          {
+            "name": "onValueChange",
+            "type": "(value: string[]) => void",
+            "description": "– · Called on change."
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "description": "– · Accessible name."
+          },
+          {
+            "name": "size",
+            "type": "\"sm\" | \"md\"",
+            "description": "\"md\" · 28px or 36px bar."
+          },
+          {
+            "name": "Toggle",
+            "type": "{ pressed, defaultPressed, onPressedChange }",
+            "description": "– · One toggle button."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Text formatting",
+            "description": "Bold, italic, underline together."
+          },
+          {
+            "title": "Filters",
+            "description": "Several categories on at once."
+          },
+          {
+            "title": "Days of the week",
+            "description": "Pick the days a schedule runs."
+          },
+          {
+            "title": "View options",
+            "description": "Show grid, show rulers."
+          }
+        ],
+        "features": [
+          {
+            "title": "Merging fills",
+            "description": "Inner corners ease from round to 4px (320ms)."
+          },
+          {
+            "title": "aria-pressed",
+            "description": "Each toggle is a real pressed button."
+          },
+          {
+            "title": "Icons or words",
+            "description": "iconOnly options keep their label as the name."
+          },
+          {
+            "title": "Toggle",
+            "description": "A single pressed/unpressed button with the same look."
+          }
+        ],
+        "states": [
+          {
+            "title": "press",
+            "description": "The fill fades in (220ms); it gives under the finger."
+          },
+          {
+            "title": "merge",
+            "description": "Corners shared with a pressed neighbour square off (320ms)."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
