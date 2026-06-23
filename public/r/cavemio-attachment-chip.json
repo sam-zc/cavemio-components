@@ -1,0 +1,177 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-attachment-chip",
+  "title": "Attachment chip",
+  "description": "A file on its way into a prompt: uploading, being read, ready or failed.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/attachment-chip.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport {\n  AlertCircle,\n  File,\n  FileCode,\n  FileText,\n  Image as ImageIcon,\n  X,\n} from \"lucide-react\";\nimport { NumberRoll } from \"./number-roll\";\nimport { TextMorph } from \"./text-morph\";\n\n/* ─────────────────────────────────────────────────────────\n * ATTACHMENT CHIP: a file on its way into a prompt\n *\n *   uploading   a progress ring fills around the file icon and\n *               \"Uploading 42%\" rolls\n *   processing  the ring fades; the line morphs to \"Reading\"\n *               under a sweep of light\n *   ready       it morphs again into type and size; can be removed\n *   error       the icon blurs into an alert, the line morphs to\n *               what went wrong, and Retry opens in\n *\n * Images show a thumbnail. The remove button appears on hover or\n * focus, and is always visible on touch screens.\n * ───────────────────────────────────────────────────────── */\n\nexport type AttachmentStatus = \"uploading\" | \"processing\" | \"ready\" | \"error\";\n\nexport interface AttachmentChipProps extends React.HTMLAttributes<HTMLDivElement> {\n  name: string;\n  /** Size in bytes. */\n  size?: number;\n  /** MIME type, e.g. \"application/pdf\". Picks the icon. */\n  type?: string;\n  /** Thumbnail URL for images, e.g. from URL.createObjectURL(file). */\n  previewUrl?: string;\n  status?: AttachmentStatus;\n  /** Upload progress, 0 to 1. */\n  progress?: number;\n  error?: string;\n  onRemove?: () => void;\n  onRetry?: () => void;\n}\n\nconst FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40\";\nconst MORPH = \"cubic-bezier(0.16,1,0.3,1)\";\n// A light that sweeps across the label. A mask, not a text clip, so it reaches letters that are mid-morph.\nconst SHEEN =\n  \"text-foreground [mask-image:linear-gradient(90deg,rgb(0_0_0/0.45)_35%,#000_50%,rgb(0_0_0/0.45)_65%)] [mask-size:200%_100%] animate-[ui-sheen_1.4s_linear_infinite] motion-reduce:animate-none motion-reduce:[mask-image:none] motion-reduce:text-foreground/70\";\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\n/** Icons trade places through a blur: the old one shrinks away as the new one grows in. */\nconst swap = (on: boolean, reduced: boolean): React.CSSProperties => ({\n  opacity: on ? 1 : 0,\n  transform: on ? \"none\" : \"scale(0.6)\",\n  filter: on ? \"none\" : \"blur(3px)\",\n  transition: reduced\n    ? \"none\"\n    : `opacity 260ms ${MORPH}, transform 380ms ${MORPH}, filter 260ms ${MORPH}`,\n});\n\n/** A piece of a line that opens out of nothing and folds back into it. */\nfunction Reveal({\n  show,\n  reduced,\n  children,\n}: {\n  show: boolean;\n  reduced: boolean;\n  children: React.ReactNode;\n}) {\n  return (\n    <span\n      aria-hidden={!show || undefined}\n      className=\"grid shrink-0\"\n      style={{\n        gridTemplateColumns: show ? \"1fr\" : \"0fr\",\n        opacity: show ? 1 : 0,\n        transition: reduced\n          ? \"none\"\n          : `grid-template-columns 420ms ${MORPH}, opacity ${show ? \"300ms\" : \"160ms\"} ${MORPH}`,\n      }}\n    >\n      <span className=\"flex min-w-0 items-baseline whitespace-nowrap [clip-path:inset(-4px_-2px)]\">\n        {children}\n      </span>\n    </span>\n  );\n}\n\nfunction formatBytes(bytes: number) {\n  if (bytes < 1024) return `${bytes} B`;\n  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;\n  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;\n}\n\nfunction extension(name: string) {\n  const dot = name.lastIndexOf(\".\");\n  return dot > 0 ? name.slice(dot + 1).toUpperCase() : \"FILE\";\n}\n\nfunction TypeIcon({ type, name }: { type?: string; name: string }) {\n  const t = type ?? \"\";\n  if (t.startsWith(\"image/\")) return <ImageIcon className=\"size-4\" />;\n  if (\n    t === \"application/pdf\" ||\n    t.startsWith(\"text/\") ||\n    /\\.(pdf|txt|md|docx?)$/i.test(name)\n  )\n    return <FileText className=\"size-4\" />;\n  if (/\\.(tsx?|jsx?|py|go|rs|json|css|html)$/i.test(name))\n    return <FileCode className=\"size-4\" />;\n  return <File className=\"size-4\" />;\n}\n\nexport function AttachmentChip({\n  name,\n  size,\n  type,\n  previewUrl,\n  status = \"ready\",\n  progress = 0,\n  error,\n  onRemove,\n  onRetry,\n  className = \"\",\n  ...props\n}: AttachmentChipProps) {\n  const reduced = useReducedMotion();\n  const pct = Math.round(Math.min(1, Math.max(0, progress)) * 100);\n  const circumference = 2 * Math.PI * 16;\n  const failed = status === \"error\";\n\n  // One line for the whole journey: it morphs from \"Uploading\" to \"Reading\" to \"PDF · 2.4 MB\" (or the error).\n  const line =\n    status === \"uploading\"\n      ? \"Uploading\"\n      : status === \"processing\"\n        ? \"Reading\"\n        : failed\n          ? (error ?? \"Upload failed\")\n          : `${extension(name)}${size !== undefined ? ` · ${formatBytes(size)}` : \"\"}`;\n  const spoken =\n    status === \"uploading\"\n      ? `Uploading ${name}`\n      : status === \"processing\"\n        ? `Reading ${name}`\n        : failed\n          ? `${name}: ${error ?? \"Upload failed\"}`\n          : `${name} is ready`;\n\n  return (\n    <div\n      className={`group relative inline-flex h-12 max-w-[260px] items-center gap-2.5 rounded-xl border bg-background pl-1.5 pr-3 animate-[ui-fade-up_260ms_cubic-bezier(0.23,1,0.32,1)_both] motion-reduce:animate-none ${\n        failed ? \"border-red-500/40\" : \"border-border\"\n      } ${className}`}\n      {...props}\n    >\n      <span className=\"relative flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted text-muted-foreground\">\n        <span\n          className=\"absolute inset-0 flex items-center justify-center\"\n          style={swap(!failed, reduced)}\n        >\n          {previewUrl ? (\n            <img\n              src={previewUrl}\n              alt=\"\"\n              className={`size-full object-cover transition-opacity duration-300 ${status === \"ready\" ? \"opacity-100\" : \"opacity-50\"}`}\n            />\n          ) : (\n            <TypeIcon type={type} name={name} />\n          )}\n        </span>\n        <span\n          className=\"absolute inset-0 flex items-center justify-center\"\n          style={swap(failed, reduced)}\n        >\n          <AlertCircle className=\"size-4 text-red-500\" />\n        </span>\n        {/* The ring fills while it uploads, then fades rather than vanishing. */}\n        <svg\n          aria-hidden=\"true\"\n          viewBox=\"0 0 36 36\"\n          className=\"absolute inset-0 size-full -rotate-90\"\n          style={{\n            opacity: status === \"uploading\" ? 1 : 0,\n            transition: reduced ? \"none\" : `opacity 360ms ${MORPH}`,\n          }}\n        >\n          <circle\n            cx=\"18\"\n            cy=\"18\"\n            r=\"16\"\n            fill=\"none\"\n            strokeWidth=\"2\"\n            className=\"stroke-border\"\n          />\n          <circle\n            cx=\"18\"\n            cy=\"18\"\n            r=\"16\"\n            fill=\"none\"\n            strokeWidth=\"2\"\n            strokeLinecap=\"round\"\n            strokeDasharray={circumference}\n            strokeDashoffset={\n              circumference * (1 - (status === \"uploading\" ? pct : 100) / 100)\n            }\n            className=\"stroke-foreground transition-[stroke-dashoffset] duration-300 motion-reduce:transition-none\"\n          />\n        </svg>\n      </span>\n\n      <span className=\"min-w-0\">\n        <span className=\"block truncate text-[12.5px] font-medium leading-4 text-foreground\">\n          {name}\n        </span>\n        <span\n          className={`mt-0.5 flex min-w-0 items-baseline text-[11.5px] leading-4 transition-colors duration-300 ${failed ? \"text-red-500\" : \"text-muted-foreground\"}`}\n        >\n          <span\n            aria-hidden=\"true\"\n            className={`min-w-0 truncate ${status === \"processing\" ? SHEEN : \"\"}`}\n          >\n            <TextMorph>{line}</TextMorph>\n          </span>\n          <Reveal show={status === \"uploading\"} reduced={reduced}>\n            &nbsp;\n            <span aria-hidden=\"true\" className=\"tabular-nums\">\n              <NumberRoll value={pct} suffix=\"%\" duration={400} />\n            </span>\n          </Reveal>\n          {onRetry && (\n            <Reveal show={failed} reduced={reduced}>\n              <span aria-hidden=\"true\">&nbsp;·&nbsp;</span>\n              <button\n                type=\"button\"\n                inert={!failed}\n                onClick={onRetry}\n                className={`cursor-pointer rounded font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground ${FOCUS}`}\n              >\n                Retry\n              </button>\n            </Reveal>\n          )}\n        </span>\n        {/* Announces each step, never every percent. */}\n        <span role=\"status\" aria-live=\"polite\" className=\"sr-only\">\n          {spoken}\n        </span>\n      </span>\n\n      {onRemove && (\n        <button\n          type=\"button\"\n          aria-label={`Remove ${name}`}\n          onClick={onRemove}\n          className={`cursor-pointer absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full border border-border bg-background text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100 ${FOCUS}`}\n        >\n          <X className=\"size-3\" />\n        </button>\n      )}\n    </div>\n  );\n}\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/number-roll.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * NUMBER ROLL: numbers that change like an odometer\n *\n *   rolling   each digit is a column that rolls to its new\n *             value, in the direction the number moved: going\n *             up, a 9 rolls on to 0 instead of spinning back\n *   places    new places slide open from nothing; lost ones\n *             fold away\n *   format    anything Intl.NumberFormat does: currency,\n *             percent, compact (\"1.2K\"), decimals\n *\n * The real number is always there as text for screen readers\n * and copy and paste; the columns are only what you see.\n * ───────────────────────────────────────────────────────── */\n\nexport interface NumberRollProps extends Omit<\n  React.HTMLAttributes<HTMLSpanElement>,\n  \"children\"\n> {\n  value: number;\n  /** Intl.NumberFormat options, e.g. { style: \"currency\", currency: \"USD\" }. */\n  format?: Intl.NumberFormatOptions;\n  locales?: string | string[];\n  prefix?: string;\n  suffix?: string;\n  /** Start from this value and roll to `value` once mounted, e.g. 0 for stats. */\n  from?: number;\n  /** Roll duration in ms. */\n  duration?: number;\n  /** Always roll this way, e.g. \"down\" for a countdown's seconds, which wrap from 00 to 59. Defaults to the way the number moved. */\n  direction?: \"up\" | \"down\";\n}\n\ntype Column = { key: string; char: string; digit: number | null };\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\nconst SETS = 5; // the strip repeats 0–9 five times so a roll never runs out of digits\nconst MIDDLE = 20;\n/** The strip as one text node, a digit a line: fifty lines, but one element to lay out instead of fifty. */\nconst STRIP = Array.from({ length: SETS * 10 }, (_, i) => i % 10).join(\"\\n\");\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\n/** Digits are keyed by their place counted from the right, so the units column stays the units column. */\nfunction columns(text: string): Column[] {\n  const chars = [...text];\n  const seen = new Map<string, number>();\n  let place = 0;\n  const out: Column[] = [];\n  for (let i = chars.length - 1; i >= 0; i--) {\n    const char = chars[i];\n    if (/\\d/.test(char))\n      out.push({ key: `d${place++}`, char, digit: Number(char) });\n    else {\n      // Symbols are keyed by how many of the same symbol sit to their right, so a comma that shifts is the same comma.\n      const n = seen.get(char) ?? 0;\n      seen.set(char, n + 1);\n      out.push({ key: `s${char}${n}`, char, digit: null });\n    }\n  }\n  return out.reverse();\n}\n\n// Memoised: a parent that re-renders with the same number doesn't rebuild the strips.\nconst Digit = React.memo(function Digit({\n  digit,\n  trend,\n  duration,\n  reduced,\n  rollIn,\n}: {\n  digit: number;\n  trend: number;\n  duration: number;\n  reduced: boolean;\n  rollIn: boolean;\n}) {\n  const [pos, setPos] = React.useState(MIDDLE + (rollIn ? 0 : digit));\n  const [moving, setMoving] = React.useState(false);\n  const posRef = React.useRef(pos);\n  const stripRef = React.useRef<HTMLSpanElement>(null);\n\n  React.useLayoutEffect(() => {\n    const current = posRef.current;\n    const showing = ((current % 10) + 10) % 10;\n    if (showing === digit) return;\n    if (reduced) {\n      posRef.current = MIDDLE + digit;\n      setMoving(false);\n      setPos(MIDDLE + digit);\n      return;\n    }\n    const up = trend > 0 || (trend === 0 && digit > showing);\n    let target = up\n      ? current + ((digit - showing + 10) % 10)\n      : current - ((showing - digit + 10) % 10);\n    // Values arriving faster than a roll (a progress percent) never let it re-centre, so before it runs off the strip,\n    // jump the strip back by whole sets mid-roll (it looks identical) and roll on from there.\n    if (target < 10 || target > SETS * 10 - 11) {\n      const shift = Math.round((target - MIDDLE) / 10) * 10;\n      const strip = stripRef.current;\n      if (strip?.offsetHeight) {\n        let visual = current;\n        try {\n          visual =\n            -new DOMMatrixReadOnly(getComputedStyle(strip).transform).m42 /\n            (strip.offsetHeight / (SETS * 10));\n        } catch {}\n        const transition = strip.style.transition;\n        strip.style.transition = \"none\";\n        strip.style.transform = `translateY(${(-(visual - shift) * 100) / (SETS * 10)}%)`;\n        void strip.offsetHeight;\n        strip.style.transition = transition;\n      }\n      target -= shift;\n    }\n    posRef.current = target;\n    setMoving(true);\n    setPos(target);\n  }, [digit, trend, reduced]);\n\n  // After a roll, quietly re-centre on the middle set so the next roll always has room.\n  const settle = () => {\n    const centred = MIDDLE + (((posRef.current % 10) + 10) % 10);\n    posRef.current = centred;\n    setMoving(false);\n    setPos(centred);\n  };\n\n  return (\n    <span className=\"relative inline-block [clip-path:inset(0)]\">\n      <span className=\"invisible\">{digit}</span>\n      <span\n        ref={stripRef}\n        aria-hidden=\"true\"\n        onTransitionEnd={settle}\n        className=\"absolute inset-x-0 top-0 block whitespace-pre text-center\"\n        style={{\n          transform: `translateY(${(-pos * 100) / (SETS * 10)}%)`,\n          transition: moving ? `transform ${duration}ms ${EASE}` : \"none\",\n        }}\n      >\n        {STRIP}\n      </span>\n    </span>\n  );\n});\n\n/** A place that appeared after the first paint slides open; places that were there from the start just sit. */\nfunction Place({\n  enter,\n  children,\n}: {\n  enter: boolean;\n  children: React.ReactNode;\n}) {\n  const [entering] = React.useState(enter);\n  return (\n    <span\n      className={`inline-block ${entering ? \"[clip-path:inset(0)] animate-[ui-col-in_500ms_cubic-bezier(0.16,1,0.3,1)_both]\" : \"\"}`}\n    >\n      {children}\n    </span>\n  );\n}\n\nexport function NumberRoll({\n  value,\n  format,\n  locales,\n  prefix = \"\",\n  suffix = \"\",\n  from,\n  duration = 900,\n  direction,\n  className = \"\",\n  ...props\n}: NumberRollProps) {\n  const reduced = useReducedMotion();\n  const [shown, setShown] = React.useState(from ?? value);\n  const previous = React.useRef(shown);\n  const mounted = React.useRef(false);\n\n  // Roll from `from` to the real value once on screen (a frame later, so the start is painted).\n  React.useEffect(() => {\n    const frame = requestAnimationFrame(() => setShown(value));\n    return () => cancelAnimationFrame(frame);\n  }, [value]);\n\n  React.useEffect(() => {\n    mounted.current = true;\n  }, []);\n\n  const formatter = React.useMemo(\n    () => new Intl.NumberFormat(locales, format),\n    [locales, format && JSON.stringify(format)],\n  );\n  const text = `${prefix}${formatter.format(shown)}${suffix}`;\n  const cols = React.useMemo(() => columns(text), [text]);\n  const trend =\n    direction === \"up\"\n      ? 1\n      : direction === \"down\"\n        ? -1\n        : Math.sign(shown - previous.current);\n\n  // Places that disappear fold away instead of vanishing.\n  const [leaving, setLeaving] = React.useState<Column[]>([]);\n  const lastCols = React.useRef(cols);\n  React.useLayoutEffect(() => {\n    const gone = lastCols.current.filter(\n      (c) => !cols.some((n) => n.key === c.key),\n    );\n    lastCols.current = cols;\n    previous.current = shown;\n    if (!gone.length || reduced) return;\n    setLeaving(gone);\n    const timer = window.setTimeout(() => setLeaving([]), 420);\n    return () => window.clearTimeout(timer);\n  }, [cols, shown, reduced]);\n\n  return (\n    <span className={`inline-flex tabular-nums ${className}`} {...props}>\n      <span className=\"sr-only\">{`${prefix}${formatter.format(value)}${suffix}`}</span>\n      <span\n        aria-hidden=\"true\"\n        className=\"inline-flex items-baseline whitespace-pre\"\n      >\n        {leaving.map((c) => (\n          <span\n            key={`out-${c.key}`}\n            className=\"inline-block [clip-path:inset(0)] animate-[ui-col-out_400ms_cubic-bezier(0.16,1,0.3,1)_forwards]\"\n          >\n            {c.char}\n          </span>\n        ))}\n        {cols.map((c) => (\n          <Place key={c.key} enter={mounted.current && !reduced}>\n            {c.digit === null ? (\n              c.char\n            ) : (\n              <Digit\n                digit={c.digit}\n                trend={trend}\n                duration={duration}\n                reduced={reduced}\n                rollIn={mounted.current}\n              />\n            )}\n          </Place>\n        ))}\n      </span>\n    </span>\n  );\n}\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/text-morph.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * TEXT MORPH: text that changes the way it should\n *\n *   shared   letters both texts share stay alive and slide to\n *            their new place (\"Save\" → \"Saving\" keeps \"Sav\")\n *   new      letters that weren't there rise in out of a blur,\n *            one after another\n *   gone     letters that leave lift away and blur out where\n *            they stood\n *   width    the box eases to its new width, so a button or\n *            pill holding it resizes with it\n *\n * Texts with little in common crossfade as a whole instead of\n * flinging single letters across. The real text is always\n * there for screen readers.\n * ───────────────────────────────────────────────────────── */\n\nexport interface TextMorphProps extends Omit<\n  React.HTMLAttributes<HTMLSpanElement>,\n  \"children\"\n> {\n  children: string;\n  /** Morph time in ms. */\n  duration?: number;\n  /** Where new letters come from: below (\"up\") or above (\"down\"). */\n  direction?: \"up\" | \"down\";\n  /** Ease the box's width too; turn off for text that wraps. */\n  animateWidth?: boolean;\n}\n\ntype Glyph = { key: number; char: string };\ntype Leaving = Glyph & { x: number; y: number };\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\n/** Keep the letters two texts share (longest common subsequence); everything else is new. */\nfunction morph(\n  previous: Glyph[],\n  text: string,\n  nextKey: () => number,\n): Glyph[] {\n  const a = previous.map((g) => g.char);\n  const b = Array.from(text);\n  const fresh = () => b.map((char) => ({ key: nextKey(), char }));\n  if (!a.length || !b.length) return fresh();\n\n  const dp = Array.from(\n    { length: a.length + 1 },\n    () => new Uint16Array(b.length + 1),\n  );\n  for (let i = a.length - 1; i >= 0; i--)\n    for (let j = b.length - 1; j >= 0; j--)\n      dp[i][j] =\n        a[i] === b[j]\n          ? dp[i + 1][j + 1] + 1\n          : Math.max(dp[i + 1][j], dp[i][j + 1]);\n\n  // Too little in common reads as two different words: crossfade them instead.\n  if (dp[0][0] < Math.min(a.length, b.length) * 0.5) return fresh();\n\n  const out: Glyph[] = [];\n  let i = 0;\n  let j = 0;\n  while (j < b.length) {\n    if (i < a.length && a[i] === b[j]) {\n      out.push(previous[i++]);\n      j++;\n    } else if (i < a.length && dp[i + 1][j] >= dp[i][j + 1]) i++;\n    else out.push({ key: nextKey(), char: b[j++] });\n  }\n  return out;\n}\n\nfunction LeavingGlyph({\n  glyph,\n  lift,\n  duration,\n  onDone,\n}: {\n  glyph: Leaving;\n  lift: number;\n  duration: number;\n  onDone: (key: number) => void;\n}) {\n  const ref = React.useRef<HTMLSpanElement>(null);\n  React.useLayoutEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const animation = el.animate(\n      [\n        { opacity: 1, filter: \"blur(0px)\", transform: \"none\" },\n        { opacity: 0, filter: \"blur(4px)\", transform: `translateY(${lift}em)` },\n      ],\n      { duration: duration * 0.6, easing: EASE, fill: \"forwards\" },\n    );\n    animation.onfinish = () => onDone(glyph.key);\n    return () => animation.cancel();\n  }, [glyph.key, lift, duration, onDone]);\n  return (\n    <span\n      ref={ref}\n      aria-hidden=\"true\"\n      className=\"pointer-events-none absolute whitespace-pre\"\n      style={{ left: glyph.x, top: glyph.y }}\n    >\n      {glyph.char}\n    </span>\n  );\n}\n\nexport function TextMorph({\n  children: text,\n  duration = 460,\n  direction = \"up\",\n  animateWidth = true,\n  className = \"\",\n  ...props\n}: TextMorphProps) {\n  const reduced = useReducedMotion();\n  const counter = React.useRef(text.length);\n  const nextKey = React.useCallback(() => ++counter.current, []);\n  const [glyphs, setGlyphs] = React.useState<Glyph[]>(() =>\n    Array.from(text).map((char, i) => ({ key: i + 1, char })),\n  );\n  const [leaving, setLeaving] = React.useState<Leaving[]>([]);\n  const rootRef = React.useRef<HTMLSpanElement>(null);\n  const els = React.useRef(new Map<number, HTMLSpanElement>());\n  const before = React.useRef<{\n    at: Map<number, { x: number; y: number }>;\n    width: number;\n  } | null>(null);\n  const rise = direction === \"up\" ? 0.35 : -0.35;\n\n  // A preference change must also finish an in-flight morph whose target text\n  // already matches the glyphs (including the empty label in a folded receipt).\n  React.useLayoutEffect(() => {\n    if (!reduced) return;\n    before.current = null;\n    const root = rootRef.current;\n    root\n      ?.getAnimations({ subtree: true })\n      .forEach((animation) => animation.cancel());\n    if (root) root.style.whiteSpace = \"\";\n    setLeaving((previous) => (previous.length ? [] : previous));\n  }, [reduced]);\n\n  // 1. The text changed: note where every letter stands, then work out which letters stay.\n  React.useLayoutEffect(() => {\n    if (text === glyphs.map((g) => g.char).join(\"\")) return;\n    const root = rootRef.current;\n    if (!root || reduced) {\n      setLeaving([]);\n      setGlyphs(Array.from(text).map((char) => ({ key: nextKey(), char })));\n      return;\n    }\n    const box = root.getBoundingClientRect();\n    const at = new Map<number, { x: number; y: number }>();\n    els.current.forEach((el, key) => {\n      const r = el.getBoundingClientRect();\n      at.set(key, { x: r.left - box.left, y: r.top - box.top });\n    });\n    before.current = { at, width: box.width };\n    const next = morph(glyphs, text, nextKey);\n    const kept = new Set(next.map((g) => g.key));\n    setLeaving((l) => [\n      ...l,\n      ...glyphs\n        .filter((g) => !kept.has(g.key))\n        .map((g) => ({ ...g, ...(at.get(g.key) ?? { x: 0, y: 0 }) })),\n    ]);\n    setGlyphs(next);\n  }, [text, reduced]);\n\n  // 2. The new letters are in place: glide the ones that stayed, raise the new ones, ease the width.\n  React.useLayoutEffect(() => {\n    const prev = before.current;\n    const root = rootRef.current;\n    if (!prev || !root) return;\n    before.current = null;\n    const box = root.getBoundingClientRect();\n    let order = 0;\n    for (const g of glyphs) {\n      const el = els.current.get(g.key);\n      if (!el) continue;\n      const from = prev.at.get(g.key);\n      if (from) {\n        const r = el.getBoundingClientRect();\n        const dx = from.x - (r.left - box.left);\n        const dy = from.y - (r.top - box.top);\n        if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5)\n          el.animate(\n            [\n              { transform: `translate(${dx}px, ${dy}px)` },\n              { transform: \"none\" },\n            ],\n            { duration, easing: EASE },\n          );\n      } else {\n        el.animate(\n          [\n            {\n              opacity: 0,\n              filter: \"blur(4px)\",\n              transform: `translateY(${rise}em)`,\n            },\n            { opacity: 1, filter: \"blur(0px)\", transform: \"none\" },\n          ],\n          {\n            duration,\n            easing: EASE,\n            delay: Math.min(order++ * 16, 160),\n            fill: \"backwards\",\n          },\n        );\n      }\n    }\n    if (animateWidth && Math.abs(prev.width - box.width) > 0.5) {\n      // Hold the words on one line while the box is narrower than them, or \"No credits left\" would wrap mid-morph.\n      root.style.whiteSpace = \"nowrap\";\n      const resize = root.animate(\n        [{ width: `${prev.width}px` }, { width: `${box.width}px` }],\n        { duration, easing: EASE },\n      );\n      resize.onfinish = resize.oncancel = () => {\n        root.style.whiteSpace = \"\";\n      };\n    }\n  }, [glyphs, duration, rise, animateWidth]);\n\n  const done = React.useCallback(\n    (key: number) => setLeaving((l) => l.filter((g) => g.key !== key)),\n    [],\n  );\n\n  // Words stay unbroken; lines may only wrap at spaces.\n  const words: Glyph[][] = [];\n  for (const g of glyphs) {\n    if (\n      g.char === \" \" ||\n      !words.length ||\n      words[words.length - 1][0]?.char === \" \"\n    )\n      words.push([g]);\n    else words[words.length - 1].push(g);\n  }\n\n  return (\n    <span\n      ref={rootRef}\n      className={`relative inline-block ${className}`}\n      {...props}\n    >\n      <span className=\"sr-only\">{text}</span>\n      {words.map((word, w) => (\n        <span\n          key={w}\n          aria-hidden=\"true\"\n          className=\"inline-block whitespace-pre\"\n        >\n          {word.map((g) => (\n            <span\n              key={g.key}\n              ref={(el) => {\n                if (el) els.current.set(g.key, el);\n                else els.current.delete(g.key);\n              }}\n              className=\"inline-block\"\n            >\n              {g.char}\n            </span>\n          ))}\n        </span>\n      ))}\n      {leaving.map((g) => (\n        <LeavingGlyph\n          key={`out-${g.key}`}\n          glyph={g}\n          lift={-rise}\n          duration={duration}\n          onDone={done}\n        />\n      ))}\n    </span>\n  );\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {
+    "@keyframes ui-col-in": {
+      "from": {
+        "max-width": "0",
+        "opacity": "0"
+      },
+      "to": {
+        "max-width": "1em",
+        "opacity": "1"
+      }
+    },
+    "@keyframes ui-col-out": {
+      "from": {
+        "max-width": "1em",
+        "opacity": "1"
+      },
+      "to": {
+        "max-width": "0",
+        "opacity": "0"
+      }
+    },
+    "@keyframes ui-sheen": {
+      "from": {
+        "mask-position": "150% 0"
+      },
+      "to": {
+        "mask-position": "-50% 0"
+      }
+    },
+    "@keyframes ui-fade-up": {
+      "from": {
+        "opacity": "0",
+        "transform": "translateY(4px)"
+      },
+      "to": {
+        "opacity": "1",
+        "transform": "none"
+      }
+    }
+  },
+  "meta": {
+    "cavemio": {
+      "component": "attachment-chip",
+      "exportName": "AttachmentChip",
+      "categories": [
+        "ai"
+      ],
+      "isNew": false,
+      "usage": "import { AttachmentChip } from \"@/components/attachment-chip\";\n\n<AttachmentChip name=\"q3-sales.pdf\" type=\"application/pdf\" size={2_400_000} status=\"uploading\" progress={0.42} onRemove={remove} />",
+      "accessibility": "- Each step is announced politely (\"Uploading q3-sales.pdf\", \"q3-sales.pdf is ready\"), but never every percent.\n- Installs Number roll and Text morph. With reduced motion, states change in place.\n- The remove button is labelled with the file name, e.g. \"Remove q3-sales.pdf\".\n- Long names truncate; the chip never grows past 260px.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "name / size / type",
+            "type": "string / number / string",
+            "description": "– · File name, size in bytes and MIME type (picks the icon)."
+          },
+          {
+            "name": "previewUrl",
+            "type": "string",
+            "description": "– · Thumbnail for images, e.g. URL.createObjectURL(file)."
+          },
+          {
+            "name": "status",
+            "type": "\"uploading\" | \"processing\" | \"ready\" | \"error\"",
+            "description": "\"ready\" · Where the file is."
+          },
+          {
+            "name": "progress",
+            "type": "number",
+            "description": "– · Upload progress from 0 to 1."
+          },
+          {
+            "name": "error / onRetry",
+            "type": "string / () => void",
+            "description": "– · Why it failed, and a Retry link."
+          },
+          {
+            "name": "onRemove",
+            "type": "() => void",
+            "description": "– · Shows the remove button."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "AI prompt boxes",
+            "description": "Show a file the person dropped into the prompt while it uploads and is read."
+          },
+          {
+            "title": "Email and message composers",
+            "description": "Attachments on a message that is still being written."
+          },
+          {
+            "title": "Forms with uploads",
+            "description": "Documents for job applications, claims and verification."
+          },
+          {
+            "title": "Knowledge bases",
+            "description": "Files added for an assistant or a search index to read."
+          }
+        ],
+        "features": [
+          {
+            "title": "Upload progress",
+            "description": "A ring fills round the icon while “Uploading 42%” rolls with it."
+          },
+          {
+            "title": "A step for being read",
+            "description": "When the upload is done the line morphs to “Reading” under a sweep of light."
+          },
+          {
+            "title": "Ready at a glance",
+            "description": "The line settles into the type and size, such as “PDF · 2.4 MB”."
+          },
+          {
+            "title": "Thumbnails for images",
+            "description": "Pass a preview URL and the image shows, brightening to full when ready."
+          },
+          {
+            "title": "Failures say why",
+            "description": "The icon becomes an alert, the line shows the reason and Retry opens in beside it."
+          },
+          {
+            "title": "Easy to remove, easy to hear",
+            "description": "A remove button named after the file, and each step announced politely, never every percent."
+          }
+        ],
+        "states": [
+          {
+            "title": "uploading",
+            "description": "A progress ring fills around the icon and \"Uploading 42%\" rolls with it."
+          },
+          {
+            "title": "processing",
+            "description": "The ring fades (360ms), the percent folds away and the line morphs to \"Reading\" under a 1.4s sweep of light."
+          },
+          {
+            "title": "ready",
+            "description": "The line morphs into type and size, e.g. \"PDF · 2.4 MB\"; a thumbnail brightens to full."
+          },
+          {
+            "title": "error",
+            "description": "A red border, the icon blurs into an alert, the line morphs to the reason and Retry opens in."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
