@@ -1,0 +1,145 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-avatar",
+  "title": "Avatar",
+  "description": "A face, or initials until there is one: the photo rises out of a blur once it has loaded, and a stack of avatars fans open when you point at it.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/avatar.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport { NumberRoll } from \"./number-roll\";\nimport {\n  EASE_OUT,\n  useInteractionReducedMotion,\n} from \"./imported-ui-interaction-motion\";\n\n/* ─────────────────────────────────────────────────────────\n * AVATAR: a face, or initials until there is one\n *\n *   load     initials show at once; the photo comes up out of a\n *            blur over them once it has decoded, never a broken\n *            image or a flash of empty circle\n *   status   a dot on the edge (online, away, busy, offline), cut\n *            out of the photo by a ring of the background\n *   group    faces overlap; pointing at the stack fans it open\n *            so each face shows whole, and the \"+N\" rolls\n * ───────────────────────────────────────────────────────── */\n\nexport type AvatarStatus = \"online\" | \"away\" | \"busy\" | \"offline\";\nexport type AvatarSize = \"xs\" | \"sm\" | \"md\" | \"lg\";\n\nexport interface AvatarProps extends Omit<\n  React.HTMLAttributes<HTMLSpanElement>,\n  \"children\"\n> {\n  name: string;\n  src?: string;\n  size?: AvatarSize;\n  status?: AvatarStatus;\n  /** Square-ish (for teams and workspaces) instead of round. */\n  shape?: \"circle\" | \"square\";\n}\n\nconst PX: Record<AvatarSize, number> = { xs: 20, sm: 28, md: 36, lg: 48 };\nconst STATUS: Record<AvatarStatus, string> = {\n  online: \"bg-emerald-500\",\n  away: \"bg-amber-500\",\n  busy: \"bg-red-500\",\n  offline: \"bg-muted-foreground/50\",\n};\n\nexport function initials(name: string) {\n  const parts = name.trim().split(/\\s+/).filter(Boolean);\n  return (\n    (parts[0]?.[0] ?? \"\") + (parts.length > 1 ? parts[parts.length - 1][0] : \"\")\n  ).toUpperCase();\n}\n\nexport function Avatar({\n  name,\n  src,\n  size = \"md\",\n  status,\n  shape = \"circle\",\n  className = \"\",\n  style,\n  ...props\n}: AvatarProps) {\n  const reduced = useInteractionReducedMotion();\n  const [loaded, setLoaded] = React.useState<string | null>(null);\n  const ready = !!src && loaded === src;\n  const px = PX[size];\n  const radius =\n    shape === \"circle\"\n      ? \"rounded-full\"\n      : px >= 36\n        ? \"rounded-[10px]\"\n        : \"rounded-[7px]\";\n\n  return (\n    <span\n      role=\"img\"\n      aria-label={status ? `${name}, ${status}` : name}\n      className={`relative inline-flex shrink-0 select-none ${className}`}\n      style={{ width: px, height: px, ...style }}\n      {...props}\n    >\n      <span\n        className={`absolute inset-0 flex items-center justify-center overflow-hidden bg-muted font-medium text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)] ${radius}`}\n        style={{ fontSize: Math.round(px * 0.38) }}\n      >\n        {initials(name)}\n        {src && (\n          <img\n            src={src}\n            alt=\"\"\n            decoding=\"async\"\n            onLoad={() => setLoaded(src)}\n            // A cached photo can finish before React listens; take it from the element.\n            ref={(el) => {\n              if (el?.complete && el.naturalWidth && loaded !== src)\n                setLoaded(src);\n            }}\n            className=\"absolute inset-0 size-full object-cover\"\n            style={{\n              opacity: ready ? 1 : 0,\n              filter: ready || reduced ? \"none\" : \"blur(6px)\",\n              scale: ready || reduced ? \"1\" : \"1.08\",\n              transition: reduced\n                ? \"opacity 150ms\"\n                : `opacity 360ms ${EASE_OUT}, filter 420ms ${EASE_OUT}, scale 520ms ${EASE_OUT}`,\n            }}\n          />\n        )}\n      </span>\n      {status && (\n        <span\n          aria-hidden=\"true\"\n          className={`absolute bottom-0 right-0 rounded-full shadow-[0_0_0_2px_var(--background)] transition-colors duration-300 ${STATUS[status]}`}\n          style={{\n            width: Math.max(6, Math.round(px * 0.26)),\n            height: Math.max(6, Math.round(px * 0.26)),\n          }}\n        />\n      )}\n    </span>\n  );\n}\n\nexport interface AvatarGroupProps {\n  people: { name: string; src?: string }[];\n  /** How many faces before \"+N\". */\n  max?: number;\n  size?: AvatarSize;\n  className?: string;\n}\n\nexport function AvatarGroup({\n  people,\n  max = 4,\n  size = \"sm\",\n  className = \"\",\n}: AvatarGroupProps) {\n  const reduced = useInteractionReducedMotion();\n  const [open, setOpen] = React.useState(false);\n  const shown = people.slice(0, max);\n  const rest = people.length - shown.length;\n  const px = PX[size];\n  const overlap = Math.round(px * 0.22);\n  const gap = open && !reduced ? 4 : -overlap;\n\n  return (\n    <div\n      role=\"group\"\n      aria-label={`${people.length} people`}\n      className={`flex items-center ${className}`}\n      onPointerEnter={(e) => e.pointerType === \"mouse\" && setOpen(true)}\n      onPointerLeave={() => setOpen(false)}\n    >\n      {shown.map((p, i) => (\n        <span\n          key={p.name + i}\n          // A block-level wrapper the size of the face, so the cut-out ring is a true circle\n          // and every face (and the +N) sits on the same line.\n          className=\"relative flex shrink-0 rounded-full shadow-[0_0_0_2px_var(--background)]\"\n          style={{\n            marginLeft: i ? gap : 0,\n            zIndex: shown.length - i,\n            transition: reduced\n              ? \"none\"\n              : `margin-left 380ms ${EASE_OUT} ${i * 20}ms`,\n          }}\n        >\n          <Avatar name={p.name} src={p.src} size={size} />\n        </span>\n      ))}\n      {rest > 0 && (\n        <span\n          className=\"relative flex shrink-0 items-center justify-center rounded-full bg-muted font-medium tabular-nums text-muted-foreground shadow-[inset_0_0_0_1px_var(--border),0_0_0_2px_var(--background)]\"\n          style={{\n            width: px,\n            height: px,\n            fontSize: Math.round(px * 0.34),\n            marginLeft: gap,\n            transition: reduced\n              ? \"none\"\n              : `margin-left 380ms ${EASE_OUT} ${shown.length * 20}ms`,\n          }}\n          aria-label={`and ${rest} more`}\n        >\n          +<NumberRoll value={rest} />\n        </span>\n      )}\n    </div>\n  );\n}\n\nexport default Avatar;\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/number-roll.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * NUMBER ROLL: numbers that change like an odometer\n *\n *   rolling   each digit is a column that rolls to its new\n *             value, in the direction the number moved: going\n *             up, a 9 rolls on to 0 instead of spinning back\n *   places    new places slide open from nothing; lost ones\n *             fold away\n *   format    anything Intl.NumberFormat does: currency,\n *             percent, compact (\"1.2K\"), decimals\n *\n * The real number is always there as text for screen readers\n * and copy and paste; the columns are only what you see.\n * ───────────────────────────────────────────────────────── */\n\nexport interface NumberRollProps extends Omit<\n  React.HTMLAttributes<HTMLSpanElement>,\n  \"children\"\n> {\n  value: number;\n  /** Intl.NumberFormat options, e.g. { style: \"currency\", currency: \"USD\" }. */\n  format?: Intl.NumberFormatOptions;\n  locales?: string | string[];\n  prefix?: string;\n  suffix?: string;\n  /** Start from this value and roll to `value` once mounted, e.g. 0 for stats. */\n  from?: number;\n  /** Roll duration in ms. */\n  duration?: number;\n  /** Always roll this way, e.g. \"down\" for a countdown's seconds, which wrap from 00 to 59. Defaults to the way the number moved. */\n  direction?: \"up\" | \"down\";\n}\n\ntype Column = { key: string; char: string; digit: number | null };\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\nconst SETS = 5; // the strip repeats 0–9 five times so a roll never runs out of digits\nconst MIDDLE = 20;\n/** The strip as one text node, a digit a line: fifty lines, but one element to lay out instead of fifty. */\nconst STRIP = Array.from({ length: SETS * 10 }, (_, i) => i % 10).join(\"\\n\");\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\n/** Digits are keyed by their place counted from the right, so the units column stays the units column. */\nfunction columns(text: string): Column[] {\n  const chars = [...text];\n  const seen = new Map<string, number>();\n  let place = 0;\n  const out: Column[] = [];\n  for (let i = chars.length - 1; i >= 0; i--) {\n    const char = chars[i];\n    if (/\\d/.test(char))\n      out.push({ key: `d${place++}`, char, digit: Number(char) });\n    else {\n      // Symbols are keyed by how many of the same symbol sit to their right, so a comma that shifts is the same comma.\n      const n = seen.get(char) ?? 0;\n      seen.set(char, n + 1);\n      out.push({ key: `s${char}${n}`, char, digit: null });\n    }\n  }\n  return out.reverse();\n}\n\n// Memoised: a parent that re-renders with the same number doesn't rebuild the strips.\nconst Digit = React.memo(function Digit({\n  digit,\n  trend,\n  duration,\n  reduced,\n  rollIn,\n}: {\n  digit: number;\n  trend: number;\n  duration: number;\n  reduced: boolean;\n  rollIn: boolean;\n}) {\n  const [pos, setPos] = React.useState(MIDDLE + (rollIn ? 0 : digit));\n  const [moving, setMoving] = React.useState(false);\n  const posRef = React.useRef(pos);\n  const stripRef = React.useRef<HTMLSpanElement>(null);\n\n  React.useLayoutEffect(() => {\n    const current = posRef.current;\n    const showing = ((current % 10) + 10) % 10;\n    if (showing === digit) return;\n    if (reduced) {\n      posRef.current = MIDDLE + digit;\n      setMoving(false);\n      setPos(MIDDLE + digit);\n      return;\n    }\n    const up = trend > 0 || (trend === 0 && digit > showing);\n    let target = up\n      ? current + ((digit - showing + 10) % 10)\n      : current - ((showing - digit + 10) % 10);\n    // Values arriving faster than a roll (a progress percent) never let it re-centre, so before it runs off the strip,\n    // jump the strip back by whole sets mid-roll (it looks identical) and roll on from there.\n    if (target < 10 || target > SETS * 10 - 11) {\n      const shift = Math.round((target - MIDDLE) / 10) * 10;\n      const strip = stripRef.current;\n      if (strip?.offsetHeight) {\n        let visual = current;\n        try {\n          visual =\n            -new DOMMatrixReadOnly(getComputedStyle(strip).transform).m42 /\n            (strip.offsetHeight / (SETS * 10));\n        } catch {}\n        const transition = strip.style.transition;\n        strip.style.transition = \"none\";\n        strip.style.transform = `translateY(${(-(visual - shift) * 100) / (SETS * 10)}%)`;\n        void strip.offsetHeight;\n        strip.style.transition = transition;\n      }\n      target -= shift;\n    }\n    posRef.current = target;\n    setMoving(true);\n    setPos(target);\n  }, [digit, trend, reduced]);\n\n  // After a roll, quietly re-centre on the middle set so the next roll always has room.\n  const settle = () => {\n    const centred = MIDDLE + (((posRef.current % 10) + 10) % 10);\n    posRef.current = centred;\n    setMoving(false);\n    setPos(centred);\n  };\n\n  return (\n    <span className=\"relative inline-block [clip-path:inset(0)]\">\n      <span className=\"invisible\">{digit}</span>\n      <span\n        ref={stripRef}\n        aria-hidden=\"true\"\n        onTransitionEnd={settle}\n        className=\"absolute inset-x-0 top-0 block whitespace-pre text-center\"\n        style={{\n          transform: `translateY(${(-pos * 100) / (SETS * 10)}%)`,\n          transition: moving ? `transform ${duration}ms ${EASE}` : \"none\",\n        }}\n      >\n        {STRIP}\n      </span>\n    </span>\n  );\n});\n\n/** A place that appeared after the first paint slides open; places that were there from the start just sit. */\nfunction Place({\n  enter,\n  children,\n}: {\n  enter: boolean;\n  children: React.ReactNode;\n}) {\n  const [entering] = React.useState(enter);\n  return (\n    <span\n      className={`inline-block ${entering ? \"[clip-path:inset(0)] animate-[ui-col-in_500ms_cubic-bezier(0.16,1,0.3,1)_both]\" : \"\"}`}\n    >\n      {children}\n    </span>\n  );\n}\n\nexport function NumberRoll({\n  value,\n  format,\n  locales,\n  prefix = \"\",\n  suffix = \"\",\n  from,\n  duration = 900,\n  direction,\n  className = \"\",\n  ...props\n}: NumberRollProps) {\n  const reduced = useReducedMotion();\n  const [shown, setShown] = React.useState(from ?? value);\n  const previous = React.useRef(shown);\n  const mounted = React.useRef(false);\n\n  // Roll from `from` to the real value once on screen (a frame later, so the start is painted).\n  React.useEffect(() => {\n    const frame = requestAnimationFrame(() => setShown(value));\n    return () => cancelAnimationFrame(frame);\n  }, [value]);\n\n  React.useEffect(() => {\n    mounted.current = true;\n  }, []);\n\n  const formatter = React.useMemo(\n    () => new Intl.NumberFormat(locales, format),\n    [locales, format && JSON.stringify(format)],\n  );\n  const text = `${prefix}${formatter.format(shown)}${suffix}`;\n  const cols = React.useMemo(() => columns(text), [text]);\n  const trend =\n    direction === \"up\"\n      ? 1\n      : direction === \"down\"\n        ? -1\n        : Math.sign(shown - previous.current);\n\n  // Places that disappear fold away instead of vanishing.\n  const [leaving, setLeaving] = React.useState<Column[]>([]);\n  const lastCols = React.useRef(cols);\n  React.useLayoutEffect(() => {\n    const gone = lastCols.current.filter(\n      (c) => !cols.some((n) => n.key === c.key),\n    );\n    lastCols.current = cols;\n    previous.current = shown;\n    if (!gone.length || reduced) return;\n    setLeaving(gone);\n    const timer = window.setTimeout(() => setLeaving([]), 420);\n    return () => window.clearTimeout(timer);\n  }, [cols, shown, reduced]);\n\n  return (\n    <span className={`inline-flex tabular-nums ${className}`} {...props}>\n      <span className=\"sr-only\">{`${prefix}${formatter.format(value)}${suffix}`}</span>\n      <span\n        aria-hidden=\"true\"\n        className=\"inline-flex items-baseline whitespace-pre\"\n      >\n        {leaving.map((c) => (\n          <span\n            key={`out-${c.key}`}\n            className=\"inline-block [clip-path:inset(0)] animate-[ui-col-out_400ms_cubic-bezier(0.16,1,0.3,1)_forwards]\"\n          >\n            {c.char}\n          </span>\n        ))}\n        {cols.map((c) => (\n          <Place key={c.key} enter={mounted.current && !reduced}>\n            {c.digit === null ? (\n              c.char\n            ) : (\n              <Digit\n                digit={c.digit}\n                trend={trend}\n                duration={duration}\n                reduced={reduced}\n                rollIn={mounted.current}\n              />\n            )}\n          </Place>\n        ))}\n      </span>\n    </span>\n  );\n}\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/imported-ui-interaction-motion.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport const EASE_OUT = \"cubic-bezier(0.16, 1, 0.3, 1)\";\nexport const EASE_SETTLE = \"cubic-bezier(0.22, 1.18, 0.36, 1)\";\n/** Thrown things (indicators, thumbs): a slight overshoot on transform only. */\nexport const EASE_THROW = \"cubic-bezier(0.34, 1.36, 0.64, 1)\";\n/**\n * The press every button primitive shares: a 3% give that eases in and settles back.\n * Tailwind v4's scale-* writes the `scale` property, so `scale` has to be in the list\n * or the press snaps.\n */\nexport const INTERACTION_PRESS =\n  \"transition-[background-color,color,box-shadow,opacity,scale] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100\";\nexport const INTERACTION_FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background\";\n\nconst query = \"(prefers-reduced-motion: reduce)\";\nconst subscribe = (notify: () => void) => {\n  const media = window.matchMedia(query);\n  media.addEventListener(\"change\", notify);\n  return () => media.removeEventListener(\"change\", notify);\n};\nexport const useInteractionReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false,\n  );\n\nexport function useInteractionActivity<T extends Element>() {\n  const ref = React.useRef<T>(null);\n  const [visible, setVisible] = React.useState(false);\n  const [hidden, setHidden] = React.useState(false);\n  React.useEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(([entry]) =>\n      setVisible(entry.isIntersecting),\n    );\n    observer.observe(el);\n    const visibility = () => setHidden(document.hidden);\n    visibility();\n    document.addEventListener(\"visibilitychange\", visibility);\n    return () => {\n      observer.disconnect();\n      document.removeEventListener(\"visibilitychange\", visibility);\n    };\n  }, []);\n  return { ref, active: visible && !hidden };\n}\n\nexport function interactionIcon(\n  on: boolean,\n  reduced: boolean,\n): React.CSSProperties {\n  return {\n    opacity: on ? 1 : 0,\n    transform: on ? \"none\" : \"scale(0.6)\",\n    filter: on ? \"blur(0px)\" : \"blur(3px)\",\n    transition: reduced\n      ? \"none\"\n      : `opacity 220ms ${EASE_OUT}, transform 380ms ${EASE_OUT}, filter 220ms ${EASE_OUT}`,\n  };\n}\n\n/** Sample recent movement rather than averaging a long drag and losing its release velocity. */\nexport type PointerSample = { x: number; time: number };\nexport function samplePointer(\n  samples: PointerSample[],\n  x: number,\n  time: number,\n) {\n  samples.push({ x, time });\n  while (samples.length > 2 && time - samples[0].time > 100) samples.shift();\n}\nexport function releaseVelocity(samples: PointerSample[], now: number) {\n  if (samples.length < 2 || now - samples[samples.length - 1].time > 100)\n    return 0;\n  const first = samples[0],\n    last = samples[samples.length - 1];\n  return (last.x - first.x) / Math.max(1, last.time - first.time);\n}\n\n/** Smooth Apple/rational rubber-band curve: continuous exponential-like resistance without linear kinks. */\nexport function rubberBand(\n  overshoot: number,\n  dimension = 320,\n  constant = 0.55,\n): number {\n  const d = dimension || 320;\n  const abs = Math.abs(overshoot);\n  return Math.sign(overshoot) * (1 - 1 / ((abs * constant) / d + 1)) * d;\n}\n\n/** Projects resting travel from release velocity (velocity in px/ms; time in seconds). */\nexport function projectInertia(\n  distance: number,\n  velocity: number,\n  time = 0.12,\n): number {\n  return distance + velocity * 1000 * time;\n}\n\n/** Smooths incoming release velocity toward a boundary so springs don't slam or clip into walls. */\nexport function softenVelocity(\n  velocity: number,\n  distanceToTarget: number,\n  factor = 10,\n): number {\n  const maxAllowed = Math.abs(distanceToTarget) * factor;\n  return Math.sign(velocity) * Math.min(Math.abs(velocity), maxAllowed);\n}\n\n/** A damped spring sampled by WAAPI: tuned for organic lightness with a hint of life (3% breath). */\nexport function springFrames(\n  from: number,\n  to: number,\n  velocity = 0,\n  duration = 480,\n  config: { omega?: number; damping?: number; steps?: number } = {},\n) {\n  const { omega = 16, damping = 0.74, steps = 36 } = config;\n  const damped = omega * Math.sqrt(Math.max(0.001, 1 - damping * damping));\n  const displacement = from - to;\n  const coefficient =\n    (velocity * 1000 + damping * omega * displacement) / damped;\n  return Array.from({ length: steps + 1 }, (_, i) => {\n    const t = (i / steps) * (duration / 1000);\n    const value =\n      to +\n      Math.exp(-damping * omega * t) *\n        (displacement * Math.cos(damped * t) +\n          coefficient * Math.sin(damped * t));\n    return { value: i === steps ? to : value, offset: i / steps };\n  });\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {
+    "@keyframes ui-col-in": {
+      "from": {
+        "max-width": "0",
+        "opacity": "0"
+      },
+      "to": {
+        "max-width": "1em",
+        "opacity": "1"
+      }
+    },
+    "@keyframes ui-col-out": {
+      "from": {
+        "max-width": "1em",
+        "opacity": "1"
+      },
+      "to": {
+        "max-width": "0",
+        "opacity": "0"
+      }
+    }
+  },
+  "meta": {
+    "cavemio": {
+      "component": "avatar",
+      "exportName": "Avatar",
+      "categories": [
+        "display"
+      ],
+      "isNew": true,
+      "usage": "import { Avatar, AvatarGroup } from \"@/components/avatar\";\n\n<Avatar name=\"Ada Okafor\" src=\"/ada.jpg\" status=\"online\" />\n<AvatarGroup people={members} max={4} />",
+      "accessibility": "- role=\"img\" with the name (and status) as its label.\n- Reduced motion: the photo fades without blur; the stack doesn't fan.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "name",
+            "type": "string",
+            "description": "– · Initials and the accessible name."
+          },
+          {
+            "name": "src",
+            "type": "string",
+            "description": "– · Photo URL."
+          },
+          {
+            "name": "size",
+            "type": "\"xs\" | \"sm\" | \"md\" | \"lg\"",
+            "description": "\"md\" · 20, 28, 36 or 48px."
+          },
+          {
+            "name": "status",
+            "type": "\"online\" | \"away\" | \"busy\" | \"offline\"",
+            "description": "– · Presence dot."
+          },
+          {
+            "name": "shape",
+            "type": "\"circle\" | \"square\"",
+            "description": "\"circle\" · Square for teams."
+          },
+          {
+            "name": "AvatarGroup",
+            "type": "{ people, max, size }",
+            "description": "– · Overlapping stack with +N."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Team and member lists",
+            "description": "A face, name and status in each row."
+          },
+          {
+            "title": "Comments and activity",
+            "description": "Who said what, at 28px."
+          },
+          {
+            "title": "Shared documents",
+            "description": "A stack of collaborators with +N."
+          },
+          {
+            "title": "Workspace switchers",
+            "description": "Square avatars for teams."
+          }
+        ],
+        "features": [
+          {
+            "title": "No broken images",
+            "description": "Initials first; the photo replaces them only once loaded, cached ones included."
+          },
+          {
+            "title": "Presence",
+            "description": "online, away, busy, offline as a dot with a background ring."
+          },
+          {
+            "title": "Fanning stack",
+            "description": "Hover spreads the group (380ms, 20ms stagger)."
+          },
+          {
+            "title": "Four sizes, two shapes",
+            "description": "20, 28, 36, 48px; circle or rounded square."
+          }
+        ],
+        "states": [
+          {
+            "title": "loading",
+            "description": "Initials on a muted circle."
+          },
+          {
+            "title": "loaded",
+            "description": "The photo fades in from a 6px blur at 1.08 (360–520ms)."
+          },
+          {
+            "title": "group hover",
+            "description": "The overlap opens to a 4px gap; +N rolls when it changes."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
