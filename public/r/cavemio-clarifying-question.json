@@ -148,7 +148,8 @@
             "description": "Optional. Move focus into the question when it appears."
           }
         ]
-      }
+      },
+      "isNew": false
     }
   },
   "type": "registry:component"
