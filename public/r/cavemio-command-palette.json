@@ -29,7 +29,7 @@
       "accessibility": "Modal dialog with combobox/listbox semantics, keyboard navigation, focus return, inert background, and live reduced motion. Commands receive an abort signal; stale completions cannot close a new session.",
       "previewNote": "Demo commands run locally; callers supply items and navigation callbacks.",
       "categories": [
-        "interactions"
+        "display"
       ],
       "documentation": {
         "useCases": [],
@@ -107,7 +107,8 @@
             "description": "Optional. Help copy, links, or actions alongside the keyboard hints."
           }
         ]
-      }
+      },
+      "isNew": false
     }
   },
   "type": "registry:component"
