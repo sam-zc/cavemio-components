@@ -1,0 +1,141 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-copy-button",
+  "title": "Copy button",
+  "description": "Copies on the press: the icon blurs into a self-drawing check, the label morphs to Copied, and a failed copy shakes and says so.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/copy-button.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport { Copy } from \"lucide-react\";\nimport { TextMorph } from \"./text-morph\";\nimport {\n  EASE_OUT,\n  INTERACTION_FOCUS,\n  INTERACTION_PRESS,\n  interactionIcon,\n  useInteractionReducedMotion,\n} from \"./imported-ui-interaction-motion\";\n\n/* ─────────────────────────────────────────────────────────\n * COPY BUTTON: copies, and says so the moment you press\n *\n *   idle     the copy icon (and \"Copy\" when labelled)\n *   copied   flips on the press itself, not after the clipboard\n *            answers: the icon blurs out, a check draws itself,\n *            \"Copy\" morphs to \"Copied\" and the pill eases wider\n *   error    if the clipboard refuses, the check gives way to an\n *            alert, the label says \"Failed\" and the button shakes\n *\n * Pressing again while copied copies again and restarts the timer.\n * A status region outside the button tells screen readers.\n * ───────────────────────────────────────────────────────── */\n\nexport type CopyState = \"idle\" | \"copied\" | \"error\";\n\nexport interface CopyButtonProps extends Omit<\n  React.ButtonHTMLAttributes<HTMLButtonElement>,\n  \"children\"\n> {\n  /** The text to copy. */\n  text: string;\n  /** Label while idle; also the icon-only button's accessible name. */\n  label?: string;\n  /** Label once copied. */\n  copiedLabel?: string;\n  /** Label if the clipboard refuses. */\n  errorLabel?: string;\n  /** Show the label beside the icon. Defaults to false (icon only). */\n  showLabel?: boolean;\n  /** How long \"Copied\" stays before it returns to idle (ms). */\n  timeoutMs?: number;\n  variant?: \"secondary\" | \"outline\" | \"ghost\";\n  /** xs 24px, sm 28px, md 36px tall. */\n  size?: \"xs\" | \"sm\" | \"md\";\n  onCopySuccess?: (text: string) => void;\n  onCopyError?: (error: unknown) => void;\n}\n\nconst SIZES = {\n  xs: {\n    square: \"size-6\",\n    pill: \"h-6 pl-2 pr-2.5 text-[12px]\",\n    icon: 12,\n    gap: 5,\n  },\n  sm: {\n    square: \"size-7\",\n    pill: \"h-7 pl-2.5 pr-3 text-[12px]\",\n    icon: 13,\n    gap: 6,\n  },\n  md: {\n    square: \"size-9\",\n    pill: \"h-9 pl-3.5 pr-4 text-[13px]\",\n    icon: 15,\n    gap: 7,\n  },\n};\n\nconst TONES = {\n  secondary:\n    \"bg-card text-foreground shadow-[inset_0_0_0_1px_var(--border)] hover:bg-accent\",\n  outline:\n    \"bg-transparent text-foreground shadow-[inset_0_0_0_1px_var(--border)] hover:bg-accent\",\n  ghost:\n    \"bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground\",\n};\n\nconst ERROR_TONE =\n  \"bg-red-500/10 text-red-600 shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-red-500)_30%,transparent)] dark:text-red-400\";\n\nfunction writeClipboard(text: string): Promise<void> {\n  if (navigator.clipboard?.writeText)\n    return navigator.clipboard.writeText(text);\n  // Older browsers and plain-http pages: the selection fallback.\n  return new Promise((resolve, reject) => {\n    const area = document.createElement(\"textarea\");\n    area.value = text;\n    area.setAttribute(\"readonly\", \"\");\n    area.style.cssText =\n      \"position:fixed;top:0;left:0;opacity:0;pointer-events:none\";\n    document.body.appendChild(area);\n    area.select();\n    const ok = document.execCommand(\"copy\");\n    area.remove();\n    if (ok) resolve();\n    else reject(new Error(\"Copy was refused\"));\n  });\n}\n\nfunction Check({ drawn, reduced }: { drawn: boolean; reduced: boolean }) {\n  return (\n    <svg viewBox=\"0 0 16 16\" fill=\"none\" className=\"size-full\">\n      <path\n        d=\"M3.5 8.5 6.5 11.5 12.5 4.5\"\n        stroke=\"currentColor\"\n        strokeWidth=\"2\"\n        strokeLinecap=\"round\"\n        strokeLinejoin=\"round\"\n        pathLength={1}\n        strokeDasharray={1}\n        style={{\n          strokeDashoffset: drawn ? 0 : 1,\n          // Draws on the way in; on the way out it stays whole until its layer has faded.\n          transition: reduced\n            ? \"none\"\n            : drawn\n              ? `stroke-dashoffset 360ms ${EASE_OUT} 70ms`\n              : \"stroke-dashoffset 0ms linear 300ms\",\n        }}\n      />\n    </svg>\n  );\n}\n\nfunction Alert() {\n  return (\n    <svg viewBox=\"0 0 16 16\" fill=\"none\" className=\"size-full\">\n      <circle cx=\"8\" cy=\"8\" r=\"6.25\" stroke=\"currentColor\" strokeWidth=\"1.5\" />\n      <path\n        d=\"M8 4.75v3.75\"\n        stroke=\"currentColor\"\n        strokeWidth=\"1.75\"\n        strokeLinecap=\"round\"\n      />\n      <circle cx=\"8\" cy=\"11\" r=\"1\" fill=\"currentColor\" />\n    </svg>\n  );\n}\n\nexport function CopyButton({\n  text,\n  label = \"Copy\",\n  copiedLabel = \"Copied\",\n  errorLabel = \"Failed\",\n  showLabel = false,\n  timeoutMs = 2000,\n  variant = \"ghost\",\n  size = \"sm\",\n  onCopySuccess,\n  onCopyError,\n  className = \"\",\n  disabled,\n  onClick,\n  ...props\n}: CopyButtonProps) {\n  const reduced = useInteractionReducedMotion();\n  const ref = React.useRef<HTMLButtonElement>(null);\n  const [state, setState] = React.useState<CopyState>(\"idle\");\n  // Bumped on every copy so a second press restarts the timer.\n  const [stamp, setStamp] = React.useState(0);\n\n  React.useEffect(() => {\n    if (state === \"idle\") return;\n    const timer = window.setTimeout(() => setState(\"idle\"), timeoutMs);\n    return () => window.clearTimeout(timer);\n  }, [state, stamp, timeoutMs]);\n\n  React.useEffect(() => {\n    if (state !== \"error\" || reduced) return;\n    ref.current?.animate(\n      [\n        { transform: \"none\" },\n        { transform: \"translateX(-4px)\" },\n        { transform: \"translateX(4px)\" },\n        { transform: \"translateX(-2px)\" },\n        { transform: \"none\" },\n      ],\n      { duration: 380, easing: \"ease-out\" },\n    );\n  }, [state, stamp, reduced]);\n\n  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {\n    onClick?.(e);\n    if (e.defaultPrevented || disabled || !text) return;\n    // Optimistic: the feedback lands on the press, the clipboard catches up.\n    setState(\"copied\");\n    setStamp((n) => n + 1);\n    writeClipboard(text).then(\n      () => onCopySuccess?.(text),\n      (error: unknown) => {\n        setState(\"error\");\n        setStamp((n) => n + 1);\n        onCopyError?.(error);\n      },\n    );\n  };\n\n  const s = SIZES[size];\n  const current =\n    state === \"copied\" ? copiedLabel : state === \"error\" ? errorLabel : label;\n\n  return (\n    <>\n      <button\n        ref={ref}\n        type=\"button\"\n        disabled={disabled}\n        onClick={handleClick}\n        aria-label={showLabel ? undefined : label}\n        data-state={state}\n        className={`relative inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap rounded-full font-medium cursor-pointer disabled:cursor-default disabled:opacity-45 ${INTERACTION_PRESS} ${INTERACTION_FOCUS} ${\n          state === \"error\" ? ERROR_TONE : TONES[variant]\n        } ${showLabel ? s.pill : s.square} ${className}`}\n        {...props}\n      >\n        <span\n          aria-hidden=\"true\"\n          className=\"relative shrink-0\"\n          style={{ width: s.icon, height: s.icon }}\n        >\n          <span\n            className=\"absolute inset-0 flex items-center justify-center\"\n            style={interactionIcon(state === \"idle\", reduced)}\n          >\n            <Copy size={s.icon} strokeWidth={1.75} />\n          </span>\n          <span\n            className=\"absolute inset-0 text-emerald-600 dark:text-emerald-400\"\n            style={interactionIcon(state === \"copied\", reduced)}\n          >\n            <Check drawn={state === \"copied\"} reduced={reduced} />\n          </span>\n          <span\n            className=\"absolute inset-0\"\n            style={interactionIcon(state === \"error\", reduced)}\n          >\n            <Alert />\n          </span>\n        </span>\n        {showLabel && (\n          <TextMorph style={{ marginLeft: s.gap }}>{current}</TextMorph>\n        )}\n      </button>\n      {/* Outside the button, so the announcement isn't read as part of its name. */}\n      <span role=\"status\" className=\"sr-only\">\n        {state === \"idle\" ? \"\" : current}\n      </span>\n    </>\n  );\n}\n\nexport default CopyButton;\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/text-morph.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * TEXT MORPH: text that changes the way it should\n *\n *   shared   letters both texts share stay alive and slide to\n *            their new place (\"Save\" → \"Saving\" keeps \"Sav\")\n *   new      letters that weren't there rise in out of a blur,\n *            one after another\n *   gone     letters that leave lift away and blur out where\n *            they stood\n *   width    the box eases to its new width, so a button or\n *            pill holding it resizes with it\n *\n * Texts with little in common crossfade as a whole instead of\n * flinging single letters across. The real text is always\n * there for screen readers.\n * ───────────────────────────────────────────────────────── */\n\nexport interface TextMorphProps extends Omit<\n  React.HTMLAttributes<HTMLSpanElement>,\n  \"children\"\n> {\n  children: string;\n  /** Morph time in ms. */\n  duration?: number;\n  /** Where new letters come from: below (\"up\") or above (\"down\"). */\n  direction?: \"up\" | \"down\";\n  /** Ease the box's width too; turn off for text that wraps. */\n  animateWidth?: boolean;\n}\n\ntype Glyph = { key: number; char: string };\ntype Leaving = Glyph & { x: number; y: number };\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\n/** Keep the letters two texts share (longest common subsequence); everything else is new. */\nfunction morph(\n  previous: Glyph[],\n  text: string,\n  nextKey: () => number,\n): Glyph[] {\n  const a = previous.map((g) => g.char);\n  const b = Array.from(text);\n  const fresh = () => b.map((char) => ({ key: nextKey(), char }));\n  if (!a.length || !b.length) return fresh();\n\n  const dp = Array.from(\n    { length: a.length + 1 },\n    () => new Uint16Array(b.length + 1),\n  );\n  for (let i = a.length - 1; i >= 0; i--)\n    for (let j = b.length - 1; j >= 0; j--)\n      dp[i][j] =\n        a[i] === b[j]\n          ? dp[i + 1][j + 1] + 1\n          : Math.max(dp[i + 1][j], dp[i][j + 1]);\n\n  // Too little in common reads as two different words: crossfade them instead.\n  if (dp[0][0] < Math.min(a.length, b.length) * 0.5) return fresh();\n\n  const out: Glyph[] = [];\n  let i = 0;\n  let j = 0;\n  while (j < b.length) {\n    if (i < a.length && a[i] === b[j]) {\n      out.push(previous[i++]);\n      j++;\n    } else if (i < a.length && dp[i + 1][j] >= dp[i][j + 1]) i++;\n    else out.push({ key: nextKey(), char: b[j++] });\n  }\n  return out;\n}\n\nfunction LeavingGlyph({\n  glyph,\n  lift,\n  duration,\n  onDone,\n}: {\n  glyph: Leaving;\n  lift: number;\n  duration: number;\n  onDone: (key: number) => void;\n}) {\n  const ref = React.useRef<HTMLSpanElement>(null);\n  React.useLayoutEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const animation = el.animate(\n      [\n        { opacity: 1, filter: \"blur(0px)\", transform: \"none\" },\n        { opacity: 0, filter: \"blur(4px)\", transform: `translateY(${lift}em)` },\n      ],\n      { duration: duration * 0.6, easing: EASE, fill: \"forwards\" },\n    );\n    animation.onfinish = () => onDone(glyph.key);\n    return () => animation.cancel();\n  }, [glyph.key, lift, duration, onDone]);\n  return (\n    <span\n      ref={ref}\n      aria-hidden=\"true\"\n      className=\"pointer-events-none absolute whitespace-pre\"\n      style={{ left: glyph.x, top: glyph.y }}\n    >\n      {glyph.char}\n    </span>\n  );\n}\n\nexport function TextMorph({\n  children: text,\n  duration = 460,\n  direction = \"up\",\n  animateWidth = true,\n  className = \"\",\n  ...props\n}: TextMorphProps) {\n  const reduced = useReducedMotion();\n  const counter = React.useRef(text.length);\n  const nextKey = React.useCallback(() => ++counter.current, []);\n  const [glyphs, setGlyphs] = React.useState<Glyph[]>(() =>\n    Array.from(text).map((char, i) => ({ key: i + 1, char })),\n  );\n  const [leaving, setLeaving] = React.useState<Leaving[]>([]);\n  const rootRef = React.useRef<HTMLSpanElement>(null);\n  const els = React.useRef(new Map<number, HTMLSpanElement>());\n  const before = React.useRef<{\n    at: Map<number, { x: number; y: number }>;\n    width: number;\n  } | null>(null);\n  const rise = direction === \"up\" ? 0.35 : -0.35;\n\n  // A preference change must also finish an in-flight morph whose target text\n  // already matches the glyphs (including the empty label in a folded receipt).\n  React.useLayoutEffect(() => {\n    if (!reduced) return;\n    before.current = null;\n    const root = rootRef.current;\n    root\n      ?.getAnimations({ subtree: true })\n      .forEach((animation) => animation.cancel());\n    if (root) root.style.whiteSpace = \"\";\n    setLeaving((previous) => (previous.length ? [] : previous));\n  }, [reduced]);\n\n  // 1. The text changed: note where every letter stands, then work out which letters stay.\n  React.useLayoutEffect(() => {\n    if (text === glyphs.map((g) => g.char).join(\"\")) return;\n    const root = rootRef.current;\n    if (!root || reduced) {\n      setLeaving([]);\n      setGlyphs(Array.from(text).map((char) => ({ key: nextKey(), char })));\n      return;\n    }\n    const box = root.getBoundingClientRect();\n    const at = new Map<number, { x: number; y: number }>();\n    els.current.forEach((el, key) => {\n      const r = el.getBoundingClientRect();\n      at.set(key, { x: r.left - box.left, y: r.top - box.top });\n    });\n    before.current = { at, width: box.width };\n    const next = morph(glyphs, text, nextKey);\n    const kept = new Set(next.map((g) => g.key));\n    setLeaving((l) => [\n      ...l,\n      ...glyphs\n        .filter((g) => !kept.has(g.key))\n        .map((g) => ({ ...g, ...(at.get(g.key) ?? { x: 0, y: 0 }) })),\n    ]);\n    setGlyphs(next);\n  }, [text, reduced]);\n\n  // 2. The new letters are in place: glide the ones that stayed, raise the new ones, ease the width.\n  React.useLayoutEffect(() => {\n    const prev = before.current;\n    const root = rootRef.current;\n    if (!prev || !root) return;\n    before.current = null;\n    const box = root.getBoundingClientRect();\n    let order = 0;\n    for (const g of glyphs) {\n      const el = els.current.get(g.key);\n      if (!el) continue;\n      const from = prev.at.get(g.key);\n      if (from) {\n        const r = el.getBoundingClientRect();\n        const dx = from.x - (r.left - box.left);\n        const dy = from.y - (r.top - box.top);\n        if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5)\n          el.animate(\n            [\n              { transform: `translate(${dx}px, ${dy}px)` },\n              { transform: \"none\" },\n            ],\n            { duration, easing: EASE },\n          );\n      } else {\n        el.animate(\n          [\n            {\n              opacity: 0,\n              filter: \"blur(4px)\",\n              transform: `translateY(${rise}em)`,\n            },\n            { opacity: 1, filter: \"blur(0px)\", transform: \"none\" },\n          ],\n          {\n            duration,\n            easing: EASE,\n            delay: Math.min(order++ * 16, 160),\n            fill: \"backwards\",\n          },\n        );\n      }\n    }\n    if (animateWidth && Math.abs(prev.width - box.width) > 0.5) {\n      // Hold the words on one line while the box is narrower than them, or \"No credits left\" would wrap mid-morph.\n      root.style.whiteSpace = \"nowrap\";\n      const resize = root.animate(\n        [{ width: `${prev.width}px` }, { width: `${box.width}px` }],\n        { duration, easing: EASE },\n      );\n      resize.onfinish = resize.oncancel = () => {\n        root.style.whiteSpace = \"\";\n      };\n    }\n  }, [glyphs, duration, rise, animateWidth]);\n\n  const done = React.useCallback(\n    (key: number) => setLeaving((l) => l.filter((g) => g.key !== key)),\n    [],\n  );\n\n  // Words stay unbroken; lines may only wrap at spaces.\n  const words: Glyph[][] = [];\n  for (const g of glyphs) {\n    if (\n      g.char === \" \" ||\n      !words.length ||\n      words[words.length - 1][0]?.char === \" \"\n    )\n      words.push([g]);\n    else words[words.length - 1].push(g);\n  }\n\n  return (\n    <span\n      ref={rootRef}\n      className={`relative inline-block ${className}`}\n      {...props}\n    >\n      <span className=\"sr-only\">{text}</span>\n      {words.map((word, w) => (\n        <span\n          key={w}\n          aria-hidden=\"true\"\n          className=\"inline-block whitespace-pre\"\n        >\n          {word.map((g) => (\n            <span\n              key={g.key}\n              ref={(el) => {\n                if (el) els.current.set(g.key, el);\n                else els.current.delete(g.key);\n              }}\n              className=\"inline-block\"\n            >\n              {g.char}\n            </span>\n          ))}\n        </span>\n      ))}\n      {leaving.map((g) => (\n        <LeavingGlyph\n          key={`out-${g.key}`}\n          glyph={g}\n          lift={-rise}\n          duration={duration}\n          onDone={done}\n        />\n      ))}\n    </span>\n  );\n}\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/imported-ui-interaction-motion.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport const EASE_OUT = \"cubic-bezier(0.16, 1, 0.3, 1)\";\nexport const EASE_SETTLE = \"cubic-bezier(0.22, 1.18, 0.36, 1)\";\n/** Thrown things (indicators, thumbs): a slight overshoot on transform only. */\nexport const EASE_THROW = \"cubic-bezier(0.34, 1.36, 0.64, 1)\";\n/**\n * The press every button primitive shares: a 3% give that eases in and settles back.\n * Tailwind v4's scale-* writes the `scale` property, so `scale` has to be in the list\n * or the press snaps.\n */\nexport const INTERACTION_PRESS =\n  \"transition-[background-color,color,box-shadow,opacity,scale] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100\";\nexport const INTERACTION_FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background\";\n\nconst query = \"(prefers-reduced-motion: reduce)\";\nconst subscribe = (notify: () => void) => {\n  const media = window.matchMedia(query);\n  media.addEventListener(\"change\", notify);\n  return () => media.removeEventListener(\"change\", notify);\n};\nexport const useInteractionReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false,\n  );\n\nexport function useInteractionActivity<T extends Element>() {\n  const ref = React.useRef<T>(null);\n  const [visible, setVisible] = React.useState(false);\n  const [hidden, setHidden] = React.useState(false);\n  React.useEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(([entry]) =>\n      setVisible(entry.isIntersecting),\n    );\n    observer.observe(el);\n    const visibility = () => setHidden(document.hidden);\n    visibility();\n    document.addEventListener(\"visibilitychange\", visibility);\n    return () => {\n      observer.disconnect();\n      document.removeEventListener(\"visibilitychange\", visibility);\n    };\n  }, []);\n  return { ref, active: visible && !hidden };\n}\n\nexport function interactionIcon(\n  on: boolean,\n  reduced: boolean,\n): React.CSSProperties {\n  return {\n    opacity: on ? 1 : 0,\n    transform: on ? \"none\" : \"scale(0.6)\",\n    filter: on ? \"blur(0px)\" : \"blur(3px)\",\n    transition: reduced\n      ? \"none\"\n      : `opacity 220ms ${EASE_OUT}, transform 380ms ${EASE_OUT}, filter 220ms ${EASE_OUT}`,\n  };\n}\n\n/** Sample recent movement rather than averaging a long drag and losing its release velocity. */\nexport type PointerSample = { x: number; time: number };\nexport function samplePointer(\n  samples: PointerSample[],\n  x: number,\n  time: number,\n) {\n  samples.push({ x, time });\n  while (samples.length > 2 && time - samples[0].time > 100) samples.shift();\n}\nexport function releaseVelocity(samples: PointerSample[], now: number) {\n  if (samples.length < 2 || now - samples[samples.length - 1].time > 100)\n    return 0;\n  const first = samples[0],\n    last = samples[samples.length - 1];\n  return (last.x - first.x) / Math.max(1, last.time - first.time);\n}\n\n/** Smooth Apple/rational rubber-band curve: continuous exponential-like resistance without linear kinks. */\nexport function rubberBand(\n  overshoot: number,\n  dimension = 320,\n  constant = 0.55,\n): number {\n  const d = dimension || 320;\n  const abs = Math.abs(overshoot);\n  return Math.sign(overshoot) * (1 - 1 / ((abs * constant) / d + 1)) * d;\n}\n\n/** Projects resting travel from release velocity (velocity in px/ms; time in seconds). */\nexport function projectInertia(\n  distance: number,\n  velocity: number,\n  time = 0.12,\n): number {\n  return distance + velocity * 1000 * time;\n}\n\n/** Smooths incoming release velocity toward a boundary so springs don't slam or clip into walls. */\nexport function softenVelocity(\n  velocity: number,\n  distanceToTarget: number,\n  factor = 10,\n): number {\n  const maxAllowed = Math.abs(distanceToTarget) * factor;\n  return Math.sign(velocity) * Math.min(Math.abs(velocity), maxAllowed);\n}\n\n/** A damped spring sampled by WAAPI: tuned for organic lightness with a hint of life (3% breath). */\nexport function springFrames(\n  from: number,\n  to: number,\n  velocity = 0,\n  duration = 480,\n  config: { omega?: number; damping?: number; steps?: number } = {},\n) {\n  const { omega = 16, damping = 0.74, steps = 36 } = config;\n  const damped = omega * Math.sqrt(Math.max(0.001, 1 - damping * damping));\n  const displacement = from - to;\n  const coefficient =\n    (velocity * 1000 + damping * omega * displacement) / damped;\n  return Array.from({ length: steps + 1 }, (_, i) => {\n    const t = (i / steps) * (duration / 1000);\n    const value =\n      to +\n      Math.exp(-damping * omega * t) *\n        (displacement * Math.cos(damped * t) +\n          coefficient * Math.sin(damped * t));\n    return { value: i === steps ? to : value, offset: i / steps };\n  });\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {},
+  "meta": {
+    "cavemio": {
+      "component": "copy-button",
+      "exportName": "CopyButton",
+      "categories": [
+        "buttons"
+      ],
+      "isNew": true,
+      "usage": "import { CopyButton } from \"@/components/copy-button\";\n\n<CopyButton text=\"npm i @thin line/button\" />\n<CopyButton text=\"https://thin lineui.com\" showLabel />",
+      "accessibility": "- Uses navigator.clipboard, with a selection fallback for older browsers and plain-http pages.\n- The copied state is optimistic: it shows on the press, not after the clipboard promise.\n- Reduced motion: icons and labels change in place, no shake.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "text",
+            "type": "string",
+            "description": "– · The string to copy."
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "description": "\"Copy\" · Label while idle; also the icon-only button's accessible name."
+          },
+          {
+            "name": "copiedLabel",
+            "type": "string",
+            "description": "\"Copied\" · Label once copied."
+          },
+          {
+            "name": "errorLabel",
+            "type": "string",
+            "description": "\"Failed\" · Label if the clipboard refuses."
+          },
+          {
+            "name": "showLabel",
+            "type": "boolean",
+            "description": "false · Show the label beside the icon."
+          },
+          {
+            "name": "timeoutMs",
+            "type": "number",
+            "description": "2000 · How long the copied state stays."
+          },
+          {
+            "name": "variant",
+            "type": "\"secondary\" | \"outline\" | \"ghost\"",
+            "description": "\"ghost\" · Visual appearance."
+          },
+          {
+            "name": "size",
+            "type": "\"xs\" | \"sm\" | \"md\"",
+            "description": "\"sm\" · 24, 28 or 36px tall."
+          },
+          {
+            "name": "onCopySuccess / onCopyError",
+            "type": "(text) => void / (error) => void",
+            "description": "– · Called once the clipboard answers."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Code blocks",
+            "description": "Top-right copy button in syntax-highlighted code specimens."
+          },
+          {
+            "title": "Share links & invite codes",
+            "description": "One-tap copy for URLs and referral tokens."
+          },
+          {
+            "title": "API keys & secrets",
+            "description": "Fast copying of sensitive tokens with visual confirmation."
+          }
+        ],
+        "features": [
+          {
+            "title": "Checkmark morph",
+            "description": "The copy icon crossfades smoothly into a green checkmark on successful copy."
+          },
+          {
+            "title": "Instant feedback",
+            "description": "The copied state lands on the press itself; the clipboard write catches up, and if it is refused the button says Failed and shakes."
+          },
+          {
+            "title": "Label morph",
+            "description": "Icon only, or labelled: \"Copy\" morphs into \"Copied\" through TextMorph and the pill eases to its new width."
+          },
+          {
+            "title": "Self-reverting timer",
+            "description": "Returns to idle after timeoutMs (2000ms); pressing again while copied copies again and restarts it."
+          },
+          {
+            "title": "Accessible announcement",
+            "description": "A status region outside the button announces \"Copied\" (or \"Failed\"); the icon-only button keeps \"Copy\" as its name."
+          }
+        ],
+        "states": [
+          {
+            "title": "idle",
+            "description": "The copy icon, and \"Copy\" when labelled."
+          },
+          {
+            "title": "copied",
+            "description": "On the press: the icon blurs out (scale 0.6, 3px) while an emerald check draws itself in 360ms; the label morphs to \"Copied\" and the pill eases wider. Back to idle after 2s."
+          },
+          {
+            "title": "error",
+            "description": "If the clipboard refuses: red tint, an alert icon, \"Failed\" and a 380ms shake."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
