@@ -100,7 +100,7 @@
       "accessibility": "Native button supports Enter and Space to browse, and focused paste. File updates are announced politely; progress bars are labelled; retry and remove actions name their file. Files appear directly as attachment cards. Reduced motion disables membrane bending, card entry motion and shimmer. Attachment icons and labels animate within a persistent card, and reduced motion uses immediate state changes. Upload and retry actions transfer focus to the stable remove button.",
       "previewNote": "The preview simulates upload progress locally; supply onUpload for a real service. Without it, selected files remain ready to upload.",
       "categories": [
-        "interactions"
+        "forms"
       ],
       "documentation": {
         "useCases": [],
@@ -163,7 +163,8 @@
             "description": "Optional. Ref exposing the file-picker controls."
           }
         ]
-      }
+      },
+      "isNew": false
     }
   },
   "type": "registry:component"
