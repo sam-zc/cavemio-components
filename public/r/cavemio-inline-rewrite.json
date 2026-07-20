@@ -60,8 +60,7 @@
       "accessibility": "The visible label names the keyboard-accessible slider; arrow keys, Home and End select versions. Optional description text appears in an info tooltip on hover or focus and describes the slider for assistive technology. Status updates are announced politely. Reduced motion changes text in place and disables slider movement.",
       "previewNote": "Uses local demo data; no AI service or network requests.",
       "categories": [
-        "ai",
-        "text"
+        "ai"
       ],
       "documentation": {
         "useCases": [],
@@ -114,7 +113,8 @@
             "description": "Optional. Let new words glow for a moment after each rewrite."
           }
         ]
-      }
+      },
+      "isNew": false
     }
   },
   "type": "registry:component"

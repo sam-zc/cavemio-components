@@ -1,8 +1,9 @@
-import { InlineRewriteDemo } from "../inline-rewrite-demo";
-export function Demo() {
-  return (
-    <main className="cavemio-demo flex min-h-svh items-center justify-center p-6 sm:p-12">
-      <InlineRewriteDemo />
-    </main>
-  );
+"use client";
+import Scene from "../reference/generated/914933.jsx";
+import {
+  ReferenceDemo,
+  type ReferenceDemoProps,
+} from "../reference/reference-demo";
+export function Demo(props: ReferenceDemoProps = {}) {
+  return <ReferenceDemo {...props} name="inline-rewrite" Scene={Scene} />;
 }
