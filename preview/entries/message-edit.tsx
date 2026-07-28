@@ -1,8 +1,9 @@
-import { MessageEditDemo } from "../message-edit-demo";
-export function Demo() {
-  return (
-    <main className="cavemio-demo flex min-h-svh items-center justify-center p-6 sm:p-12">
-      <MessageEditDemo />
-    </main>
-  );
+"use client";
+import Scene from "../reference/generated/495884.jsx";
+import {
+  ReferenceDemo,
+  type ReferenceDemoProps,
+} from "../reference/reference-demo";
+export function Demo(props: ReferenceDemoProps = {}) {
+  return <ReferenceDemo {...props} name="message-edit" Scene={Scene} />;
 }

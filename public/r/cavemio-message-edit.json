@@ -95,7 +95,8 @@
             "description": "Optional. How the sent message renders; defaults to the text."
           }
         ]
-      }
+      },
+      "isNew": false
     }
   },
   "type": "registry:component"
