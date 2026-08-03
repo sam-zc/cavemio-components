@@ -1,0 +1,136 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-pagination",
+  "title": "Pagination",
+  "description": "Pages of a long list: the current-page mark is thrown to the new number, and in a narrow container it becomes \"3 of 12\" with a number that rolls.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/pagination.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport { NumberRoll } from \"./number-roll\";\nimport {\n  EASE_OUT,\n  EASE_THROW,\n  INTERACTION_FOCUS,\n  INTERACTION_PRESS,\n  useInteractionReducedMotion,\n} from \"./imported-ui-interaction-motion\";\n\n/* ─────────────────────────────────────────────────────────\n * PAGINATION: pages of a long list\n *\n *   move     the current-page mark is thrown to the new number\n *            (slight overshoot) instead of each number repainting\n *   window   first, last and the pages round the current one, with\n *            \"…\" between; the window keeps its width as you move\n *   narrow   in a small container it becomes ‹ \"3 of 12\" › and the\n *            numbers roll the way you moved\n * ───────────────────────────────────────────────────────── */\n\nexport interface PaginationProps {\n  page?: number;\n  defaultPage?: number;\n  pageCount: number;\n  onPageChange?: (page: number) => void;\n  /** Pages either side of the current one. */\n  siblings?: number;\n  /** Build hrefs so pages are real links (good for search engines). */\n  hrefFor?: (page: number) => string;\n  className?: string;\n}\n\ntype Slot = number | \"gap-start\" | \"gap-end\";\n\nfunction windowFor(page: number, count: number, siblings: number): Slot[] {\n  const total = siblings * 2 + 5;\n  if (count <= total) return Array.from({ length: count }, (_, i) => i + 1);\n  const left = Math.max(page - siblings, 2);\n  const right = Math.min(page + siblings, count - 1);\n  const showLeftGap = left > 3;\n  const showRightGap = right < count - 2;\n  if (!showLeftGap)\n    return [\n      ...Array.from({ length: 3 + siblings * 2 }, (_, i) => i + 1),\n      \"gap-end\",\n      count,\n    ];\n  if (!showRightGap)\n    return [\n      1,\n      \"gap-start\",\n      ...Array.from(\n        { length: 3 + siblings * 2 },\n        (_, i) => count - (2 + siblings * 2) + i,\n      ),\n    ];\n  return [\n    1,\n    \"gap-start\",\n    ...Array.from({ length: right - left + 1 }, (_, i) => left + i),\n    \"gap-end\",\n    count,\n  ];\n}\n\nfunction Arrow({ back }: { back?: boolean }) {\n  return (\n    <svg\n      viewBox=\"0 0 16 16\"\n      fill=\"none\"\n      aria-hidden=\"true\"\n      className=\"size-3.5\"\n    >\n      <path\n        d={back ? \"M10 3.5 5.5 8l4.5 4.5\" : \"M6 3.5 10.5 8 6 12.5\"}\n        stroke=\"currentColor\"\n        strokeWidth=\"1.6\"\n        strokeLinecap=\"round\"\n        strokeLinejoin=\"round\"\n      />\n    </svg>\n  );\n}\n\nexport function Pagination({\n  page: controlled,\n  defaultPage = 1,\n  pageCount,\n  onPageChange,\n  siblings = 1,\n  hrefFor,\n  className = \"\",\n}: PaginationProps) {\n  const reduced = useInteractionReducedMotion();\n  const listRef = React.useRef<HTMLDivElement>(null);\n  const [own, setOwn] = React.useState(defaultPage);\n  const page = Math.min(Math.max(1, controlled ?? own), Math.max(1, pageCount));\n  const [mark, setMark] = React.useState<{ x: number; w: number } | null>(null);\n  const [ready, setReady] = React.useState(false);\n  const slots = windowFor(page, pageCount, siblings);\n\n  const go = (p: number) => {\n    const next = Math.min(Math.max(1, p), pageCount);\n    if (next === page) return;\n    if (controlled === undefined) setOwn(next);\n    onPageChange?.(next);\n  };\n\n  React.useLayoutEffect(() => {\n    const list = listRef.current;\n    if (!list) return;\n    const measure = () => {\n      const el = list.querySelector<HTMLElement>('[aria-current=\"page\"]');\n      if (!el || !el.offsetWidth) return setMark(null);\n      const next = { x: el.offsetLeft, w: el.offsetWidth };\n      setMark((p) => (p && p.x === next.x && p.w === next.w ? p : next));\n    };\n    measure();\n    const ro = new ResizeObserver(measure);\n    ro.observe(list);\n    return () => ro.disconnect();\n  }, [page, pageCount]);\n\n  React.useEffect(() => {\n    if (!mark || ready) return;\n    const frame = requestAnimationFrame(() => setReady(true));\n    return () => cancelAnimationFrame(frame);\n  }, [mark, ready]);\n\n  const btn = `inline-flex size-8 shrink-0 items-center justify-center rounded-full text-[13px] tabular-nums cursor-pointer disabled:cursor-default disabled:opacity-35 ${INTERACTION_PRESS} ${INTERACTION_FOCUS}`;\n  const linkProps = (p: number) =>\n    hrefFor\n      ? {\n          href: hrefFor(p),\n          onClick: (e: React.MouseEvent) => {\n            if (e.metaKey || e.ctrlKey || e.shiftKey) return;\n            e.preventDefault();\n            go(p);\n          },\n        }\n      : { onClick: () => go(p), type: \"button\" as const };\n  const Tag = (hrefFor ? \"a\" : \"button\") as \"button\";\n\n  return (\n    <nav aria-label=\"Pagination\" className={`@container w-full ${className}`}>\n      <div className=\"flex items-center justify-center gap-1\">\n        <button\n          type=\"button\"\n          aria-label=\"Previous page\"\n          disabled={page <= 1}\n          onClick={() => go(page - 1)}\n          className={`${btn} text-muted-foreground hover:bg-accent hover:text-foreground`}\n        >\n          <Arrow back />\n        </button>\n\n        {/* Wide: the numbers, with one mark that moves. */}\n        <div\n          ref={listRef}\n          className=\"relative hidden items-center gap-1 @[22rem]:flex\"\n        >\n          <span\n            aria-hidden=\"true\"\n            className=\"pointer-events-none absolute left-0 top-0 h-8 rounded-full bg-foreground\"\n            style={{\n              transform: `translateX(${mark?.x ?? 0}px)`,\n              width: mark?.w ?? 0,\n              opacity: mark ? 1 : 0,\n              transition:\n                reduced || !ready\n                  ? \"none\"\n                  : `transform 420ms ${EASE_THROW}, width 300ms ${EASE_OUT}`,\n            }}\n          />\n          {slots.map((slot) =>\n            typeof slot === \"number\" ? (\n              <Tag\n                key={slot}\n                {...linkProps(slot)}\n                aria-label={`Page ${slot}`}\n                aria-current={slot === page ? \"page\" : undefined}\n                className={`${btn} relative z-10 min-w-8 px-1 transition-colors duration-300 ${slot === page ? \"text-background\" : \"text-muted-foreground hover:bg-accent hover:text-foreground\"}`}\n              >\n                {slot}\n              </Tag>\n            ) : (\n              <span\n                key={slot}\n                aria-hidden=\"true\"\n                className=\"inline-flex size-8 items-center justify-center text-[13px] text-muted-foreground\"\n              >\n                …\n              </span>\n            ),\n          )}\n        </div>\n\n        {/* Narrow: \"3 of 12\", rolling. */}\n        <span className=\"inline-flex items-center gap-1 px-2 text-[13px] tabular-nums text-muted-foreground @[22rem]:hidden\">\n          <span className=\"font-medium text-foreground\">\n            <NumberRoll value={page} />\n          </span>\n          of {pageCount}\n        </span>\n\n        <button\n          type=\"button\"\n          aria-label=\"Next page\"\n          disabled={page >= pageCount}\n          onClick={() => go(page + 1)}\n          className={`${btn} text-muted-foreground hover:bg-accent hover:text-foreground`}\n        >\n          <Arrow />\n        </button>\n      </div>\n    </nav>\n  );\n}\n\nexport default Pagination;\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/number-roll.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * NUMBER ROLL: numbers that change like an odometer\n *\n *   rolling   each digit is a column that rolls to its new\n *             value, in the direction the number moved: going\n *             up, a 9 rolls on to 0 instead of spinning back\n *   places    new places slide open from nothing; lost ones\n *             fold away\n *   format    anything Intl.NumberFormat does: currency,\n *             percent, compact (\"1.2K\"), decimals\n *\n * The real number is always there as text for screen readers\n * and copy and paste; the columns are only what you see.\n * ───────────────────────────────────────────────────────── */\n\nexport interface NumberRollProps extends Omit<\n  React.HTMLAttributes<HTMLSpanElement>,\n  \"children\"\n> {\n  value: number;\n  /** Intl.NumberFormat options, e.g. { style: \"currency\", currency: \"USD\" }. */\n  format?: Intl.NumberFormatOptions;\n  locales?: string | string[];\n  prefix?: string;\n  suffix?: string;\n  /** Start from this value and roll to `value` once mounted, e.g. 0 for stats. */\n  from?: number;\n  /** Roll duration in ms. */\n  duration?: number;\n  /** Always roll this way, e.g. \"down\" for a countdown's seconds, which wrap from 00 to 59. Defaults to the way the number moved. */\n  direction?: \"up\" | \"down\";\n}\n\ntype Column = { key: string; char: string; digit: number | null };\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\nconst SETS = 5; // the strip repeats 0–9 five times so a roll never runs out of digits\nconst MIDDLE = 20;\n/** The strip as one text node, a digit a line: fifty lines, but one element to lay out instead of fifty. */\nconst STRIP = Array.from({ length: SETS * 10 }, (_, i) => i % 10).join(\"\\n\");\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\n/** Digits are keyed by their place counted from the right, so the units column stays the units column. */\nfunction columns(text: string): Column[] {\n  const chars = [...text];\n  const seen = new Map<string, number>();\n  let place = 0;\n  const out: Column[] = [];\n  for (let i = chars.length - 1; i >= 0; i--) {\n    const char = chars[i];\n    if (/\\d/.test(char))\n      out.push({ key: `d${place++}`, char, digit: Number(char) });\n    else {\n      // Symbols are keyed by how many of the same symbol sit to their right, so a comma that shifts is the same comma.\n      const n = seen.get(char) ?? 0;\n      seen.set(char, n + 1);\n      out.push({ key: `s${char}${n}`, char, digit: null });\n    }\n  }\n  return out.reverse();\n}\n\n// Memoised: a parent that re-renders with the same number doesn't rebuild the strips.\nconst Digit = React.memo(function Digit({\n  digit,\n  trend,\n  duration,\n  reduced,\n  rollIn,\n}: {\n  digit: number;\n  trend: number;\n  duration: number;\n  reduced: boolean;\n  rollIn: boolean;\n}) {\n  const [pos, setPos] = React.useState(MIDDLE + (rollIn ? 0 : digit));\n  const [moving, setMoving] = React.useState(false);\n  const posRef = React.useRef(pos);\n  const stripRef = React.useRef<HTMLSpanElement>(null);\n\n  React.useLayoutEffect(() => {\n    const current = posRef.current;\n    const showing = ((current % 10) + 10) % 10;\n    if (showing === digit) return;\n    if (reduced) {\n      posRef.current = MIDDLE + digit;\n      setMoving(false);\n      setPos(MIDDLE + digit);\n      return;\n    }\n    const up = trend > 0 || (trend === 0 && digit > showing);\n    let target = up\n      ? current + ((digit - showing + 10) % 10)\n      : current - ((showing - digit + 10) % 10);\n    // Values arriving faster than a roll (a progress percent) never let it re-centre, so before it runs off the strip,\n    // jump the strip back by whole sets mid-roll (it looks identical) and roll on from there.\n    if (target < 10 || target > SETS * 10 - 11) {\n      const shift = Math.round((target - MIDDLE) / 10) * 10;\n      const strip = stripRef.current;\n      if (strip?.offsetHeight) {\n        let visual = current;\n        try {\n          visual =\n            -new DOMMatrixReadOnly(getComputedStyle(strip).transform).m42 /\n            (strip.offsetHeight / (SETS * 10));\n        } catch {}\n        const transition = strip.style.transition;\n        strip.style.transition = \"none\";\n        strip.style.transform = `translateY(${(-(visual - shift) * 100) / (SETS * 10)}%)`;\n        void strip.offsetHeight;\n        strip.style.transition = transition;\n      }\n      target -= shift;\n    }\n    posRef.current = target;\n    setMoving(true);\n    setPos(target);\n  }, [digit, trend, reduced]);\n\n  // After a roll, quietly re-centre on the middle set so the next roll always has room.\n  const settle = () => {\n    const centred = MIDDLE + (((posRef.current % 10) + 10) % 10);\n    posRef.current = centred;\n    setMoving(false);\n    setPos(centred);\n  };\n\n  return (\n    <span className=\"relative inline-block [clip-path:inset(0)]\">\n      <span className=\"invisible\">{digit}</span>\n      <span\n        ref={stripRef}\n        aria-hidden=\"true\"\n        onTransitionEnd={settle}\n        className=\"absolute inset-x-0 top-0 block whitespace-pre text-center\"\n        style={{\n          transform: `translateY(${(-pos * 100) / (SETS * 10)}%)`,\n          transition: moving ? `transform ${duration}ms ${EASE}` : \"none\",\n        }}\n      >\n        {STRIP}\n      </span>\n    </span>\n  );\n});\n\n/** A place that appeared after the first paint slides open; places that were there from the start just sit. */\nfunction Place({\n  enter,\n  children,\n}: {\n  enter: boolean;\n  children: React.ReactNode;\n}) {\n  const [entering] = React.useState(enter);\n  return (\n    <span\n      className={`inline-block ${entering ? \"[clip-path:inset(0)] animate-[ui-col-in_500ms_cubic-bezier(0.16,1,0.3,1)_both]\" : \"\"}`}\n    >\n      {children}\n    </span>\n  );\n}\n\nexport function NumberRoll({\n  value,\n  format,\n  locales,\n  prefix = \"\",\n  suffix = \"\",\n  from,\n  duration = 900,\n  direction,\n  className = \"\",\n  ...props\n}: NumberRollProps) {\n  const reduced = useReducedMotion();\n  const [shown, setShown] = React.useState(from ?? value);\n  const previous = React.useRef(shown);\n  const mounted = React.useRef(false);\n\n  // Roll from `from` to the real value once on screen (a frame later, so the start is painted).\n  React.useEffect(() => {\n    const frame = requestAnimationFrame(() => setShown(value));\n    return () => cancelAnimationFrame(frame);\n  }, [value]);\n\n  React.useEffect(() => {\n    mounted.current = true;\n  }, []);\n\n  const formatter = React.useMemo(\n    () => new Intl.NumberFormat(locales, format),\n    [locales, format && JSON.stringify(format)],\n  );\n  const text = `${prefix}${formatter.format(shown)}${suffix}`;\n  const cols = React.useMemo(() => columns(text), [text]);\n  const trend =\n    direction === \"up\"\n      ? 1\n      : direction === \"down\"\n        ? -1\n        : Math.sign(shown - previous.current);\n\n  // Places that disappear fold away instead of vanishing.\n  const [leaving, setLeaving] = React.useState<Column[]>([]);\n  const lastCols = React.useRef(cols);\n  React.useLayoutEffect(() => {\n    const gone = lastCols.current.filter(\n      (c) => !cols.some((n) => n.key === c.key),\n    );\n    lastCols.current = cols;\n    previous.current = shown;\n    if (!gone.length || reduced) return;\n    setLeaving(gone);\n    const timer = window.setTimeout(() => setLeaving([]), 420);\n    return () => window.clearTimeout(timer);\n  }, [cols, shown, reduced]);\n\n  return (\n    <span className={`inline-flex tabular-nums ${className}`} {...props}>\n      <span className=\"sr-only\">{`${prefix}${formatter.format(value)}${suffix}`}</span>\n      <span\n        aria-hidden=\"true\"\n        className=\"inline-flex items-baseline whitespace-pre\"\n      >\n        {leaving.map((c) => (\n          <span\n            key={`out-${c.key}`}\n            className=\"inline-block [clip-path:inset(0)] animate-[ui-col-out_400ms_cubic-bezier(0.16,1,0.3,1)_forwards]\"\n          >\n            {c.char}\n          </span>\n        ))}\n        {cols.map((c) => (\n          <Place key={c.key} enter={mounted.current && !reduced}>\n            {c.digit === null ? (\n              c.char\n            ) : (\n              <Digit\n                digit={c.digit}\n                trend={trend}\n                duration={duration}\n                reduced={reduced}\n                rollIn={mounted.current}\n              />\n            )}\n          </Place>\n        ))}\n      </span>\n    </span>\n  );\n}\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/imported-ui-interaction-motion.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport const EASE_OUT = \"cubic-bezier(0.16, 1, 0.3, 1)\";\nexport const EASE_SETTLE = \"cubic-bezier(0.22, 1.18, 0.36, 1)\";\n/** Thrown things (indicators, thumbs): a slight overshoot on transform only. */\nexport const EASE_THROW = \"cubic-bezier(0.34, 1.36, 0.64, 1)\";\n/**\n * The press every button primitive shares: a 3% give that eases in and settles back.\n * Tailwind v4's scale-* writes the `scale` property, so `scale` has to be in the list\n * or the press snaps.\n */\nexport const INTERACTION_PRESS =\n  \"transition-[background-color,color,box-shadow,opacity,scale] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100\";\nexport const INTERACTION_FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background\";\n\nconst query = \"(prefers-reduced-motion: reduce)\";\nconst subscribe = (notify: () => void) => {\n  const media = window.matchMedia(query);\n  media.addEventListener(\"change\", notify);\n  return () => media.removeEventListener(\"change\", notify);\n};\nexport const useInteractionReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false,\n  );\n\nexport function useInteractionActivity<T extends Element>() {\n  const ref = React.useRef<T>(null);\n  const [visible, setVisible] = React.useState(false);\n  const [hidden, setHidden] = React.useState(false);\n  React.useEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(([entry]) =>\n      setVisible(entry.isIntersecting),\n    );\n    observer.observe(el);\n    const visibility = () => setHidden(document.hidden);\n    visibility();\n    document.addEventListener(\"visibilitychange\", visibility);\n    return () => {\n      observer.disconnect();\n      document.removeEventListener(\"visibilitychange\", visibility);\n    };\n  }, []);\n  return { ref, active: visible && !hidden };\n}\n\nexport function interactionIcon(\n  on: boolean,\n  reduced: boolean,\n): React.CSSProperties {\n  return {\n    opacity: on ? 1 : 0,\n    transform: on ? \"none\" : \"scale(0.6)\",\n    filter: on ? \"blur(0px)\" : \"blur(3px)\",\n    transition: reduced\n      ? \"none\"\n      : `opacity 220ms ${EASE_OUT}, transform 380ms ${EASE_OUT}, filter 220ms ${EASE_OUT}`,\n  };\n}\n\n/** Sample recent movement rather than averaging a long drag and losing its release velocity. */\nexport type PointerSample = { x: number; time: number };\nexport function samplePointer(\n  samples: PointerSample[],\n  x: number,\n  time: number,\n) {\n  samples.push({ x, time });\n  while (samples.length > 2 && time - samples[0].time > 100) samples.shift();\n}\nexport function releaseVelocity(samples: PointerSample[], now: number) {\n  if (samples.length < 2 || now - samples[samples.length - 1].time > 100)\n    return 0;\n  const first = samples[0],\n    last = samples[samples.length - 1];\n  return (last.x - first.x) / Math.max(1, last.time - first.time);\n}\n\n/** Smooth Apple/rational rubber-band curve: continuous exponential-like resistance without linear kinks. */\nexport function rubberBand(\n  overshoot: number,\n  dimension = 320,\n  constant = 0.55,\n): number {\n  const d = dimension || 320;\n  const abs = Math.abs(overshoot);\n  return Math.sign(overshoot) * (1 - 1 / ((abs * constant) / d + 1)) * d;\n}\n\n/** Projects resting travel from release velocity (velocity in px/ms; time in seconds). */\nexport function projectInertia(\n  distance: number,\n  velocity: number,\n  time = 0.12,\n): number {\n  return distance + velocity * 1000 * time;\n}\n\n/** Smooths incoming release velocity toward a boundary so springs don't slam or clip into walls. */\nexport function softenVelocity(\n  velocity: number,\n  distanceToTarget: number,\n  factor = 10,\n): number {\n  const maxAllowed = Math.abs(distanceToTarget) * factor;\n  return Math.sign(velocity) * Math.min(Math.abs(velocity), maxAllowed);\n}\n\n/** A damped spring sampled by WAAPI: tuned for organic lightness with a hint of life (3% breath). */\nexport function springFrames(\n  from: number,\n  to: number,\n  velocity = 0,\n  duration = 480,\n  config: { omega?: number; damping?: number; steps?: number } = {},\n) {\n  const { omega = 16, damping = 0.74, steps = 36 } = config;\n  const damped = omega * Math.sqrt(Math.max(0.001, 1 - damping * damping));\n  const displacement = from - to;\n  const coefficient =\n    (velocity * 1000 + damping * omega * displacement) / damped;\n  return Array.from({ length: steps + 1 }, (_, i) => {\n    const t = (i / steps) * (duration / 1000);\n    const value =\n      to +\n      Math.exp(-damping * omega * t) *\n        (displacement * Math.cos(damped * t) +\n          coefficient * Math.sin(damped * t));\n    return { value: i === steps ? to : value, offset: i / steps };\n  });\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {
+    "@keyframes ui-col-in": {
+      "from": {
+        "max-width": "0",
+        "opacity": "0"
+      },
+      "to": {
+        "max-width": "1em",
+        "opacity": "1"
+      }
+    },
+    "@keyframes ui-col-out": {
+      "from": {
+        "max-width": "1em",
+        "opacity": "1"
+      },
+      "to": {
+        "max-width": "0",
+        "opacity": "0"
+      }
+    }
+  },
+  "meta": {
+    "cavemio": {
+      "component": "pagination",
+      "exportName": "Pagination",
+      "categories": [
+        "display"
+      ],
+      "isNew": true,
+      "usage": "import { Pagination } from \"@/components/pagination\";\n\n<Pagination page={page} pageCount={12} onPageChange={setPage} />",
+      "accessibility": "- A nav landmark; the current page has aria-current=\"page\".\n- Reduced motion: the mark moves at once.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "page / defaultPage",
+            "type": "number",
+            "description": "– · Current page (1-based)."
+          },
+          {
+            "name": "pageCount",
+            "type": "number",
+            "description": "– · Total pages."
+          },
+          {
+            "name": "onPageChange",
+            "type": "(page: number) => void",
+            "description": "– · Called on change."
+          },
+          {
+            "name": "siblings",
+            "type": "number",
+            "description": "1 · Pages either side of the current one."
+          },
+          {
+            "name": "hrefFor",
+            "type": "(page) => string",
+            "description": "– · Make pages links."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Tables",
+            "description": "Under a list of customers or invoices."
+          },
+          {
+            "title": "Search results",
+            "description": "Linked pages that search engines can follow."
+          },
+          {
+            "title": "Galleries",
+            "description": "Pages of templates or photos."
+          },
+          {
+            "title": "Logs",
+            "description": "Paging through history."
+          }
+        ],
+        "features": [
+          {
+            "title": "Moving mark",
+            "description": "One mark, thrown (420ms)."
+          },
+          {
+            "title": "Smart window",
+            "description": "First, last, current ± siblings, with gaps."
+          },
+          {
+            "title": "Container aware",
+            "description": "Below 22rem it switches to a rolling \"3 of 12\"."
+          },
+          {
+            "title": "Real links",
+            "description": "hrefFor makes anchors with client-side clicks."
+          }
+        ],
+        "states": [
+          {
+            "title": "move",
+            "description": "The mark is thrown to the new page (420ms, slight overshoot)."
+          },
+          {
+            "title": "narrow",
+            "description": "The number rolls the way you moved."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
