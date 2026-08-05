@@ -1,0 +1,152 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-plan",
+  "title": "Plan",
+  "description": "An agent’s checklist that ticks itself off: pending, in progress, done, skipped or failed.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/plan.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport { ChevronDown, ListChecks, X } from \"lucide-react\";\nimport { NumberRoll } from \"./number-roll\";\n\n/* ─────────────────────────────────────────────────────────\n * PLAN: an agent's checklist, ticking itself off\n *\n *   pending   not started\n *   running   being worked on now; the ring turns into a spinner\n *   done      finished; the spinner blurs into a check that draws\n *             itself, and a strike-through draws across the label\n *   skipped   no longer needed\n *   failed    couldn't be done; the reason folds open underneath\n *\n * A thin line under the header fills as tasks finish and the count\n * rolls (\"3 of 5\"). When every task is settled \"done\" slides in\n * beside it and the plan folds into that one line.\n * ───────────────────────────────────────────────────────── */\n\nexport type PlanTaskStatus =\n  \"pending\" | \"running\" | \"done\" | \"skipped\" | \"failed\";\n\nexport interface PlanTask {\n  id?: string;\n  label: string;\n  /** A note under the task, e.g. why it failed or what it produced. */\n  detail?: string;\n  status: PlanTaskStatus;\n}\n\nexport interface PlanProps extends Omit<\n  React.HTMLAttributes<HTMLDivElement>,\n  \"title\"\n> {\n  tasks: PlanTask[];\n  title?: string;\n  open?: boolean;\n  defaultOpen?: boolean;\n  onOpenChange?: (open: boolean) => void;\n  /** Fold into the summary once every task is settled. */\n  collapseWhenDone?: boolean;\n}\n\nconst FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40\";\nconst STATUS_TEXT: Record<PlanTaskStatus, string> = {\n  pending: \"Not started\",\n  running: \"In progress\",\n  done: \"Done\",\n  skipped: \"Skipped\",\n  failed: \"Failed\",\n};\n\nconst MORPH = \"cubic-bezier(0.16,1,0.3,1)\";\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\n/** Icons trade places through a blur: the old one shrinks away as the new one grows in. */\nconst swap = (on: boolean, reduced: boolean): React.CSSProperties => ({\n  opacity: on ? 1 : 0,\n  transform: on ? \"none\" : \"scale(0.6)\",\n  filter: on ? \"none\" : \"blur(3px)\",\n  transition: reduced\n    ? \"none\"\n    : `opacity 260ms ${MORPH}, transform 380ms ${MORPH}, filter 260ms ${MORPH}`,\n});\n\n/** Every mark is there at once; the one for the task's status shows, and they trade places through a blur. */\nfunction Mark({\n  status,\n  reduced,\n}: {\n  status: PlanTaskStatus;\n  reduced: boolean;\n}) {\n  const layer = \"absolute inset-0 flex items-center justify-center\";\n  return (\n    <span aria-hidden=\"true\" className=\"relative flex size-3.5 shrink-0\">\n      <span className={layer} style={swap(status === \"pending\", reduced)}>\n        <span className=\"size-3.5 rounded-full border-[1.5px] border-border\" />\n      </span>\n      <span className={layer} style={swap(status === \"running\", reduced)}>\n        {/* Spins only while it's showing. */}\n        <span\n          className={`size-3.5 rounded-full border-[1.5px] border-border border-t-foreground motion-reduce:animate-none ${status === \"running\" ? \"animate-spin\" : \"\"}`}\n        />\n      </span>\n      <span className={layer} style={swap(status === \"done\", reduced)}>\n        <svg viewBox=\"0 0 16 16\" className=\"size-3.5\">\n          <circle cx=\"8\" cy=\"8\" r=\"8\" className=\"fill-foreground\" />\n          <path\n            d=\"M4.8 8.3l2.1 2.1 4.3-4.6\"\n            fill=\"none\"\n            strokeWidth=\"1.8\"\n            strokeLinecap=\"round\"\n            strokeLinejoin=\"round\"\n            pathLength={1}\n            strokeDasharray={1}\n            className=\"stroke-background\"\n            style={{\n              strokeDashoffset: status === \"done\" ? 0 : 1,\n              transition:\n                status === \"done\" && !reduced\n                  ? `stroke-dashoffset 420ms ${MORPH} 140ms`\n                  : \"none\",\n            }}\n          />\n        </svg>\n      </span>\n      <span className={layer} style={swap(status === \"skipped\", reduced)}>\n        <span className=\"flex size-3.5 items-center justify-center rounded-full border-[1.5px] border-border\">\n          <span className=\"h-[1.5px] w-1.5 rounded-full bg-muted-foreground\" />\n        </span>\n      </span>\n      <span className={layer} style={swap(status === \"failed\", reduced)}>\n        <span className=\"flex size-3.5 items-center justify-center rounded-full bg-red-500 text-white\">\n          <X className=\"size-2.5\" strokeWidth={3} />\n        </span>\n      </span>\n    </span>\n  );\n}\n\n/** A note that folds open under its task and folds shut again, keeping its words while it closes. */\nfunction Detail({\n  text,\n  failed,\n  reduced,\n}: {\n  text?: string;\n  failed: boolean;\n  reduced: boolean;\n}) {\n  const [last, setLast] = React.useState(text);\n  if (text && text !== last) setLast(text);\n  return (\n    <span\n      aria-hidden={!text || undefined}\n      className=\"grid\"\n      style={{\n        gridTemplateRows: text ? \"1fr\" : \"0fr\",\n        opacity: text ? 1 : 0,\n        transition: reduced\n          ? \"none\"\n          : `grid-template-rows 420ms ${MORPH}, opacity ${text ? \"320ms\" : \"160ms\"} ${MORPH}, color 300ms`,\n      }}\n    >\n      <span\n        className={`min-h-0 overflow-hidden text-[12px] leading-5 transition-colors duration-300 ${failed ? \"text-red-500\" : \"text-muted-foreground\"}`}\n      >\n        <span className=\"block pt-0.5\">{text ?? last}</span>\n      </span>\n    </span>\n  );\n}\n\nexport function Plan({\n  tasks,\n  title = \"Plan\",\n  open,\n  defaultOpen = true,\n  onOpenChange,\n  collapseWhenDone = true,\n  className = \"\",\n  ...props\n}: PlanProps) {\n  const reduced = useReducedMotion();\n  const [ownOpen, setOwnOpen] = React.useState(defaultOpen);\n  const [touched, setTouched] = React.useState(false);\n  const panelId = React.useId();\n\n  const done = tasks.filter((t) => t.status === \"done\").length;\n  const settled =\n    tasks.length > 0 &&\n    tasks.every(\n      (t) =>\n        t.status === \"done\" || t.status === \"skipped\" || t.status === \"failed\",\n    );\n  const failed = tasks.some((t) => t.status === \"failed\");\n  const expanded = open ?? ownOpen;\n\n  // Fold away once everything is settled, unless the user has taken control or something failed.\n  React.useEffect(() => {\n    if (\n      !collapseWhenDone ||\n      open !== undefined ||\n      touched ||\n      !settled ||\n      failed\n    )\n      return;\n    const timer = window.setTimeout(() => setOwnOpen(false), 1200);\n    return () => window.clearTimeout(timer);\n  }, [collapseWhenDone, open, touched, settled, failed]);\n\n  const toggle = () => {\n    const next = !expanded;\n    setTouched(true);\n    if (open === undefined) setOwnOpen(next);\n    onOpenChange?.(next);\n  };\n\n  return (\n    <div className={`w-full ${className}`} {...props}>\n      <button\n        type=\"button\"\n        aria-expanded={expanded}\n        aria-controls={panelId}\n        onClick={toggle}\n        className={`cursor-pointer -mx-1.5 flex w-[calc(100%+0.75rem)] items-center gap-2 rounded-lg px-1.5 py-1 text-left transition-colors hover:bg-accent ${FOCUS}`}\n      >\n        <ListChecks\n          aria-hidden=\"true\"\n          className=\"size-4 shrink-0 text-muted-foreground\"\n        />\n        <span className=\"text-[13px] font-medium text-foreground\">{title}</span>\n        <span\n          aria-hidden=\"true\"\n          className=\"ml-auto flex items-baseline font-mono text-[11.5px] tabular-nums text-muted-foreground\"\n        >\n          <NumberRoll value={done} duration={600} />\n          &nbsp;of&nbsp;\n          <NumberRoll value={tasks.length} duration={600} />\n          <span\n            className=\"grid\"\n            style={{\n              gridTemplateColumns: settled ? \"1fr\" : \"0fr\",\n              opacity: settled ? 1 : 0,\n              transition: reduced\n                ? \"none\"\n                : `grid-template-columns 420ms ${MORPH}, opacity 300ms ${MORPH}`,\n            }}\n          >\n            <span className=\"min-w-0 overflow-hidden whitespace-nowrap\">\n              &nbsp;done\n            </span>\n          </span>\n        </span>\n        <ChevronDown\n          aria-hidden=\"true\"\n          className={`size-3.5 shrink-0 text-muted-foreground transition-transform duration-300 motion-reduce:transition-none ${expanded ? \"rotate-180\" : \"\"}`}\n        />\n      </button>\n      {/* Outside the button, so its name stays the title. */}\n      <span role=\"status\" aria-live=\"polite\" className=\"sr-only\">\n        {settled\n          ? `${done} of ${tasks.length} done`\n          : `${done} of ${tasks.length}`}\n      </span>\n\n      <div\n        aria-hidden=\"true\"\n        className=\"mt-1.5 h-px w-full overflow-hidden bg-border\"\n      >\n        <div\n          className=\"h-full bg-foreground transition-[width] duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none\"\n          style={{\n            width: `${tasks.length ? (done / tasks.length) * 100 : 0}%`,\n          }}\n        />\n      </div>\n\n      <div\n        id={panelId}\n        inert={!expanded}\n        className={`grid transition-[grid-template-rows,opacity] duration-[400ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${\n          expanded ? \"grid-rows-[1fr] opacity-100\" : \"grid-rows-[0fr] opacity-0\"\n        }`}\n      >\n        <div className=\"overflow-hidden\">\n          <ol aria-label={title} className=\"flex flex-col gap-0.5 pt-2.5\">\n            {tasks.map((task, i) => {\n              const quiet = task.status === \"done\" || task.status === \"skipped\";\n              return (\n                <li\n                  key={task.id ?? `${i}-${task.label}`}\n                  className=\"flex gap-2.5 py-1\"\n                >\n                  <span className=\"mt-[3px] flex\">\n                    <Mark status={task.status} reduced={reduced} />\n                  </span>\n                  <span className=\"min-w-0\">\n                    <span className=\"block text-[13px] leading-5\">\n                      {/* The strike draws itself across each line of the label, left to right. */}\n                      <span\n                        className={`bg-[linear-gradient(var(--border),var(--border))] bg-no-repeat [background-position:0_58%] [box-decoration-break:clone] [-webkit-box-decoration-break:clone] ${\n                          quiet\n                            ? \"text-muted-foreground\"\n                            : task.status === \"pending\"\n                              ? \"text-foreground/70\"\n                              : \"text-foreground\"\n                        }`}\n                        style={{\n                          backgroundSize: quiet ? \"100% 1px\" : \"0% 1px\",\n                          transition: reduced\n                            ? \"none\"\n                            : `background-size 520ms ${MORPH} 120ms, color 300ms`,\n                        }}\n                      >\n                        {task.label}\n                      </span>\n                      <span className=\"sr-only\">\n                        , {STATUS_TEXT[task.status]}\n                      </span>\n                    </span>\n                    <Detail\n                      text={task.detail}\n                      failed={task.status === \"failed\"}\n                      reduced={reduced}\n                    />\n                  </span>\n                </li>\n              );\n            })}\n          </ol>\n        </div>\n      </div>\n    </div>\n  );\n}\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/number-roll.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * NUMBER ROLL: numbers that change like an odometer\n *\n *   rolling   each digit is a column that rolls to its new\n *             value, in the direction the number moved: going\n *             up, a 9 rolls on to 0 instead of spinning back\n *   places    new places slide open from nothing; lost ones\n *             fold away\n *   format    anything Intl.NumberFormat does: currency,\n *             percent, compact (\"1.2K\"), decimals\n *\n * The real number is always there as text for screen readers\n * and copy and paste; the columns are only what you see.\n * ───────────────────────────────────────────────────────── */\n\nexport interface NumberRollProps extends Omit<\n  React.HTMLAttributes<HTMLSpanElement>,\n  \"children\"\n> {\n  value: number;\n  /** Intl.NumberFormat options, e.g. { style: \"currency\", currency: \"USD\" }. */\n  format?: Intl.NumberFormatOptions;\n  locales?: string | string[];\n  prefix?: string;\n  suffix?: string;\n  /** Start from this value and roll to `value` once mounted, e.g. 0 for stats. */\n  from?: number;\n  /** Roll duration in ms. */\n  duration?: number;\n  /** Always roll this way, e.g. \"down\" for a countdown's seconds, which wrap from 00 to 59. Defaults to the way the number moved. */\n  direction?: \"up\" | \"down\";\n}\n\ntype Column = { key: string; char: string; digit: number | null };\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\nconst SETS = 5; // the strip repeats 0–9 five times so a roll never runs out of digits\nconst MIDDLE = 20;\n/** The strip as one text node, a digit a line: fifty lines, but one element to lay out instead of fifty. */\nconst STRIP = Array.from({ length: SETS * 10 }, (_, i) => i % 10).join(\"\\n\");\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\n/** Digits are keyed by their place counted from the right, so the units column stays the units column. */\nfunction columns(text: string): Column[] {\n  const chars = [...text];\n  const seen = new Map<string, number>();\n  let place = 0;\n  const out: Column[] = [];\n  for (let i = chars.length - 1; i >= 0; i--) {\n    const char = chars[i];\n    if (/\\d/.test(char))\n      out.push({ key: `d${place++}`, char, digit: Number(char) });\n    else {\n      // Symbols are keyed by how many of the same symbol sit to their right, so a comma that shifts is the same comma.\n      const n = seen.get(char) ?? 0;\n      seen.set(char, n + 1);\n      out.push({ key: `s${char}${n}`, char, digit: null });\n    }\n  }\n  return out.reverse();\n}\n\n// Memoised: a parent that re-renders with the same number doesn't rebuild the strips.\nconst Digit = React.memo(function Digit({\n  digit,\n  trend,\n  duration,\n  reduced,\n  rollIn,\n}: {\n  digit: number;\n  trend: number;\n  duration: number;\n  reduced: boolean;\n  rollIn: boolean;\n}) {\n  const [pos, setPos] = React.useState(MIDDLE + (rollIn ? 0 : digit));\n  const [moving, setMoving] = React.useState(false);\n  const posRef = React.useRef(pos);\n  const stripRef = React.useRef<HTMLSpanElement>(null);\n\n  React.useLayoutEffect(() => {\n    const current = posRef.current;\n    const showing = ((current % 10) + 10) % 10;\n    if (showing === digit) return;\n    if (reduced) {\n      posRef.current = MIDDLE + digit;\n      setMoving(false);\n      setPos(MIDDLE + digit);\n      return;\n    }\n    const up = trend > 0 || (trend === 0 && digit > showing);\n    let target = up\n      ? current + ((digit - showing + 10) % 10)\n      : current - ((showing - digit + 10) % 10);\n    // Values arriving faster than a roll (a progress percent) never let it re-centre, so before it runs off the strip,\n    // jump the strip back by whole sets mid-roll (it looks identical) and roll on from there.\n    if (target < 10 || target > SETS * 10 - 11) {\n      const shift = Math.round((target - MIDDLE) / 10) * 10;\n      const strip = stripRef.current;\n      if (strip?.offsetHeight) {\n        let visual = current;\n        try {\n          visual =\n            -new DOMMatrixReadOnly(getComputedStyle(strip).transform).m42 /\n            (strip.offsetHeight / (SETS * 10));\n        } catch {}\n        const transition = strip.style.transition;\n        strip.style.transition = \"none\";\n        strip.style.transform = `translateY(${(-(visual - shift) * 100) / (SETS * 10)}%)`;\n        void strip.offsetHeight;\n        strip.style.transition = transition;\n      }\n      target -= shift;\n    }\n    posRef.current = target;\n    setMoving(true);\n    setPos(target);\n  }, [digit, trend, reduced]);\n\n  // After a roll, quietly re-centre on the middle set so the next roll always has room.\n  const settle = () => {\n    const centred = MIDDLE + (((posRef.current % 10) + 10) % 10);\n    posRef.current = centred;\n    setMoving(false);\n    setPos(centred);\n  };\n\n  return (\n    <span className=\"relative inline-block [clip-path:inset(0)]\">\n      <span className=\"invisible\">{digit}</span>\n      <span\n        ref={stripRef}\n        aria-hidden=\"true\"\n        onTransitionEnd={settle}\n        className=\"absolute inset-x-0 top-0 block whitespace-pre text-center\"\n        style={{\n          transform: `translateY(${(-pos * 100) / (SETS * 10)}%)`,\n          transition: moving ? `transform ${duration}ms ${EASE}` : \"none\",\n        }}\n      >\n        {STRIP}\n      </span>\n    </span>\n  );\n});\n\n/** A place that appeared after the first paint slides open; places that were there from the start just sit. */\nfunction Place({\n  enter,\n  children,\n}: {\n  enter: boolean;\n  children: React.ReactNode;\n}) {\n  const [entering] = React.useState(enter);\n  return (\n    <span\n      className={`inline-block ${entering ? \"[clip-path:inset(0)] animate-[ui-col-in_500ms_cubic-bezier(0.16,1,0.3,1)_both]\" : \"\"}`}\n    >\n      {children}\n    </span>\n  );\n}\n\nexport function NumberRoll({\n  value,\n  format,\n  locales,\n  prefix = \"\",\n  suffix = \"\",\n  from,\n  duration = 900,\n  direction,\n  className = \"\",\n  ...props\n}: NumberRollProps) {\n  const reduced = useReducedMotion();\n  const [shown, setShown] = React.useState(from ?? value);\n  const previous = React.useRef(shown);\n  const mounted = React.useRef(false);\n\n  // Roll from `from` to the real value once on screen (a frame later, so the start is painted).\n  React.useEffect(() => {\n    const frame = requestAnimationFrame(() => setShown(value));\n    return () => cancelAnimationFrame(frame);\n  }, [value]);\n\n  React.useEffect(() => {\n    mounted.current = true;\n  }, []);\n\n  const formatter = React.useMemo(\n    () => new Intl.NumberFormat(locales, format),\n    [locales, format && JSON.stringify(format)],\n  );\n  const text = `${prefix}${formatter.format(shown)}${suffix}`;\n  const cols = React.useMemo(() => columns(text), [text]);\n  const trend =\n    direction === \"up\"\n      ? 1\n      : direction === \"down\"\n        ? -1\n        : Math.sign(shown - previous.current);\n\n  // Places that disappear fold away instead of vanishing.\n  const [leaving, setLeaving] = React.useState<Column[]>([]);\n  const lastCols = React.useRef(cols);\n  React.useLayoutEffect(() => {\n    const gone = lastCols.current.filter(\n      (c) => !cols.some((n) => n.key === c.key),\n    );\n    lastCols.current = cols;\n    previous.current = shown;\n    if (!gone.length || reduced) return;\n    setLeaving(gone);\n    const timer = window.setTimeout(() => setLeaving([]), 420);\n    return () => window.clearTimeout(timer);\n  }, [cols, shown, reduced]);\n\n  return (\n    <span className={`inline-flex tabular-nums ${className}`} {...props}>\n      <span className=\"sr-only\">{`${prefix}${formatter.format(value)}${suffix}`}</span>\n      <span\n        aria-hidden=\"true\"\n        className=\"inline-flex items-baseline whitespace-pre\"\n      >\n        {leaving.map((c) => (\n          <span\n            key={`out-${c.key}`}\n            className=\"inline-block [clip-path:inset(0)] animate-[ui-col-out_400ms_cubic-bezier(0.16,1,0.3,1)_forwards]\"\n          >\n            {c.char}\n          </span>\n        ))}\n        {cols.map((c) => (\n          <Place key={c.key} enter={mounted.current && !reduced}>\n            {c.digit === null ? (\n              c.char\n            ) : (\n              <Digit\n                digit={c.digit}\n                trend={trend}\n                duration={duration}\n                reduced={reduced}\n                rollIn={mounted.current}\n              />\n            )}\n          </Place>\n        ))}\n      </span>\n    </span>\n  );\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {
+    "@keyframes ui-col-in": {
+      "from": {
+        "max-width": "0",
+        "opacity": "0"
+      },
+      "to": {
+        "max-width": "1em",
+        "opacity": "1"
+      }
+    },
+    "@keyframes ui-col-out": {
+      "from": {
+        "max-width": "1em",
+        "opacity": "1"
+      },
+      "to": {
+        "max-width": "0",
+        "opacity": "0"
+      }
+    }
+  },
+  "meta": {
+    "cavemio": {
+      "component": "plan",
+      "exportName": "Plan",
+      "categories": [
+        "ai"
+      ],
+      "isNew": false,
+      "usage": "import { Plan } from \"@/components/plan\";\n\n<Plan\n  tasks={[\n    { label: \"Pull last month’s sales\", status: \"done\" },\n    { label: \"Compare flavors by margin\", status: \"running\" },\n    { label: \"Draft the weekend special\", status: \"pending\" },\n  ]}\n/>",
+      "accessibility": "- It’s an ordered list; each task carries its status as text for screen readers, and the progress count is announced politely.\n- The plan never folds itself away after the user has opened or closed it.\n- Installs Number roll. With reduced motion the spinner, rolls, strikes and folds stop; states still read clearly.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "tasks",
+            "type": "{ id?; label; detail?; status }[]",
+            "description": "– · The checklist. Status is \"pending\" | \"running\" | \"done\" | \"skipped\" | \"failed\"."
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "description": "\"Plan\" · Header label."
+          },
+          {
+            "name": "collapseWhenDone",
+            "type": "boolean",
+            "description": "true · Fold into the summary once every task is settled."
+          },
+          {
+            "name": "open / defaultOpen / onOpenChange",
+            "type": "boolean / boolean / (open) => void",
+            "description": "true · Control it yourself; any click also stops the automatic folding."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "AI agent chats",
+            "description": "Show the steps the agent intends to take before and while it works."
+          },
+          {
+            "title": "Coding agents",
+            "description": "List the changes to make and tick them off as they land."
+          },
+          {
+            "title": "Workflow and automation runs",
+            "description": "Show which steps have run, which are running and which failed."
+          },
+          {
+            "title": "Setup and migration tools",
+            "description": "Give a long job a visible list of its steps."
+          }
+        ],
+        "features": [
+          {
+            "title": "Five statuses",
+            "description": "Pending, running, done, skipped and failed, each with its own mark."
+          },
+          {
+            "title": "Marks that change in place",
+            "description": "The ring becomes a spinner, the spinner blurs into a drawn check, and a strike draws across the label."
+          },
+          {
+            "title": "A progress line",
+            "description": "A thin line under the header fills as work completes, and the count (“3 of 5”) rolls."
+          },
+          {
+            "title": "Failures stay open",
+            "description": "A failed task shows its reason and keeps the plan open."
+          },
+          {
+            "title": "It folds when settled",
+            "description": "When every task is settled, “done” slides in and the plan folds into one line. It never folds after the user opened or closed it."
+          },
+          {
+            "title": "Readable by screen readers",
+            "description": "It is an ordered list, each task carries its status as text, and progress is announced politely."
+          }
+        ],
+        "states": [
+          {
+            "title": "pending",
+            "description": "An empty ring; not started."
+          },
+          {
+            "title": "running",
+            "description": "The ring blurs into a spinner and the label brightens; the task being worked on."
+          },
+          {
+            "title": "done",
+            "description": "The spinner blurs out as a filled check draws itself (420ms); a strike-through draws across the label left to right (520ms) as it fades back. The count rolls."
+          },
+          {
+            "title": "skipped",
+            "description": "A dash; no longer needed."
+          },
+          {
+            "title": "failed",
+            "description": "A red mark swaps in and the reason folds open underneath; the plan stays open."
+          },
+          {
+            "title": "settled",
+            "description": "Every task finished: \"done\" slides in after \"5 of 5\" and the list folds away 1.2s later."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
