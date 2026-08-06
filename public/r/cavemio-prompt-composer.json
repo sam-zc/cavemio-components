@@ -1,0 +1,176 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-prompt-composer",
+  "title": "Prompt composer",
+  "description": "The input that starts it all: grows as you type, takes files, and turns Send into Stop while answering.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/prompt-composer.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport { ArrowUp, Paperclip, Square } from \"lucide-react\";\nimport { NumberRoll } from \"./number-roll\";\n\n/* ─────────────────────────────────────────────────────────\n * PROMPT COMPOSER: where the conversation starts\n *\n *   ready      type; Enter sends, Shift+Enter adds a line\n *   submitted  sent: the arrow blurs into a spinner\n *   streaming  the spinner blurs into Stop\n *   error      ready to try again\n *   disabled   with a reason, e.g. a rate limit, folding open\n *              above the field\n *\n * Near the limit a counter opens in and rolls as you type;\n * attachments fold open above the field as the first one lands.\n *\n * status takes useChat's status as is. Files come in through the\n * paperclip, paste or drag and drop; render them as chips in the\n * attachments slot. The toolbar slot fits a mode switcher.\n * ───────────────────────────────────────────────────────── */\n\nexport type ComposerStatus = \"ready\" | \"submitted\" | \"streaming\" | \"error\";\n\nexport interface PromptComposerProps extends Omit<\n  React.FormHTMLAttributes<HTMLFormElement>,\n  \"onSubmit\" | \"defaultValue\"\n> {\n  value?: string;\n  defaultValue?: string;\n  onValueChange?: (value: string) => void;\n  onSubmit: (value: string) => void;\n  onStop?: () => void;\n  /** Pass useChat's status straight through. */\n  status?: ComposerStatus;\n  placeholder?: string;\n  disabled?: boolean;\n  /** Shown above the input while disabled, e.g. \"You've reached today's limit.\" */\n  disabledReason?: React.ReactNode;\n  /** Enables the paperclip, paste and drop. */\n  onFilesSelected?: (files: File[]) => void;\n  accept?: string;\n  /** Attachment chips, shown above the text. */\n  attachments?: React.ReactNode;\n  /** Controls at the bottom left, e.g. a mode switcher. */\n  toolbar?: React.ReactNode;\n  maxLength?: number;\n  /** Allow sending with no text, e.g. when files are attached. */\n  allowEmpty?: boolean;\n  autoFocus?: boolean;\n}\n\nconst FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40\";\nconst MORPH = \"cubic-bezier(0.16,1,0.3,1)\";\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\n/** Icons trade places through a blur: the old one shrinks away as the new one grows in. */\nconst swap = (on: boolean, reduced: boolean): React.CSSProperties => ({\n  opacity: on ? 1 : 0,\n  transform: on ? \"none\" : \"scale(0.6)\",\n  filter: on ? \"none\" : \"blur(3px)\",\n  transition: reduced\n    ? \"none\"\n    : `opacity 260ms ${MORPH}, transform 380ms ${MORPH}, filter 260ms ${MORPH}`,\n});\n\n/** A block that folds open to its height and shut again, keeping what it showed while it closes. */\nfunction Fold({\n  show,\n  reduced,\n  children,\n}: {\n  show: boolean;\n  reduced: boolean;\n  children: React.ReactNode;\n}) {\n  const [last, setLast] = React.useState(children);\n  if (show && children !== last) setLast(children);\n  return (\n    <div\n      aria-hidden={!show || undefined}\n      inert={!show}\n      className=\"grid\"\n      style={{\n        gridTemplateRows: show ? \"1fr\" : \"0fr\",\n        opacity: show ? 1 : 0,\n        transition: reduced\n          ? \"none\"\n          : `grid-template-rows 380ms ${MORPH}, opacity ${show ? \"280ms\" : \"140ms\"} ${MORPH}`,\n      }}\n    >\n      <div className=\"min-h-0 overflow-hidden\">{show ? children : last}</div>\n    </div>\n  );\n}\n\nexport function PromptComposer({\n  value,\n  defaultValue = \"\",\n  onValueChange,\n  onSubmit,\n  onStop,\n  status = \"ready\",\n  placeholder = \"Ask anything\",\n  disabled = false,\n  disabledReason,\n  onFilesSelected,\n  accept,\n  attachments,\n  toolbar,\n  maxLength,\n  allowEmpty = false,\n  autoFocus,\n  className = \"\",\n  ...props\n}: PromptComposerProps) {\n  const reduced = useReducedMotion();\n  const [own, setOwn] = React.useState(defaultValue);\n  const [dragging, setDragging] = React.useState(false);\n  const text = value ?? own;\n  const textareaRef = React.useRef<HTMLTextAreaElement>(null);\n  const fileRef = React.useRef<HTMLInputElement>(null);\n  const busy = status === \"submitted\" || status === \"streaming\";\n  const canSend =\n    !disabled &&\n    !busy &&\n    (allowEmpty || text.trim().length > 0) &&\n    (maxLength === undefined || text.length <= maxLength);\n\n  const setText = (next: string) => {\n    if (value === undefined) setOwn(next);\n    onValueChange?.(next);\n  };\n\n  // Grow with the text, up to a scrolling maximum.\n  React.useLayoutEffect(() => {\n    const el = textareaRef.current;\n    if (!el) return;\n    el.style.height = \"auto\";\n    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;\n  }, [text]);\n\n  const submit = () => {\n    if (!canSend) return;\n    onSubmit(text);\n    if (value === undefined) setOwn(\"\");\n  };\n\n  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {\n    if (e.key === \"Enter\" && !e.shiftKey && !e.nativeEvent.isComposing) {\n      e.preventDefault();\n      submit();\n    }\n  };\n\n  const takeFiles = (list: FileList | null) => {\n    if (!list || list.length === 0 || !onFilesSelected) return false;\n    onFilesSelected(Array.from(list));\n    return true;\n  };\n\n  const action = busy\n    ? status === \"streaming\" && onStop\n      ? \"stop\"\n      : \"wait\"\n    : \"send\";\n\n  return (\n    <form\n      onSubmit={(e) => {\n        e.preventDefault();\n        submit();\n      }}\n      onDragOver={(e) => {\n        if (!onFilesSelected || !e.dataTransfer.types.includes(\"Files\")) return;\n        e.preventDefault();\n        setDragging(true);\n      }}\n      onDragLeave={(e) => {\n        if (!e.currentTarget.contains(e.relatedTarget as Node))\n          setDragging(false);\n      }}\n      onDrop={(e) => {\n        if (!onFilesSelected) return;\n        e.preventDefault();\n        setDragging(false);\n        takeFiles(e.dataTransfer.files);\n      }}\n      className={`relative rounded-2xl border bg-background transition-colors focus-within:border-foreground/25 ${\n        dragging ? \"border-dashed border-foreground/40\" : \"border-border\"\n      } ${className}`}\n      {...props}\n    >\n      <Fold show={Boolean(disabled && disabledReason)} reduced={reduced}>\n        <div className=\"border-b border-border px-3.5 py-2 text-[12px] text-muted-foreground\">\n          {disabledReason}\n        </div>\n      </Fold>\n\n      <Fold show={Boolean(attachments)} reduced={reduced}>\n        <div className=\"flex flex-wrap gap-2 px-3 pt-3\">{attachments}</div>\n      </Fold>\n\n      <textarea\n        ref={textareaRef}\n        rows={1}\n        value={text}\n        autoFocus={autoFocus}\n        disabled={disabled}\n        placeholder={placeholder}\n        aria-label={placeholder}\n        onChange={(e) => setText(e.target.value)}\n        onKeyDown={onKeyDown}\n        onPaste={(e) => {\n          if (\n            takeFiles(e.clipboardData.files) &&\n            !e.clipboardData.getData(\"text\")\n          )\n            e.preventDefault();\n        }}\n        className=\"block max-h-[200px] w-full resize-none overflow-y-auto bg-transparent px-3.5 pb-1 pt-3 text-[14px] leading-6 text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60\"\n      />\n\n      <div className=\"flex items-center gap-1.5 px-2 pb-2 pt-1\">\n        {onFilesSelected && (\n          <>\n            <button\n              type=\"button\"\n              aria-label=\"Attach files\"\n              disabled={disabled}\n              onClick={() => fileRef.current?.click()}\n              className={`cursor-pointer disabled:cursor-default flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-40 ${FOCUS}`}\n            >\n              <Paperclip className=\"size-4\" />\n            </button>\n            <input\n              ref={fileRef}\n              type=\"file\"\n              multiple\n              accept={accept}\n              className=\"hidden\"\n              onChange={(e) => {\n                takeFiles(e.target.files);\n                e.target.value = \"\";\n              }}\n            />\n          </>\n        )}\n        {toolbar}\n\n        <div className=\"ml-auto flex items-center gap-2.5\">\n          {maxLength !== undefined && (\n            // Opens in near the limit and rolls as you type; red once you're over.\n            <span\n              aria-hidden={text.length <= maxLength * 0.8 || undefined}\n              className=\"grid\"\n              style={{\n                gridTemplateColumns:\n                  text.length > maxLength * 0.8 ? \"1fr\" : \"0fr\",\n                opacity: text.length > maxLength * 0.8 ? 1 : 0,\n                transition: reduced\n                  ? \"none\"\n                  : `grid-template-columns 380ms ${MORPH}, opacity 260ms ${MORPH}`,\n              }}\n            >\n              <span\n                className={`flex min-w-0 items-baseline overflow-hidden whitespace-nowrap font-mono text-[11px] tabular-nums transition-colors duration-300 ${\n                  text.length > maxLength\n                    ? \"text-red-500\"\n                    : \"text-muted-foreground\"\n                }`}\n              >\n                <NumberRoll value={text.length} duration={300} />/{maxLength}\n              </span>\n            </span>\n          )}\n          <button\n            type={action === \"send\" ? \"submit\" : \"button\"}\n            aria-label={\n              action === \"stop\"\n                ? \"Stop\"\n                : action === \"wait\"\n                  ? \"Sending\"\n                  : \"Send\"\n            }\n            disabled={action === \"send\" ? !canSend : action === \"wait\"}\n            onClick={action === \"stop\" ? onStop : undefined}\n            className={`cursor-pointer disabled:cursor-default relative flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-[opacity,transform] duration-200 active:scale-95 disabled:opacity-35 ${FOCUS}`}\n          >\n            <span\n              aria-hidden=\"true\"\n              className=\"absolute inset-0 flex items-center justify-center\"\n              style={swap(action === \"send\", reduced)}\n            >\n              <ArrowUp className=\"size-4\" />\n            </span>\n            <span\n              aria-hidden=\"true\"\n              className=\"absolute inset-0 flex items-center justify-center\"\n              style={swap(action === \"stop\", reduced)}\n            >\n              <Square fill=\"currentColor\" className=\"size-3\" />\n            </span>\n            <span\n              aria-hidden=\"true\"\n              className=\"absolute inset-0 flex items-center justify-center\"\n              style={swap(action === \"wait\", reduced)}\n            >\n              {/* Spins only while it's showing. */}\n              <span\n                className={`size-3.5 rounded-full border-[1.5px] border-current/35 border-t-current motion-reduce:animate-none ${action === \"wait\" ? \"animate-spin\" : \"\"}`}\n              />\n            </span>\n          </button>\n        </div>\n      </div>\n\n      <div\n        aria-hidden=\"true\"\n        className=\"pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl bg-background/85 text-[13px] font-medium text-foreground\"\n        style={{\n          opacity: dragging ? 1 : 0,\n          transition: reduced ? \"none\" : `opacity 200ms ${MORPH}`,\n        }}\n      >\n        Drop files to attach\n      </div>\n    </form>\n  );\n}\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/number-roll.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * NUMBER ROLL: numbers that change like an odometer\n *\n *   rolling   each digit is a column that rolls to its new\n *             value, in the direction the number moved: going\n *             up, a 9 rolls on to 0 instead of spinning back\n *   places    new places slide open from nothing; lost ones\n *             fold away\n *   format    anything Intl.NumberFormat does: currency,\n *             percent, compact (\"1.2K\"), decimals\n *\n * The real number is always there as text for screen readers\n * and copy and paste; the columns are only what you see.\n * ───────────────────────────────────────────────────────── */\n\nexport interface NumberRollProps extends Omit<\n  React.HTMLAttributes<HTMLSpanElement>,\n  \"children\"\n> {\n  value: number;\n  /** Intl.NumberFormat options, e.g. { style: \"currency\", currency: \"USD\" }. */\n  format?: Intl.NumberFormatOptions;\n  locales?: string | string[];\n  prefix?: string;\n  suffix?: string;\n  /** Start from this value and roll to `value` once mounted, e.g. 0 for stats. */\n  from?: number;\n  /** Roll duration in ms. */\n  duration?: number;\n  /** Always roll this way, e.g. \"down\" for a countdown's seconds, which wrap from 00 to 59. Defaults to the way the number moved. */\n  direction?: \"up\" | \"down\";\n}\n\ntype Column = { key: string; char: string; digit: number | null };\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\nconst SETS = 5; // the strip repeats 0–9 five times so a roll never runs out of digits\nconst MIDDLE = 20;\n/** The strip as one text node, a digit a line: fifty lines, but one element to lay out instead of fifty. */\nconst STRIP = Array.from({ length: SETS * 10 }, (_, i) => i % 10).join(\"\\n\");\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\n/** Digits are keyed by their place counted from the right, so the units column stays the units column. */\nfunction columns(text: string): Column[] {\n  const chars = [...text];\n  const seen = new Map<string, number>();\n  let place = 0;\n  const out: Column[] = [];\n  for (let i = chars.length - 1; i >= 0; i--) {\n    const char = chars[i];\n    if (/\\d/.test(char))\n      out.push({ key: `d${place++}`, char, digit: Number(char) });\n    else {\n      // Symbols are keyed by how many of the same symbol sit to their right, so a comma that shifts is the same comma.\n      const n = seen.get(char) ?? 0;\n      seen.set(char, n + 1);\n      out.push({ key: `s${char}${n}`, char, digit: null });\n    }\n  }\n  return out.reverse();\n}\n\n// Memoised: a parent that re-renders with the same number doesn't rebuild the strips.\nconst Digit = React.memo(function Digit({\n  digit,\n  trend,\n  duration,\n  reduced,\n  rollIn,\n}: {\n  digit: number;\n  trend: number;\n  duration: number;\n  reduced: boolean;\n  rollIn: boolean;\n}) {\n  const [pos, setPos] = React.useState(MIDDLE + (rollIn ? 0 : digit));\n  const [moving, setMoving] = React.useState(false);\n  const posRef = React.useRef(pos);\n  const stripRef = React.useRef<HTMLSpanElement>(null);\n\n  React.useLayoutEffect(() => {\n    const current = posRef.current;\n    const showing = ((current % 10) + 10) % 10;\n    if (showing === digit) return;\n    if (reduced) {\n      posRef.current = MIDDLE + digit;\n      setMoving(false);\n      setPos(MIDDLE + digit);\n      return;\n    }\n    const up = trend > 0 || (trend === 0 && digit > showing);\n    let target = up\n      ? current + ((digit - showing + 10) % 10)\n      : current - ((showing - digit + 10) % 10);\n    // Values arriving faster than a roll (a progress percent) never let it re-centre, so before it runs off the strip,\n    // jump the strip back by whole sets mid-roll (it looks identical) and roll on from there.\n    if (target < 10 || target > SETS * 10 - 11) {\n      const shift = Math.round((target - MIDDLE) / 10) * 10;\n      const strip = stripRef.current;\n      if (strip?.offsetHeight) {\n        let visual = current;\n        try {\n          visual =\n            -new DOMMatrixReadOnly(getComputedStyle(strip).transform).m42 /\n            (strip.offsetHeight / (SETS * 10));\n        } catch {}\n        const transition = strip.style.transition;\n        strip.style.transition = \"none\";\n        strip.style.transform = `translateY(${(-(visual - shift) * 100) / (SETS * 10)}%)`;\n        void strip.offsetHeight;\n        strip.style.transition = transition;\n      }\n      target -= shift;\n    }\n    posRef.current = target;\n    setMoving(true);\n    setPos(target);\n  }, [digit, trend, reduced]);\n\n  // After a roll, quietly re-centre on the middle set so the next roll always has room.\n  const settle = () => {\n    const centred = MIDDLE + (((posRef.current % 10) + 10) % 10);\n    posRef.current = centred;\n    setMoving(false);\n    setPos(centred);\n  };\n\n  return (\n    <span className=\"relative inline-block [clip-path:inset(0)]\">\n      <span className=\"invisible\">{digit}</span>\n      <span\n        ref={stripRef}\n        aria-hidden=\"true\"\n        onTransitionEnd={settle}\n        className=\"absolute inset-x-0 top-0 block whitespace-pre text-center\"\n        style={{\n          transform: `translateY(${(-pos * 100) / (SETS * 10)}%)`,\n          transition: moving ? `transform ${duration}ms ${EASE}` : \"none\",\n        }}\n      >\n        {STRIP}\n      </span>\n    </span>\n  );\n});\n\n/** A place that appeared after the first paint slides open; places that were there from the start just sit. */\nfunction Place({\n  enter,\n  children,\n}: {\n  enter: boolean;\n  children: React.ReactNode;\n}) {\n  const [entering] = React.useState(enter);\n  return (\n    <span\n      className={`inline-block ${entering ? \"[clip-path:inset(0)] animate-[ui-col-in_500ms_cubic-bezier(0.16,1,0.3,1)_both]\" : \"\"}`}\n    >\n      {children}\n    </span>\n  );\n}\n\nexport function NumberRoll({\n  value,\n  format,\n  locales,\n  prefix = \"\",\n  suffix = \"\",\n  from,\n  duration = 900,\n  direction,\n  className = \"\",\n  ...props\n}: NumberRollProps) {\n  const reduced = useReducedMotion();\n  const [shown, setShown] = React.useState(from ?? value);\n  const previous = React.useRef(shown);\n  const mounted = React.useRef(false);\n\n  // Roll from `from` to the real value once on screen (a frame later, so the start is painted).\n  React.useEffect(() => {\n    const frame = requestAnimationFrame(() => setShown(value));\n    return () => cancelAnimationFrame(frame);\n  }, [value]);\n\n  React.useEffect(() => {\n    mounted.current = true;\n  }, []);\n\n  const formatter = React.useMemo(\n    () => new Intl.NumberFormat(locales, format),\n    [locales, format && JSON.stringify(format)],\n  );\n  const text = `${prefix}${formatter.format(shown)}${suffix}`;\n  const cols = React.useMemo(() => columns(text), [text]);\n  const trend =\n    direction === \"up\"\n      ? 1\n      : direction === \"down\"\n        ? -1\n        : Math.sign(shown - previous.current);\n\n  // Places that disappear fold away instead of vanishing.\n  const [leaving, setLeaving] = React.useState<Column[]>([]);\n  const lastCols = React.useRef(cols);\n  React.useLayoutEffect(() => {\n    const gone = lastCols.current.filter(\n      (c) => !cols.some((n) => n.key === c.key),\n    );\n    lastCols.current = cols;\n    previous.current = shown;\n    if (!gone.length || reduced) return;\n    setLeaving(gone);\n    const timer = window.setTimeout(() => setLeaving([]), 420);\n    return () => window.clearTimeout(timer);\n  }, [cols, shown, reduced]);\n\n  return (\n    <span className={`inline-flex tabular-nums ${className}`} {...props}>\n      <span className=\"sr-only\">{`${prefix}${formatter.format(value)}${suffix}`}</span>\n      <span\n        aria-hidden=\"true\"\n        className=\"inline-flex items-baseline whitespace-pre\"\n      >\n        {leaving.map((c) => (\n          <span\n            key={`out-${c.key}`}\n            className=\"inline-block [clip-path:inset(0)] animate-[ui-col-out_400ms_cubic-bezier(0.16,1,0.3,1)_forwards]\"\n          >\n            {c.char}\n          </span>\n        ))}\n        {cols.map((c) => (\n          <Place key={c.key} enter={mounted.current && !reduced}>\n            {c.digit === null ? (\n              c.char\n            ) : (\n              <Digit\n                digit={c.digit}\n                trend={trend}\n                duration={duration}\n                reduced={reduced}\n                rollIn={mounted.current}\n              />\n            )}\n          </Place>\n        ))}\n      </span>\n    </span>\n  );\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {
+    "@keyframes ui-col-in": {
+      "from": {
+        "max-width": "0",
+        "opacity": "0"
+      },
+      "to": {
+        "max-width": "1em",
+        "opacity": "1"
+      }
+    },
+    "@keyframes ui-col-out": {
+      "from": {
+        "max-width": "1em",
+        "opacity": "1"
+      },
+      "to": {
+        "max-width": "0",
+        "opacity": "0"
+      }
+    }
+  },
+  "meta": {
+    "cavemio": {
+      "component": "prompt-composer",
+      "exportName": "PromptComposer",
+      "categories": [
+        "ai"
+      ],
+      "isNew": false,
+      "usage": "import { PromptComposer } from \"@/components/prompt-composer\";\n\n<PromptComposer\n  status={status}\n  onSubmit={(text) => send(text)}\n  onStop={stop}\n  onFilesSelected={(files) => addFiles(files)}\n  toolbar={<ModeSwitcher modes={modes} />}\n  maxLength={4000}\n/>",
+      "accessibility": "- Enter sends only when not composing with an IME, so Chinese, Japanese and Korean input works.\n- The send button’s label changes with its job: Send, Sending or Stop.\n- The text grows to 200px, then scrolls.\n- Paste with files attaches them; paste with text still pastes the text.\n- Installs Number roll. With reduced motion, icons, folds and the counter change in place.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "onSubmit / onStop",
+            "type": "(text) => void / () => void",
+            "description": "– · Send the prompt; stop the answer while streaming."
+          },
+          {
+            "name": "status",
+            "type": "\"ready\" | \"submitted\" | \"streaming\" | \"error\"",
+            "description": "\"ready\" · useChat’s status, passed straight through."
+          },
+          {
+            "name": "value / defaultValue / onValueChange",
+            "type": "string",
+            "description": "– · Controlled or uncontrolled text. Uncontrolled clears itself after sending."
+          },
+          {
+            "name": "placeholder",
+            "type": "string",
+            "description": "\"Ask anything\" · Also used as the input’s accessible label."
+          },
+          {
+            "name": "disabled / disabledReason",
+            "type": "boolean / ReactNode",
+            "description": "– · Lock the input and say why."
+          },
+          {
+            "name": "onFilesSelected / accept",
+            "type": "(files: File[]) => void / string",
+            "description": "– · Enables the paperclip, paste and drag and drop."
+          },
+          {
+            "name": "attachments / toolbar",
+            "type": "ReactNode",
+            "description": "– · Chips above the text; controls at the bottom left."
+          },
+          {
+            "name": "maxLength / allowEmpty",
+            "type": "number / boolean",
+            "description": "– · A counter appears near the limit; allow sending files without text."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "AI chat apps",
+            "description": "The main input of a chat built on the AI SDK."
+          },
+          {
+            "title": "In-product assistants",
+            "description": "A help or copilot box inside a SaaS app."
+          },
+          {
+            "title": "AI tools that take files",
+            "description": "Let people attach documents or images to a prompt."
+          },
+          {
+            "title": "Free tiers and limits",
+            "description": "Lock the input and say why when a limit has been reached."
+          }
+        ],
+        "features": [
+          {
+            "title": "It grows as you type",
+            "description": "The field grows up to 200px and then scrolls."
+          },
+          {
+            "title": "Enter sends",
+            "description": "Shift+Enter adds a line, and IME input in Chinese, Japanese and Korean never sends early."
+          },
+          {
+            "title": "Send, waiting, Stop",
+            "description": "Send blurs into a spinner while waiting for the first token, then into Stop while the answer streams."
+          },
+          {
+            "title": "Files three ways",
+            "description": "The paperclip, paste and drag and drop all attach files. Chips fold open above the field."
+          },
+          {
+            "title": "A counter near the limit",
+            "description": "Past 80% of maxLength a counter opens in and rolls as you type. It turns red over the limit."
+          },
+          {
+            "title": "Disabled with a reason",
+            "description": "Lock the input and the reason folds open above it."
+          }
+        ],
+        "states": [
+          {
+            "title": "ready",
+            "description": "Type; Send is enabled once there’s text (or files, with allowEmpty)."
+          },
+          {
+            "title": "submitted",
+            "description": "Sent and waiting for the first token: the arrow shrinks away through a 3px blur as a spinner grows in."
+          },
+          {
+            "title": "streaming",
+            "description": "The spinner blurs into Stop, which calls onStop."
+          },
+          {
+            "title": "error",
+            "description": "Back to ready so the user can resend."
+          },
+          {
+            "title": "disabled",
+            "description": "Input locked, with your reason folding open above it (380ms)."
+          },
+          {
+            "title": "dragging",
+            "description": "A dashed border and \"Drop files to attach\" fading in while files are dragged over."
+          },
+          {
+            "title": "near the limit",
+            "description": "Past 80% of maxLength the counter opens in and rolls with each keystroke; it turns red once you’re over."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
