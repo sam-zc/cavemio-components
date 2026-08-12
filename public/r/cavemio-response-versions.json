@@ -87,7 +87,8 @@
             "description": "Required. The current version's content."
           }
         ]
-      }
+      },
+      "isNew": false
     }
   },
   "type": "registry:component"
