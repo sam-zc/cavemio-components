@@ -1,0 +1,153 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-stage-bars",
+  "title": "Stage bars",
+  "description": "A funnel you can read at a glance: every stage as a bar against the first, the drop-off between them, and widths that ease when the period changes.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/stage-bars.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport { NumberRoll } from \"./number-roll\";\n\n/* ─────────────────────────────────────────────────────────\n * STAGE BARS: a funnel you can read at a glance\n *\n *   arrive    the first time it's on screen the bars grow from\n *             the left one after another and every count and\n *             share rolls up from zero\n *   period    This week, Last week, 30 days: the pill is thrown\n *             to the choice, every bar eases to its new width and\n *             every figure rolls; the drop-off between stages\n *             rolls with them\n *   focus     point at a stage and the others dim, leaving it and\n *             the drop-off into it to read\n *\n * One hue that steps lighter down the funnel, every value\n * labelled on its row, and the whole funnel in a table for\n * screen readers.\n * ───────────────────────────────────────────────────────── */\n\nexport interface Stage {\n  id: string;\n  label: string;\n}\n\nexport interface StagePeriod {\n  id: string;\n  /** In the switch, e.g. \"This week\". */\n  label: string;\n  /** One count per stage, in the same order. */\n  values: number[];\n}\n\nexport interface StageBarsProps extends Omit<\n  React.HTMLAttributes<HTMLDivElement>,\n  \"onChange\"\n> {\n  title?: string;\n  stages: Stage[];\n  periods: StagePeriod[];\n  value?: string;\n  defaultValue?: string;\n  onValueChange?: (id: string) => void;\n  format?: Intl.NumberFormatOptions;\n  locales?: string | string[];\n}\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\nconst THROW = \"cubic-bezier(0.34,1.36,0.64,1)\";\nconst FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40\";\nconst HUE = \"var(--chart-1, var(--primary))\";\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\nexport function StageBars({\n  title = \"Funnel\",\n  stages,\n  periods,\n  value,\n  defaultValue,\n  onValueChange,\n  format,\n  locales,\n  className = \"\",\n  ...props\n}: StageBarsProps) {\n  const reduced = useReducedMotion();\n  const id = React.useId();\n  const [own, setOwn] = React.useState(defaultValue ?? periods[0]?.id);\n  const periodId = value ?? own;\n  const period = periods.find((p) => p.id === periodId) ?? periods[0];\n  const values = period?.values ?? [];\n  const first = values[0] || 1;\n\n  const [visible, setVisible] = React.useState(false);\n  const [focused, setFocused] = React.useState<number | null>(null);\n  const [pill, setPill] = React.useState({ left: 0, width: 0, ready: false });\n  const rootRef = React.useRef<HTMLDivElement>(null);\n  const chipRefs = React.useRef<(HTMLButtonElement | null)[]>([]);\n\n  React.useEffect(() => {\n    const el = rootRef.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(\n      ([entry]) => {\n        if (entry.isIntersecting) {\n          setVisible(true);\n          observer.disconnect();\n        }\n      },\n      { rootMargin: \"0px 0px -10% 0px\" },\n    );\n    observer.observe(el);\n    return () => observer.disconnect();\n  }, []);\n\n  React.useLayoutEffect(() => {\n    const el = chipRefs.current[periods.findIndex((p) => p.id === periodId)];\n    if (!el) return;\n    setPill((p) =>\n      p.left === el.offsetLeft && p.width === el.offsetWidth\n        ? p\n        : { left: el.offsetLeft, width: el.offsetWidth, ready: p.width > 0 },\n    );\n  }, [periodId, periods]);\n\n  const choose = (next: string) => {\n    if (next === periodId) return;\n    if (value === undefined) setOwn(next);\n    onValueChange?.(next);\n  };\n\n  const fmt = (v: number) => new Intl.NumberFormat(locales, format).format(v);\n  const overall =\n    values.length > 1 ? (values[values.length - 1] ?? 0) / first : 1;\n\n  return (\n    <div\n      ref={rootRef}\n      className={`@container w-full rounded-[22px] bg-background shadow-[0_0_0_1px_var(--border)] ${className}`}\n      {...props}\n    >\n      <div className=\"p-4 @md:p-5 [--gutter:30px] @md:[--gutter:40px]\">\n        {/* The title and its control share a row; the figures sit under both. */}\n        <div className=\"flex flex-wrap items-center justify-between gap-x-3 gap-y-2\">\n          <p className=\"text-[12px] text-muted-foreground @md:text-[13px]\">\n            {title}\n          </p>\n          {periods.length > 1 && (\n            <div\n              role=\"radiogroup\"\n              aria-label=\"Period\"\n              className=\"relative -my-1 inline-flex shrink-0 rounded-full bg-muted p-0.5\"\n            >\n              <span\n                aria-hidden=\"true\"\n                className=\"absolute inset-y-0.5 left-0 rounded-full bg-background shadow-[0_0_0_1px_var(--border)]\"\n                style={{\n                  width: pill.width,\n                  transform: `translateX(${pill.left}px)`,\n                  transition:\n                    pill.ready && !reduced\n                      ? `transform 460ms ${THROW}, width 380ms ${EASE}`\n                      : \"none\",\n                }}\n              />\n              {periods.map((p, i) => {\n                const selected = p.id === periodId;\n                return (\n                  <button\n                    key={p.id}\n                    ref={(el) => {\n                      chipRefs.current[i] = el;\n                    }}\n                    type=\"button\"\n                    role=\"radio\"\n                    aria-checked={selected}\n                    tabIndex={selected ? 0 : -1}\n                    onClick={() => choose(p.id)}\n                    onKeyDown={(e) => {\n                      if (e.key !== \"ArrowRight\" && e.key !== \"ArrowLeft\")\n                        return;\n                      e.preventDefault();\n                      const next =\n                        (i +\n                          (e.key === \"ArrowRight\" ? 1 : -1) +\n                          periods.length) %\n                        periods.length;\n                      choose(periods[next].id);\n                      chipRefs.current[next]?.focus();\n                    }}\n                    className={`cursor-pointer relative h-6 whitespace-nowrap rounded-full px-2.5 text-[11.5px] font-medium @md:h-7 @md:px-3 @md:text-[12.5px] transition-colors duration-300 ${FOCUS} ${\n                      selected\n                        ? \"text-foreground\"\n                        : \"text-muted-foreground hover:text-foreground\"\n                    }`}\n                  >\n                    {p.label}\n                  </button>\n                );\n              })}\n            </div>\n          )}\n        </div>\n        <p className=\"mt-0.5 flex items-baseline gap-1.5 text-[22px] font-medium leading-tight tracking-[-0.03em] @md:text-[26px] text-foreground\">\n          <NumberRoll\n            value={visible ? overall : 0}\n            format={{ style: \"percent\", maximumFractionDigits: 1 }}\n            duration={1000}\n          />\n          <span className=\"text-[13px] font-normal tracking-normal text-muted-foreground\">\n            made it all the way\n          </span>\n        </p>\n\n        <ol className=\"mt-4 @md:mt-6\" onPointerLeave={() => setFocused(null)}>\n          {stages.map((s, i) => {\n            const v = values[i] ?? 0;\n            const share = v / first;\n            const step = i > 0 && values[i - 1] ? v / values[i - 1] : 1;\n            const dim = focused !== null && focused !== i;\n            // One hue, a step lighter for each stage further down.\n            const strength =\n              1 - (stages.length > 1 ? (i / (stages.length - 1)) * 0.5 : 0);\n            return (\n              <li key={s.id}>\n                {i > 0 && (\n                  <p\n                    aria-hidden=\"true\"\n                    className=\"flex h-5 items-center gap-1 pl-1 text-[10.5px] tabular-nums @md:h-6 @md:text-[11.5px] text-muted-foreground transition-opacity duration-300\"\n                    style={{ opacity: dim && focused !== i - 1 ? 0.35 : 1 }}\n                  >\n                    <svg\n                      viewBox=\"0 0 12 12\"\n                      className=\"size-3\"\n                      aria-hidden=\"true\"\n                    >\n                      <path\n                        d=\"M6 2.5v7M3 6.6 6 9.5l3-2.9\"\n                        fill=\"none\"\n                        stroke=\"currentColor\"\n                        strokeWidth=\"1.4\"\n                        strokeLinecap=\"round\"\n                        strokeLinejoin=\"round\"\n                      />\n                    </svg>\n                    <NumberRoll\n                      value={visible ? step : 0}\n                      format={{ style: \"percent\", maximumFractionDigits: 0 }}\n                      duration={800}\n                    />\n                    <span>carried on</span>\n                  </p>\n                )}\n                <div\n                  onPointerEnter={() => setFocused(i)}\n                  className={`transition-opacity duration-300 ${dim ? \"opacity-40\" : \"\"}`}\n                >\n                  <div className=\"flex items-baseline justify-between gap-3 text-[12.5px] @md:text-[13px]\">\n                    <span className=\"truncate text-foreground\">{s.label}</span>\n                    <span className=\"flex shrink-0 items-baseline gap-2 tabular-nums\">\n                      <span className=\"font-medium text-foreground\">\n                        <NumberRoll\n                          value={visible ? v : 0}\n                          format={format}\n                          locales={locales}\n                          duration={900}\n                        />\n                      </span>\n                      <span className=\"w-10 text-right text-[11px] text-muted-foreground @md:w-11 @md:text-[12px]\">\n                        <NumberRoll\n                          value={visible ? share : 0}\n                          format={{\n                            style: \"percent\",\n                            maximumFractionDigits: share < 0.1 ? 1 : 0,\n                          }}\n                          duration={900}\n                        />\n                      </span>\n                    </span>\n                  </div>\n                  <div className=\"relative mt-1 h-3.5 @md:mt-1.5 @md:h-[18px]\">\n                    <div\n                      aria-hidden=\"true\"\n                      className=\"absolute inset-y-0 left-0 rounded-r-[4px]\"\n                      style={{\n                        width: `${visible ? Math.max(0.5, share * 100) : 0}%`,\n                        background: `color-mix(in oklab, ${HUE} ${Math.round(strength * 100)}%, var(--background))`,\n                        transition: reduced\n                          ? \"none\"\n                          : `width 820ms ${EASE} ${visible ? i * 90 : 0}ms`,\n                      }}\n                    />\n                  </div>\n                </div>\n              </li>\n            );\n          })}\n        </ol>\n\n        <table className=\"sr-only\">\n          <caption>\n            {title}, {period?.label}: {Math.round(overall * 1000) / 10}% made it\n            from {stages[0]?.label.toLowerCase()} to{\" \"}\n            {stages[stages.length - 1]?.label.toLowerCase()}\n          </caption>\n          <thead>\n            <tr>\n              <th scope=\"col\">Stage</th>\n              <th scope=\"col\">Count</th>\n              <th scope=\"col\">Share of the first stage</th>\n              <th scope=\"col\">Share of the stage before</th>\n            </tr>\n          </thead>\n          <tbody>\n            {stages.map((s, i) => (\n              <tr key={s.id} id={`${id}-${s.id}`}>\n                <th scope=\"row\">{s.label}</th>\n                <td>{fmt(values[i] ?? 0)}</td>\n                <td>{Math.round(((values[i] ?? 0) / first) * 1000) / 10}%</td>\n                <td>\n                  {i > 0 && values[i - 1]\n                    ? `${Math.round(((values[i] ?? 0) / values[i - 1]) * 1000) / 10}%`\n                    : \"–\"}\n                </td>\n              </tr>\n            ))}\n          </tbody>\n        </table>\n      </div>\n    </div>\n  );\n}\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/number-roll.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * NUMBER ROLL: numbers that change like an odometer\n *\n *   rolling   each digit is a column that rolls to its new\n *             value, in the direction the number moved: going\n *             up, a 9 rolls on to 0 instead of spinning back\n *   places    new places slide open from nothing; lost ones\n *             fold away\n *   format    anything Intl.NumberFormat does: currency,\n *             percent, compact (\"1.2K\"), decimals\n *\n * The real number is always there as text for screen readers\n * and copy and paste; the columns are only what you see.\n * ───────────────────────────────────────────────────────── */\n\nexport interface NumberRollProps extends Omit<\n  React.HTMLAttributes<HTMLSpanElement>,\n  \"children\"\n> {\n  value: number;\n  /** Intl.NumberFormat options, e.g. { style: \"currency\", currency: \"USD\" }. */\n  format?: Intl.NumberFormatOptions;\n  locales?: string | string[];\n  prefix?: string;\n  suffix?: string;\n  /** Start from this value and roll to `value` once mounted, e.g. 0 for stats. */\n  from?: number;\n  /** Roll duration in ms. */\n  duration?: number;\n  /** Always roll this way, e.g. \"down\" for a countdown's seconds, which wrap from 00 to 59. Defaults to the way the number moved. */\n  direction?: \"up\" | \"down\";\n}\n\ntype Column = { key: string; char: string; digit: number | null };\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\nconst SETS = 5; // the strip repeats 0–9 five times so a roll never runs out of digits\nconst MIDDLE = 20;\n/** The strip as one text node, a digit a line: fifty lines, but one element to lay out instead of fifty. */\nconst STRIP = Array.from({ length: SETS * 10 }, (_, i) => i % 10).join(\"\\n\");\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\n/** Digits are keyed by their place counted from the right, so the units column stays the units column. */\nfunction columns(text: string): Column[] {\n  const chars = [...text];\n  const seen = new Map<string, number>();\n  let place = 0;\n  const out: Column[] = [];\n  for (let i = chars.length - 1; i >= 0; i--) {\n    const char = chars[i];\n    if (/\\d/.test(char))\n      out.push({ key: `d${place++}`, char, digit: Number(char) });\n    else {\n      // Symbols are keyed by how many of the same symbol sit to their right, so a comma that shifts is the same comma.\n      const n = seen.get(char) ?? 0;\n      seen.set(char, n + 1);\n      out.push({ key: `s${char}${n}`, char, digit: null });\n    }\n  }\n  return out.reverse();\n}\n\n// Memoised: a parent that re-renders with the same number doesn't rebuild the strips.\nconst Digit = React.memo(function Digit({\n  digit,\n  trend,\n  duration,\n  reduced,\n  rollIn,\n}: {\n  digit: number;\n  trend: number;\n  duration: number;\n  reduced: boolean;\n  rollIn: boolean;\n}) {\n  const [pos, setPos] = React.useState(MIDDLE + (rollIn ? 0 : digit));\n  const [moving, setMoving] = React.useState(false);\n  const posRef = React.useRef(pos);\n  const stripRef = React.useRef<HTMLSpanElement>(null);\n\n  React.useLayoutEffect(() => {\n    const current = posRef.current;\n    const showing = ((current % 10) + 10) % 10;\n    if (showing === digit) return;\n    if (reduced) {\n      posRef.current = MIDDLE + digit;\n      setMoving(false);\n      setPos(MIDDLE + digit);\n      return;\n    }\n    const up = trend > 0 || (trend === 0 && digit > showing);\n    let target = up\n      ? current + ((digit - showing + 10) % 10)\n      : current - ((showing - digit + 10) % 10);\n    // Values arriving faster than a roll (a progress percent) never let it re-centre, so before it runs off the strip,\n    // jump the strip back by whole sets mid-roll (it looks identical) and roll on from there.\n    if (target < 10 || target > SETS * 10 - 11) {\n      const shift = Math.round((target - MIDDLE) / 10) * 10;\n      const strip = stripRef.current;\n      if (strip?.offsetHeight) {\n        let visual = current;\n        try {\n          visual =\n            -new DOMMatrixReadOnly(getComputedStyle(strip).transform).m42 /\n            (strip.offsetHeight / (SETS * 10));\n        } catch {}\n        const transition = strip.style.transition;\n        strip.style.transition = \"none\";\n        strip.style.transform = `translateY(${(-(visual - shift) * 100) / (SETS * 10)}%)`;\n        void strip.offsetHeight;\n        strip.style.transition = transition;\n      }\n      target -= shift;\n    }\n    posRef.current = target;\n    setMoving(true);\n    setPos(target);\n  }, [digit, trend, reduced]);\n\n  // After a roll, quietly re-centre on the middle set so the next roll always has room.\n  const settle = () => {\n    const centred = MIDDLE + (((posRef.current % 10) + 10) % 10);\n    posRef.current = centred;\n    setMoving(false);\n    setPos(centred);\n  };\n\n  return (\n    <span className=\"relative inline-block [clip-path:inset(0)]\">\n      <span className=\"invisible\">{digit}</span>\n      <span\n        ref={stripRef}\n        aria-hidden=\"true\"\n        onTransitionEnd={settle}\n        className=\"absolute inset-x-0 top-0 block whitespace-pre text-center\"\n        style={{\n          transform: `translateY(${(-pos * 100) / (SETS * 10)}%)`,\n          transition: moving ? `transform ${duration}ms ${EASE}` : \"none\",\n        }}\n      >\n        {STRIP}\n      </span>\n    </span>\n  );\n});\n\n/** A place that appeared after the first paint slides open; places that were there from the start just sit. */\nfunction Place({\n  enter,\n  children,\n}: {\n  enter: boolean;\n  children: React.ReactNode;\n}) {\n  const [entering] = React.useState(enter);\n  return (\n    <span\n      className={`inline-block ${entering ? \"[clip-path:inset(0)] animate-[ui-col-in_500ms_cubic-bezier(0.16,1,0.3,1)_both]\" : \"\"}`}\n    >\n      {children}\n    </span>\n  );\n}\n\nexport function NumberRoll({\n  value,\n  format,\n  locales,\n  prefix = \"\",\n  suffix = \"\",\n  from,\n  duration = 900,\n  direction,\n  className = \"\",\n  ...props\n}: NumberRollProps) {\n  const reduced = useReducedMotion();\n  const [shown, setShown] = React.useState(from ?? value);\n  const previous = React.useRef(shown);\n  const mounted = React.useRef(false);\n\n  // Roll from `from` to the real value once on screen (a frame later, so the start is painted).\n  React.useEffect(() => {\n    const frame = requestAnimationFrame(() => setShown(value));\n    return () => cancelAnimationFrame(frame);\n  }, [value]);\n\n  React.useEffect(() => {\n    mounted.current = true;\n  }, []);\n\n  const formatter = React.useMemo(\n    () => new Intl.NumberFormat(locales, format),\n    [locales, format && JSON.stringify(format)],\n  );\n  const text = `${prefix}${formatter.format(shown)}${suffix}`;\n  const cols = React.useMemo(() => columns(text), [text]);\n  const trend =\n    direction === \"up\"\n      ? 1\n      : direction === \"down\"\n        ? -1\n        : Math.sign(shown - previous.current);\n\n  // Places that disappear fold away instead of vanishing.\n  const [leaving, setLeaving] = React.useState<Column[]>([]);\n  const lastCols = React.useRef(cols);\n  React.useLayoutEffect(() => {\n    const gone = lastCols.current.filter(\n      (c) => !cols.some((n) => n.key === c.key),\n    );\n    lastCols.current = cols;\n    previous.current = shown;\n    if (!gone.length || reduced) return;\n    setLeaving(gone);\n    const timer = window.setTimeout(() => setLeaving([]), 420);\n    return () => window.clearTimeout(timer);\n  }, [cols, shown, reduced]);\n\n  return (\n    <span className={`inline-flex tabular-nums ${className}`} {...props}>\n      <span className=\"sr-only\">{`${prefix}${formatter.format(value)}${suffix}`}</span>\n      <span\n        aria-hidden=\"true\"\n        className=\"inline-flex items-baseline whitespace-pre\"\n      >\n        {leaving.map((c) => (\n          <span\n            key={`out-${c.key}`}\n            className=\"inline-block [clip-path:inset(0)] animate-[ui-col-out_400ms_cubic-bezier(0.16,1,0.3,1)_forwards]\"\n          >\n            {c.char}\n          </span>\n        ))}\n        {cols.map((c) => (\n          <Place key={c.key} enter={mounted.current && !reduced}>\n            {c.digit === null ? (\n              c.char\n            ) : (\n              <Digit\n                digit={c.digit}\n                trend={trend}\n                duration={duration}\n                reduced={reduced}\n                rollIn={mounted.current}\n              />\n            )}\n          </Place>\n        ))}\n      </span>\n    </span>\n  );\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {
+    "@keyframes ui-col-in": {
+      "from": {
+        "max-width": "0",
+        "opacity": "0"
+      },
+      "to": {
+        "max-width": "1em",
+        "opacity": "1"
+      }
+    },
+    "@keyframes ui-col-out": {
+      "from": {
+        "max-width": "1em",
+        "opacity": "1"
+      },
+      "to": {
+        "max-width": "0",
+        "opacity": "0"
+      }
+    }
+  },
+  "meta": {
+    "cavemio": {
+      "component": "stage-bars",
+      "exportName": "StageBars",
+      "categories": [
+        "charts"
+      ],
+      "isNew": false,
+      "usage": "import { StageBars } from \"@/components/stage-bars\";\n\n<StageBars\n  title=\"App orders\"\n  stages={[{ id: \"opened\", label: \"Opened the app\" }, { id: \"basket\", label: \"Added to basket\" }, { id: \"paid\", label: \"Paid\" }]}\n  periods={[{ id: \"week\", label: \"This week\", values: [2480, 1164, 611] }]}\n/>",
+      "accessibility": "- Grey in a new shadcn project? Its default theme sets --chart-1 to --chart-5 to greys. Set five colours, light and dark, as in Theming › Chart colours (/ui/theming#charts).\n- An ordered list: every stage’s count and share is printed on its row, so nothing is hidden behind hover.\n- The period switch is a radio group (arrow keys move).\n- A visually hidden table gives each stage’s count, its share of the first stage and of the stage before.\n- One hue (--chart-1) stepping lighter down the funnel: it’s one measure shrinking, not different categories.\n- Installs Number roll. With reduced motion the bars are simply their width.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "stages",
+            "type": "Stage[]",
+            "description": "– · In order, each { id, label }."
+          },
+          {
+            "name": "periods",
+            "type": "StagePeriod[]",
+            "description": "– · Each { id, label, values }, one count per stage; more than one shows a switch."
+          },
+          {
+            "name": "value / defaultValue",
+            "type": "string",
+            "description": "the first period · The period on show, by id; controlled or not."
+          },
+          {
+            "name": "onValueChange",
+            "type": "(id: string) => void",
+            "description": "– · Called when the period changes."
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "description": "\"Funnel\" · Above the headline."
+          },
+          {
+            "name": "format",
+            "type": "Intl.NumberFormatOptions",
+            "description": "– · How counts read."
+          },
+          {
+            "name": "locales",
+            "type": "string | string[]",
+            "description": "– · For number formatting."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Signup and activation funnels",
+            "description": "Visited, signed up, activated, paid."
+          },
+          {
+            "title": "Sales pipeline conversion",
+            "description": "Lead, demo, trial and customer, with the drop-off at each step."
+          },
+          {
+            "title": "Checkout funnels",
+            "description": "Where shoppers leave between cart and payment."
+          },
+          {
+            "title": "Onboarding drop-off",
+            "description": "How many people finish each step of a setup flow."
+          }
+        ],
+        "features": [
+          {
+            "title": "Every stage against the first",
+            "description": "Each bar is its share of the first stage, with its count and share written on its row."
+          },
+          {
+            "title": "The drop-off between stages",
+            "description": "Between rows it says how many carried on to the next stage."
+          },
+          {
+            "title": "The headline number",
+            "description": "How many made it all the way is the number at the top."
+          },
+          {
+            "title": "Switch the period",
+            "description": "Every bar eases to its new width and every figure rolls when you change from this week to last week."
+          },
+          {
+            "title": "Focus a stage",
+            "description": "Point at a stage and the others dim, leaving it and the drop-offs beside it."
+          },
+          {
+            "title": "Honest colour, readable by all",
+            "description": "One hue steps lighter down the funnel, because it is one measure shrinking. A hidden table gives each stage’s counts and shares."
+          }
+        ],
+        "states": [
+          {
+            "title": "arrive",
+            "description": "In view for the first time, each bar grows from the left (820ms, 90ms apart) and every count, share and drop-off rolls up from zero."
+          },
+          {
+            "title": "period",
+            "description": "The pill is thrown to the choice (460ms); every bar eases to its new width (820ms) and every figure, including the headline, rolls."
+          },
+          {
+            "title": "focus",
+            "description": "Pointing at a stage dims the others to 40%, leaving that stage and the drop-offs either side of it."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
