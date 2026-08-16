@@ -1,0 +1,133 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-stats-band",
+  "title": "Stats band",
+  "description": "Numbers that arrive when you do: fine lines draw themselves, then each figure rolls up from zero in turn.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/stats-band.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport { NumberRoll } from \"./number-roll\";\n\n/* ─────────────────────────────────────────────────────────\n * STATS BAND: the numbers arrive when you do\n *\n *   waiting   before it's on screen, quiet zeros\n *   arriving  the fine lines between stats draw themselves,\n *             then each figure rolls up from zero, one after\n *             another, as its label rises in\n *   done      the real numbers, rolling again only if they\n *             change\n *\n * Screen readers get the real figures straight away.\n * ───────────────────────────────────────────────────────── */\n\nexport interface Stat {\n  value: number;\n  label: string;\n  /** Intl.NumberFormat options, e.g. { notation: \"compact\" }. */\n  format?: Intl.NumberFormatOptions;\n  prefix?: string;\n  suffix?: string;\n}\n\nexport interface StatsBandProps extends React.HTMLAttributes<HTMLDListElement> {\n  stats: Stat[];\n  /** Time between one stat starting and the next (ms). */\n  stagger?: number;\n  /** Classes for the figures. */\n  numberClassName?: string;\n}\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\nexport function StatsBand({\n  stats,\n  stagger = 140,\n  numberClassName = \"text-[28px] @[28rem]:text-[34px] @[36rem]:text-[30px] @[48rem]:text-[36px] @[56rem]:text-[40px] font-medium leading-[1.15] tracking-[-0.04em] text-foreground\",\n  className = \"\",\n  ...props\n}: StatsBandProps) {\n  const reduced = useReducedMotion();\n  const ref = React.useRef<HTMLDListElement>(null);\n  const [seen, setSeen] = React.useState(false);\n  const [revealed, setRevealed] = React.useState(0);\n\n  // Start once, the first time most of the band is on screen.\n  React.useEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(\n      ([entry]) => {\n        if (!entry.isIntersecting) return;\n        setSeen(true);\n        observer.disconnect();\n      },\n      { threshold: 0.5 },\n    );\n    observer.observe(el);\n    return () => observer.disconnect();\n  }, []);\n\n  // Then reveal the stats one after another: the lines draw first, the numbers follow.\n  React.useEffect(() => {\n    if (!seen || reduced) return;\n    const timers = stats.map((_, i) =>\n      window.setTimeout(\n        () => setRevealed((r) => Math.max(r, i + 1)),\n        240 + i * stagger,\n      ),\n    );\n    return () => timers.forEach((t) => window.clearTimeout(t));\n  }, [seen, reduced, stats, stagger]);\n\n  return (\n    // Laid out by its own width, not the screen's, so it reads right in a narrow column too.\n    <div className=\"w-full\">\n      {/* Its natural width where the parent sizes to its content, without forcing it on narrow screens. */}\n      <div\n        aria-hidden=\"true\"\n        data-natural-width\n        className=\"grid h-0\"\n        style={{ gridTemplateColumns: \"minmax(0, 760px)\" }}\n      />\n      <div className=\"@container w-full\">\n        <dl\n          ref={ref}\n          className={`grid grid-cols-2 @[36rem]:grid-flow-col @[36rem]:grid-cols-none @[36rem]:auto-cols-fr ${className}`}\n          {...props}\n        >\n          {stats.map((stat, i) => {\n            const shown = i < (seen && reduced ? stats.length : revealed);\n            return (\n              <div\n                key={stat.label}\n                className=\"relative flex min-w-0 flex-col-reverse justify-end px-4 py-4 @[28rem]:py-5 @[48rem]:px-6\"\n              >\n                {/* The thin line before every stat but the first, drawn from the middle out (wide screens). */}\n                {i > 0 && (\n                  <span\n                    aria-hidden=\"true\"\n                    className=\"absolute left-0 top-0 hidden h-full w-px origin-center bg-border @[36rem]:block\"\n                    style={{\n                      transform: seen || reduced ? \"none\" : \"scaleY(0)\",\n                      transition: reduced\n                        ? \"none\"\n                        : `transform 700ms ${EASE} ${i * 80}ms`,\n                    }}\n                  />\n                )}\n                <dt\n                  className=\"mt-1 text-[13px] text-muted-foreground\"\n                  style={{\n                    opacity: shown ? 1 : 0,\n                    transform: shown ? \"none\" : \"translateY(6px)\",\n                    transition: reduced\n                      ? \"none\"\n                      : `opacity 500ms ${EASE} 120ms, transform 600ms ${EASE} 120ms`,\n                  }}\n                >\n                  {stat.label}\n                </dt>\n                <dd>\n                  <span className=\"sr-only\">\n                    {stat.prefix}\n                    {new Intl.NumberFormat(undefined, stat.format).format(\n                      stat.value,\n                    )}\n                    {stat.suffix}\n                  </span>\n                  <span aria-hidden=\"true\">\n                    <NumberRoll\n                      value={shown ? stat.value : 0}\n                      format={stat.format}\n                      prefix={stat.prefix}\n                      suffix={stat.suffix}\n                      duration={1200}\n                      className={numberClassName}\n                    />\n                  </span>\n                </dd>\n              </div>\n            );\n          })}\n        </dl>\n      </div>\n    </div>\n  );\n}\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/number-roll.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * NUMBER ROLL: numbers that change like an odometer\n *\n *   rolling   each digit is a column that rolls to its new\n *             value, in the direction the number moved: going\n *             up, a 9 rolls on to 0 instead of spinning back\n *   places    new places slide open from nothing; lost ones\n *             fold away\n *   format    anything Intl.NumberFormat does: currency,\n *             percent, compact (\"1.2K\"), decimals\n *\n * The real number is always there as text for screen readers\n * and copy and paste; the columns are only what you see.\n * ───────────────────────────────────────────────────────── */\n\nexport interface NumberRollProps extends Omit<\n  React.HTMLAttributes<HTMLSpanElement>,\n  \"children\"\n> {\n  value: number;\n  /** Intl.NumberFormat options, e.g. { style: \"currency\", currency: \"USD\" }. */\n  format?: Intl.NumberFormatOptions;\n  locales?: string | string[];\n  prefix?: string;\n  suffix?: string;\n  /** Start from this value and roll to `value` once mounted, e.g. 0 for stats. */\n  from?: number;\n  /** Roll duration in ms. */\n  duration?: number;\n  /** Always roll this way, e.g. \"down\" for a countdown's seconds, which wrap from 00 to 59. Defaults to the way the number moved. */\n  direction?: \"up\" | \"down\";\n}\n\ntype Column = { key: string; char: string; digit: number | null };\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\nconst SETS = 5; // the strip repeats 0–9 five times so a roll never runs out of digits\nconst MIDDLE = 20;\n/** The strip as one text node, a digit a line: fifty lines, but one element to lay out instead of fifty. */\nconst STRIP = Array.from({ length: SETS * 10 }, (_, i) => i % 10).join(\"\\n\");\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\n/** Digits are keyed by their place counted from the right, so the units column stays the units column. */\nfunction columns(text: string): Column[] {\n  const chars = [...text];\n  const seen = new Map<string, number>();\n  let place = 0;\n  const out: Column[] = [];\n  for (let i = chars.length - 1; i >= 0; i--) {\n    const char = chars[i];\n    if (/\\d/.test(char))\n      out.push({ key: `d${place++}`, char, digit: Number(char) });\n    else {\n      // Symbols are keyed by how many of the same symbol sit to their right, so a comma that shifts is the same comma.\n      const n = seen.get(char) ?? 0;\n      seen.set(char, n + 1);\n      out.push({ key: `s${char}${n}`, char, digit: null });\n    }\n  }\n  return out.reverse();\n}\n\n// Memoised: a parent that re-renders with the same number doesn't rebuild the strips.\nconst Digit = React.memo(function Digit({\n  digit,\n  trend,\n  duration,\n  reduced,\n  rollIn,\n}: {\n  digit: number;\n  trend: number;\n  duration: number;\n  reduced: boolean;\n  rollIn: boolean;\n}) {\n  const [pos, setPos] = React.useState(MIDDLE + (rollIn ? 0 : digit));\n  const [moving, setMoving] = React.useState(false);\n  const posRef = React.useRef(pos);\n  const stripRef = React.useRef<HTMLSpanElement>(null);\n\n  React.useLayoutEffect(() => {\n    const current = posRef.current;\n    const showing = ((current % 10) + 10) % 10;\n    if (showing === digit) return;\n    if (reduced) {\n      posRef.current = MIDDLE + digit;\n      setMoving(false);\n      setPos(MIDDLE + digit);\n      return;\n    }\n    const up = trend > 0 || (trend === 0 && digit > showing);\n    let target = up\n      ? current + ((digit - showing + 10) % 10)\n      : current - ((showing - digit + 10) % 10);\n    // Values arriving faster than a roll (a progress percent) never let it re-centre, so before it runs off the strip,\n    // jump the strip back by whole sets mid-roll (it looks identical) and roll on from there.\n    if (target < 10 || target > SETS * 10 - 11) {\n      const shift = Math.round((target - MIDDLE) / 10) * 10;\n      const strip = stripRef.current;\n      if (strip?.offsetHeight) {\n        let visual = current;\n        try {\n          visual =\n            -new DOMMatrixReadOnly(getComputedStyle(strip).transform).m42 /\n            (strip.offsetHeight / (SETS * 10));\n        } catch {}\n        const transition = strip.style.transition;\n        strip.style.transition = \"none\";\n        strip.style.transform = `translateY(${(-(visual - shift) * 100) / (SETS * 10)}%)`;\n        void strip.offsetHeight;\n        strip.style.transition = transition;\n      }\n      target -= shift;\n    }\n    posRef.current = target;\n    setMoving(true);\n    setPos(target);\n  }, [digit, trend, reduced]);\n\n  // After a roll, quietly re-centre on the middle set so the next roll always has room.\n  const settle = () => {\n    const centred = MIDDLE + (((posRef.current % 10) + 10) % 10);\n    posRef.current = centred;\n    setMoving(false);\n    setPos(centred);\n  };\n\n  return (\n    <span className=\"relative inline-block [clip-path:inset(0)]\">\n      <span className=\"invisible\">{digit}</span>\n      <span\n        ref={stripRef}\n        aria-hidden=\"true\"\n        onTransitionEnd={settle}\n        className=\"absolute inset-x-0 top-0 block whitespace-pre text-center\"\n        style={{\n          transform: `translateY(${(-pos * 100) / (SETS * 10)}%)`,\n          transition: moving ? `transform ${duration}ms ${EASE}` : \"none\",\n        }}\n      >\n        {STRIP}\n      </span>\n    </span>\n  );\n});\n\n/** A place that appeared after the first paint slides open; places that were there from the start just sit. */\nfunction Place({\n  enter,\n  children,\n}: {\n  enter: boolean;\n  children: React.ReactNode;\n}) {\n  const [entering] = React.useState(enter);\n  return (\n    <span\n      className={`inline-block ${entering ? \"[clip-path:inset(0)] animate-[ui-col-in_500ms_cubic-bezier(0.16,1,0.3,1)_both]\" : \"\"}`}\n    >\n      {children}\n    </span>\n  );\n}\n\nexport function NumberRoll({\n  value,\n  format,\n  locales,\n  prefix = \"\",\n  suffix = \"\",\n  from,\n  duration = 900,\n  direction,\n  className = \"\",\n  ...props\n}: NumberRollProps) {\n  const reduced = useReducedMotion();\n  const [shown, setShown] = React.useState(from ?? value);\n  const previous = React.useRef(shown);\n  const mounted = React.useRef(false);\n\n  // Roll from `from` to the real value once on screen (a frame later, so the start is painted).\n  React.useEffect(() => {\n    const frame = requestAnimationFrame(() => setShown(value));\n    return () => cancelAnimationFrame(frame);\n  }, [value]);\n\n  React.useEffect(() => {\n    mounted.current = true;\n  }, []);\n\n  const formatter = React.useMemo(\n    () => new Intl.NumberFormat(locales, format),\n    [locales, format && JSON.stringify(format)],\n  );\n  const text = `${prefix}${formatter.format(shown)}${suffix}`;\n  const cols = React.useMemo(() => columns(text), [text]);\n  const trend =\n    direction === \"up\"\n      ? 1\n      : direction === \"down\"\n        ? -1\n        : Math.sign(shown - previous.current);\n\n  // Places that disappear fold away instead of vanishing.\n  const [leaving, setLeaving] = React.useState<Column[]>([]);\n  const lastCols = React.useRef(cols);\n  React.useLayoutEffect(() => {\n    const gone = lastCols.current.filter(\n      (c) => !cols.some((n) => n.key === c.key),\n    );\n    lastCols.current = cols;\n    previous.current = shown;\n    if (!gone.length || reduced) return;\n    setLeaving(gone);\n    const timer = window.setTimeout(() => setLeaving([]), 420);\n    return () => window.clearTimeout(timer);\n  }, [cols, shown, reduced]);\n\n  return (\n    <span className={`inline-flex tabular-nums ${className}`} {...props}>\n      <span className=\"sr-only\">{`${prefix}${formatter.format(value)}${suffix}`}</span>\n      <span\n        aria-hidden=\"true\"\n        className=\"inline-flex items-baseline whitespace-pre\"\n      >\n        {leaving.map((c) => (\n          <span\n            key={`out-${c.key}`}\n            className=\"inline-block [clip-path:inset(0)] animate-[ui-col-out_400ms_cubic-bezier(0.16,1,0.3,1)_forwards]\"\n          >\n            {c.char}\n          </span>\n        ))}\n        {cols.map((c) => (\n          <Place key={c.key} enter={mounted.current && !reduced}>\n            {c.digit === null ? (\n              c.char\n            ) : (\n              <Digit\n                digit={c.digit}\n                trend={trend}\n                duration={duration}\n                reduced={reduced}\n                rollIn={mounted.current}\n              />\n            )}\n          </Place>\n        ))}\n      </span>\n    </span>\n  );\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {
+    "@keyframes ui-col-in": {
+      "from": {
+        "max-width": "0",
+        "opacity": "0"
+      },
+      "to": {
+        "max-width": "1em",
+        "opacity": "1"
+      }
+    },
+    "@keyframes ui-col-out": {
+      "from": {
+        "max-width": "1em",
+        "opacity": "1"
+      },
+      "to": {
+        "max-width": "0",
+        "opacity": "0"
+      }
+    }
+  },
+  "meta": {
+    "cavemio": {
+      "component": "stats-band",
+      "exportName": "StatsBand",
+      "categories": [
+        "motion"
+      ],
+      "isNew": false,
+      "usage": "import { StatsBand } from \"@/components/stats-band\";\n\n<StatsBand\n  stats={[\n    { value: 12480, label: \"Teams shipping\", format: { notation: \"compact\" }, suffix: \"+\" },\n    { value: 99.98, label: \"Uptime\", suffix: \"%\" },\n  ]}\n/>",
+      "accessibility": "- A description list: each label is a dt and its figure a dd, with the real number as text for screen readers and search.\n- It runs once, the first time half the band is visible, using an IntersectionObserver; no scroll listeners.\n- Installs Number roll alongside it.\n- With reduced motion the numbers and lines are simply there.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "stats",
+            "type": "{ value; label; format?; prefix?; suffix? }[]",
+            "description": "– · Each figure and its label. format takes Intl.NumberFormat options."
+          },
+          {
+            "name": "stagger",
+            "type": "number",
+            "description": "140 · Time between one stat starting and the next (ms)."
+          },
+          {
+            "name": "numberClassName",
+            "type": "string",
+            "description": "– · Size and weight of the figures."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Landing page proof",
+            "description": "The row of numbers that shows customers, uptime or volume."
+          },
+          {
+            "title": "About pages",
+            "description": "Company numbers that arrive as the visitor scrolls."
+          },
+          {
+            "title": "Case studies",
+            "description": "Results such as time saved or revenue gained."
+          },
+          {
+            "title": "Launch and year-in-review pages",
+            "description": "A recap of what happened, in figures."
+          }
+        ],
+        "features": [
+          {
+            "title": "It waits until you arrive",
+            "description": "It runs once, the first time half the band is visible. Before that it shows quiet zeros and undrawn lines."
+          },
+          {
+            "title": "The lines draw first",
+            "description": "The fine lines between the stats draw themselves from the middle out."
+          },
+          {
+            "title": "Numbers roll in turn",
+            "description": "Each figure rolls up from zero a beat after the last, as its label rises in."
+          },
+          {
+            "title": "Any format",
+            "description": "Compact numbers like 12.5K+, decimals like 99.98%, and prefixes and suffixes."
+          },
+          {
+            "title": "Updates later",
+            "description": "Change a value afterwards and only its changed digits roll."
+          },
+          {
+            "title": "Real figures for screen readers",
+            "description": "It is a description list with the real numbers as text, so search and assistive tech see them straight away."
+          }
+        ],
+        "states": [
+          {
+            "title": "waiting",
+            "description": "Off screen: quiet zeros and undrawn lines, so nothing has already happened by the time you arrive."
+          },
+          {
+            "title": "arriving",
+            "description": "At half visible, the dividers draw over 700ms, then each stat rolls up from 0 (1.2s), 140ms after the one before."
+          },
+          {
+            "title": "done",
+            "description": "The real numbers. Change a value later and only its changed digits roll."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
