@@ -1,0 +1,196 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-stepper-input",
+  "title": "Stepper input",
+  "description": "A tactile incrementer: tap to step, hold to accelerate, bounds give an elastic bumper shake, and digits roll in place.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/stepper-input.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport { NumberRoll } from \"./number-roll\";\n\n/* ─────────────────────────────────────────────────────────\n * STEPPER INPUT: a tactile number control with acceleration\n *\n *   single tap   increments or decrements by step, rolling\n *                the odometer in the direction of travel\n *   holding      waits 300ms, then accelerates smoothly from\n *                100ms down to 30ms intervals with scaled steps\n *   boundary     hitting min or max bounds disables the action\n *                and gives the container an elastic bumper shake\n *   direct edit  clicking the number reveals an exact input,\n *                committing on blur or Enter, cancelling on Escape\n * ───────────────────────────────────────────────────────── */\n\nexport interface StepperInputProps {\n  /** Accessible label, e.g. \"Team seats\" or \"Border radius\". */\n  label: string;\n  value?: number;\n  defaultValue?: number;\n  onValueChange?: (value: number) => void;\n  min?: number;\n  max?: number;\n  step?: number;\n  /** Large step for PageUp/PageDown and prolonged acceleration. Defaults to step * 10. */\n  largeStep?: number;\n  /** Optional unit appended to the number, e.g. \"px\", \"%\", \"seats\". */\n  unit?: string;\n  /** Format options passed to NumberRoll when not editing. */\n  format?: Intl.NumberFormatOptions;\n  /** Visual variant: \"pill\" for rounded-full, \"field\" for standard form input. */\n  variant?: \"pill\" | \"field\";\n  size?: \"sm\" | \"default\";\n  disabled?: boolean;\n  name?: string;\n  className?: string;\n}\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\nfunction MinusIcon({ className = \"size-3.5\" }: { className?: string }) {\n  return (\n    <svg\n      viewBox=\"0 0 16 16\"\n      fill=\"none\"\n      aria-hidden=\"true\"\n      className={className}\n    >\n      <path\n        d=\"M3.5 8h9\"\n        stroke=\"currentColor\"\n        strokeWidth=\"1.6\"\n        strokeLinecap=\"round\"\n      />\n    </svg>\n  );\n}\n\nfunction PlusIcon({ className = \"size-3.5\" }: { className?: string }) {\n  return (\n    <svg\n      viewBox=\"0 0 16 16\"\n      fill=\"none\"\n      aria-hidden=\"true\"\n      className={className}\n    >\n      <path\n        d=\"M8 3.5v9M3.5 8h9\"\n        stroke=\"currentColor\"\n        strokeWidth=\"1.6\"\n        strokeLinecap=\"round\"\n      />\n    </svg>\n  );\n}\n\nconst shake = (el: HTMLElement | null, reduced: boolean) => {\n  if (!el || reduced) return;\n  el.animate(\n    [\n      { transform: \"none\" },\n      { transform: \"translateX(-3px)\" },\n      { transform: \"translateX(3px)\" },\n      { transform: \"translateX(-1.5px)\" },\n      { transform: \"none\" },\n    ],\n    { duration: 280, easing: \"ease-out\", composite: \"add\" },\n  );\n};\n\nexport function StepperInput({\n  label,\n  value: controlledValue,\n  defaultValue = 0,\n  onValueChange,\n  min = -Infinity,\n  max = Infinity,\n  step = 1,\n  largeStep,\n  unit,\n  format,\n  variant = \"pill\",\n  size = \"default\",\n  disabled = false,\n  name,\n  className = \"\",\n}: StepperInputProps) {\n  const reduced = useReducedMotion();\n  const [uncontrolledValue, setUncontrolledValue] =\n    React.useState(defaultValue);\n  const isControlled = controlledValue !== undefined;\n  const currentVal = isControlled ? controlledValue : uncontrolledValue;\n\n  const [editing, setEditing] = React.useState(false);\n  const [editText, setEditText] = React.useState(String(currentVal));\n\n  const rootRef = React.useRef<HTMLDivElement>(null);\n  const inputRef = React.useRef<HTMLInputElement>(null);\n  const holdTimerRef = React.useRef<number | null>(null);\n  const holdIntervalRef = React.useRef<number | null>(null);\n  const holdStartRef = React.useRef<number>(0);\n\n  const effectiveLargeStep = largeStep ?? step * 10;\n  const atMin = currentVal <= min;\n  const atMax = currentVal >= max;\n\n  const clamp = React.useCallback(\n    (n: number) => {\n      let rounded = Math.round(n / step) * step;\n      // Fix floating point precision, e.g. 0.1 + 0.2\n      const stepDecimals = (step.toString().split(\".\")[1] || \"\").length;\n      if (stepDecimals > 0) {\n        rounded = Number(rounded.toFixed(stepDecimals));\n      }\n      return Math.min(max, Math.max(min, rounded));\n    },\n    [min, max, step],\n  );\n\n  const updateVal = React.useCallback(\n    (nextRaw: number) => {\n      const next = clamp(nextRaw);\n      if (next === currentVal) {\n        shake(rootRef.current, reduced);\n        return false;\n      }\n      if (!isControlled) {\n        setUncontrolledValue(next);\n      }\n      onValueChange?.(next);\n      return true;\n    },\n    [clamp, currentVal, isControlled, onValueChange, reduced],\n  );\n\n  const stopHold = React.useCallback(() => {\n    if (holdTimerRef.current !== null) {\n      window.clearTimeout(holdTimerRef.current);\n      holdTimerRef.current = null;\n    }\n    if (holdIntervalRef.current !== null) {\n      window.clearInterval(holdIntervalRef.current);\n      holdIntervalRef.current = null;\n    }\n  }, []);\n\n  const stepDelta = React.useCallback(\n    (dir: 1 | -1, multiplier = 1) => {\n      const delta = step * multiplier * dir;\n      return updateVal(currentVal + delta);\n    },\n    [currentVal, step, updateVal],\n  );\n\n  const startHold = React.useCallback(\n    (dir: 1 | -1) => {\n      if (disabled) return;\n      stopHold();\n\n      // Immediate first step\n      const canMove = stepDelta(dir, 1);\n      if (!canMove) return;\n\n      holdStartRef.current = Date.now();\n\n      // 300ms initial pause before rapid firing\n      holdTimerRef.current = window.setTimeout(() => {\n        const tick = () => {\n          const elapsed = Date.now() - holdStartRef.current;\n          let mult = 1;\n          let intervalTime = 90;\n\n          if (elapsed > 2400) {\n            mult = Math.max(1, Math.round(effectiveLargeStep / step));\n            intervalTime = 30;\n          } else if (elapsed > 1200) {\n            mult = Math.max(1, Math.round(effectiveLargeStep / step / 2));\n            intervalTime = 55;\n          }\n\n          const ok = stepDelta(dir, mult);\n          if (!ok) {\n            stopHold();\n            return;\n          }\n\n          holdIntervalRef.current = window.setTimeout(tick, intervalTime);\n        };\n        tick();\n      }, 300);\n    },\n    [disabled, effectiveLargeStep, step, stepDelta, stopHold],\n  );\n\n  React.useEffect(() => {\n    return () => stopHold();\n  }, [stopHold]);\n\n  const commitEdit = React.useCallback(() => {\n    setEditing(false);\n    const parsed = parseFloat(editText);\n    if (!Number.isNaN(parsed)) {\n      updateVal(parsed);\n    } else {\n      setEditText(String(currentVal));\n    }\n  }, [currentVal, editText, updateVal]);\n\n  const handleKeyDown = (e: React.KeyboardEvent) => {\n    if (disabled) return;\n\n    if (e.key === \"ArrowUp\") {\n      e.preventDefault();\n      stepDelta(1, 1);\n    } else if (e.key === \"ArrowDown\") {\n      e.preventDefault();\n      stepDelta(-1, 1);\n    } else if (e.key === \"PageUp\") {\n      e.preventDefault();\n      updateVal(currentVal + effectiveLargeStep);\n    } else if (e.key === \"PageDown\") {\n      e.preventDefault();\n      updateVal(currentVal - effectiveLargeStep);\n    } else if (e.key === \"Home\" && min !== -Infinity) {\n      e.preventDefault();\n      updateVal(min);\n    } else if (e.key === \"End\" && max !== Infinity) {\n      e.preventDefault();\n      updateVal(max);\n    } else if (editing) {\n      if (e.key === \"Enter\") {\n        e.preventDefault();\n        commitEdit();\n      } else if (e.key === \"Escape\") {\n        e.preventDefault();\n        setEditing(false);\n        setEditText(String(currentVal));\n      }\n    }\n  };\n\n  const isSmall = size === \"sm\";\n  const hCls = isSmall ? \"h-7\" : \"h-9\";\n  const btnW = isSmall ? \"w-7\" : \"w-8\";\n  const roundedCls = variant === \"pill\" ? \"rounded-full\" : \"rounded-lg\";\n\n  return (\n    <div\n      ref={rootRef}\n      role=\"group\"\n      aria-label={label}\n      tabIndex={disabled ? -1 : 0}\n      onKeyDown={handleKeyDown}\n      className={`inline-flex ${hCls} items-center border border-border bg-background p-0.5 select-none ${roundedCls} transition-[box-shadow,border-color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${disabled ? \"opacity-50 pointer-events-none\" : \"\"} ${className}`}\n      style={{\n        boxShadow: \"0 0 0 1px transparent\",\n      }}\n    >\n      {/* Hidden input for HTML form submissions */}\n      {name && <input type=\"hidden\" name={name} value={currentVal} />}\n\n      {/* Decrement Button */}\n      <button\n        type=\"button\"\n        tabIndex={-1}\n        aria-label={`Decrease ${label}`}\n        disabled={disabled || atMin}\n        onPointerDown={(e) => {\n          if (e.pointerType === \"mouse\" && e.button !== 0) return;\n          try {\n            e.currentTarget.setPointerCapture(e.pointerId);\n          } catch {}\n          startHold(-1);\n        }}\n        onPointerUp={(e) => {\n          try {\n            if (e.currentTarget.hasPointerCapture(e.pointerId)) {\n              e.currentTarget.releasePointerCapture(e.pointerId);\n            }\n          } catch {}\n          stopHold();\n        }}\n        onPointerCancel={stopHold}\n        className={`flex ${btnW} h-full items-center justify-center ${variant === \"pill\" ? \"rounded-full\" : \"rounded-md\"} text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95 disabled:pointer-events-none disabled:opacity-30 cursor-pointer disabled:cursor-default touch-manipulation`}\n      >\n        <MinusIcon />\n      </button>\n\n      {/* Value Display / Direct Edit */}\n      <div\n        className=\"relative flex min-w-[3.25rem] flex-1 items-center justify-center px-2 font-mono text-[13px] tabular-nums text-foreground cursor-text\"\n        onClick={() => {\n          if (disabled || editing) return;\n          setEditing(true);\n          setEditText(String(currentVal));\n          setTimeout(() => inputRef.current?.select(), 10);\n        }}\n      >\n        {editing ? (\n          <input\n            ref={inputRef}\n            type=\"text\"\n            inputMode=\"numeric\"\n            value={editText}\n            onChange={(e) => setEditText(e.target.value)}\n            onBlur={commitEdit}\n            className=\"w-full bg-transparent text-center font-mono text-[13px] text-foreground outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none\"\n            autoFocus\n          />\n        ) : (\n          <div className=\"flex items-baseline gap-1\" aria-hidden=\"true\">\n            <NumberRoll value={currentVal} format={format} duration={260} />\n            {unit && (\n              <span className=\"font-sans text-[11px] text-muted-foreground\">\n                {unit}\n              </span>\n            )}\n          </div>\n        )}\n\n        {/* Screen reader live value */}\n        <span className=\"sr-only\" role=\"status\" aria-live=\"polite\">\n          {label}: {currentVal} {unit ?? \"\"}\n        </span>\n      </div>\n\n      {/* Increment Button */}\n      <button\n        type=\"button\"\n        tabIndex={-1}\n        aria-label={`Increase ${label}`}\n        disabled={disabled || atMax}\n        onPointerDown={(e) => {\n          if (e.pointerType === \"mouse\" && e.button !== 0) return;\n          try {\n            e.currentTarget.setPointerCapture(e.pointerId);\n          } catch {}\n          startHold(1);\n        }}\n        onPointerUp={(e) => {\n          try {\n            if (e.currentTarget.hasPointerCapture(e.pointerId)) {\n              e.currentTarget.releasePointerCapture(e.pointerId);\n            }\n          } catch {}\n          stopHold();\n        }}\n        onPointerCancel={stopHold}\n        className={`flex ${btnW} h-full items-center justify-center ${variant === \"pill\" ? \"rounded-full\" : \"rounded-md\"} text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95 disabled:pointer-events-none disabled:opacity-30 cursor-pointer disabled:cursor-default touch-manipulation`}\n      >\n        <PlusIcon />\n      </button>\n    </div>\n  );\n}\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/number-roll.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * NUMBER ROLL: numbers that change like an odometer\n *\n *   rolling   each digit is a column that rolls to its new\n *             value, in the direction the number moved: going\n *             up, a 9 rolls on to 0 instead of spinning back\n *   places    new places slide open from nothing; lost ones\n *             fold away\n *   format    anything Intl.NumberFormat does: currency,\n *             percent, compact (\"1.2K\"), decimals\n *\n * The real number is always there as text for screen readers\n * and copy and paste; the columns are only what you see.\n * ───────────────────────────────────────────────────────── */\n\nexport interface NumberRollProps extends Omit<\n  React.HTMLAttributes<HTMLSpanElement>,\n  \"children\"\n> {\n  value: number;\n  /** Intl.NumberFormat options, e.g. { style: \"currency\", currency: \"USD\" }. */\n  format?: Intl.NumberFormatOptions;\n  locales?: string | string[];\n  prefix?: string;\n  suffix?: string;\n  /** Start from this value and roll to `value` once mounted, e.g. 0 for stats. */\n  from?: number;\n  /** Roll duration in ms. */\n  duration?: number;\n  /** Always roll this way, e.g. \"down\" for a countdown's seconds, which wrap from 00 to 59. Defaults to the way the number moved. */\n  direction?: \"up\" | \"down\";\n}\n\ntype Column = { key: string; char: string; digit: number | null };\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\nconst SETS = 5; // the strip repeats 0–9 five times so a roll never runs out of digits\nconst MIDDLE = 20;\n/** The strip as one text node, a digit a line: fifty lines, but one element to lay out instead of fifty. */\nconst STRIP = Array.from({ length: SETS * 10 }, (_, i) => i % 10).join(\"\\n\");\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\n/** Digits are keyed by their place counted from the right, so the units column stays the units column. */\nfunction columns(text: string): Column[] {\n  const chars = [...text];\n  const seen = new Map<string, number>();\n  let place = 0;\n  const out: Column[] = [];\n  for (let i = chars.length - 1; i >= 0; i--) {\n    const char = chars[i];\n    if (/\\d/.test(char))\n      out.push({ key: `d${place++}`, char, digit: Number(char) });\n    else {\n      // Symbols are keyed by how many of the same symbol sit to their right, so a comma that shifts is the same comma.\n      const n = seen.get(char) ?? 0;\n      seen.set(char, n + 1);\n      out.push({ key: `s${char}${n}`, char, digit: null });\n    }\n  }\n  return out.reverse();\n}\n\n// Memoised: a parent that re-renders with the same number doesn't rebuild the strips.\nconst Digit = React.memo(function Digit({\n  digit,\n  trend,\n  duration,\n  reduced,\n  rollIn,\n}: {\n  digit: number;\n  trend: number;\n  duration: number;\n  reduced: boolean;\n  rollIn: boolean;\n}) {\n  const [pos, setPos] = React.useState(MIDDLE + (rollIn ? 0 : digit));\n  const [moving, setMoving] = React.useState(false);\n  const posRef = React.useRef(pos);\n  const stripRef = React.useRef<HTMLSpanElement>(null);\n\n  React.useLayoutEffect(() => {\n    const current = posRef.current;\n    const showing = ((current % 10) + 10) % 10;\n    if (showing === digit) return;\n    if (reduced) {\n      posRef.current = MIDDLE + digit;\n      setMoving(false);\n      setPos(MIDDLE + digit);\n      return;\n    }\n    const up = trend > 0 || (trend === 0 && digit > showing);\n    let target = up\n      ? current + ((digit - showing + 10) % 10)\n      : current - ((showing - digit + 10) % 10);\n    // Values arriving faster than a roll (a progress percent) never let it re-centre, so before it runs off the strip,\n    // jump the strip back by whole sets mid-roll (it looks identical) and roll on from there.\n    if (target < 10 || target > SETS * 10 - 11) {\n      const shift = Math.round((target - MIDDLE) / 10) * 10;\n      const strip = stripRef.current;\n      if (strip?.offsetHeight) {\n        let visual = current;\n        try {\n          visual =\n            -new DOMMatrixReadOnly(getComputedStyle(strip).transform).m42 /\n            (strip.offsetHeight / (SETS * 10));\n        } catch {}\n        const transition = strip.style.transition;\n        strip.style.transition = \"none\";\n        strip.style.transform = `translateY(${(-(visual - shift) * 100) / (SETS * 10)}%)`;\n        void strip.offsetHeight;\n        strip.style.transition = transition;\n      }\n      target -= shift;\n    }\n    posRef.current = target;\n    setMoving(true);\n    setPos(target);\n  }, [digit, trend, reduced]);\n\n  // After a roll, quietly re-centre on the middle set so the next roll always has room.\n  const settle = () => {\n    const centred = MIDDLE + (((posRef.current % 10) + 10) % 10);\n    posRef.current = centred;\n    setMoving(false);\n    setPos(centred);\n  };\n\n  return (\n    <span className=\"relative inline-block [clip-path:inset(0)]\">\n      <span className=\"invisible\">{digit}</span>\n      <span\n        ref={stripRef}\n        aria-hidden=\"true\"\n        onTransitionEnd={settle}\n        className=\"absolute inset-x-0 top-0 block whitespace-pre text-center\"\n        style={{\n          transform: `translateY(${(-pos * 100) / (SETS * 10)}%)`,\n          transition: moving ? `transform ${duration}ms ${EASE}` : \"none\",\n        }}\n      >\n        {STRIP}\n      </span>\n    </span>\n  );\n});\n\n/** A place that appeared after the first paint slides open; places that were there from the start just sit. */\nfunction Place({\n  enter,\n  children,\n}: {\n  enter: boolean;\n  children: React.ReactNode;\n}) {\n  const [entering] = React.useState(enter);\n  return (\n    <span\n      className={`inline-block ${entering ? \"[clip-path:inset(0)] animate-[ui-col-in_500ms_cubic-bezier(0.16,1,0.3,1)_both]\" : \"\"}`}\n    >\n      {children}\n    </span>\n  );\n}\n\nexport function NumberRoll({\n  value,\n  format,\n  locales,\n  prefix = \"\",\n  suffix = \"\",\n  from,\n  duration = 900,\n  direction,\n  className = \"\",\n  ...props\n}: NumberRollProps) {\n  const reduced = useReducedMotion();\n  const [shown, setShown] = React.useState(from ?? value);\n  const previous = React.useRef(shown);\n  const mounted = React.useRef(false);\n\n  // Roll from `from` to the real value once on screen (a frame later, so the start is painted).\n  React.useEffect(() => {\n    const frame = requestAnimationFrame(() => setShown(value));\n    return () => cancelAnimationFrame(frame);\n  }, [value]);\n\n  React.useEffect(() => {\n    mounted.current = true;\n  }, []);\n\n  const formatter = React.useMemo(\n    () => new Intl.NumberFormat(locales, format),\n    [locales, format && JSON.stringify(format)],\n  );\n  const text = `${prefix}${formatter.format(shown)}${suffix}`;\n  const cols = React.useMemo(() => columns(text), [text]);\n  const trend =\n    direction === \"up\"\n      ? 1\n      : direction === \"down\"\n        ? -1\n        : Math.sign(shown - previous.current);\n\n  // Places that disappear fold away instead of vanishing.\n  const [leaving, setLeaving] = React.useState<Column[]>([]);\n  const lastCols = React.useRef(cols);\n  React.useLayoutEffect(() => {\n    const gone = lastCols.current.filter(\n      (c) => !cols.some((n) => n.key === c.key),\n    );\n    lastCols.current = cols;\n    previous.current = shown;\n    if (!gone.length || reduced) return;\n    setLeaving(gone);\n    const timer = window.setTimeout(() => setLeaving([]), 420);\n    return () => window.clearTimeout(timer);\n  }, [cols, shown, reduced]);\n\n  return (\n    <span className={`inline-flex tabular-nums ${className}`} {...props}>\n      <span className=\"sr-only\">{`${prefix}${formatter.format(value)}${suffix}`}</span>\n      <span\n        aria-hidden=\"true\"\n        className=\"inline-flex items-baseline whitespace-pre\"\n      >\n        {leaving.map((c) => (\n          <span\n            key={`out-${c.key}`}\n            className=\"inline-block [clip-path:inset(0)] animate-[ui-col-out_400ms_cubic-bezier(0.16,1,0.3,1)_forwards]\"\n          >\n            {c.char}\n          </span>\n        ))}\n        {cols.map((c) => (\n          <Place key={c.key} enter={mounted.current && !reduced}>\n            {c.digit === null ? (\n              c.char\n            ) : (\n              <Digit\n                digit={c.digit}\n                trend={trend}\n                duration={duration}\n                reduced={reduced}\n                rollIn={mounted.current}\n              />\n            )}\n          </Place>\n        ))}\n      </span>\n    </span>\n  );\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {
+    "@keyframes ui-col-in": {
+      "from": {
+        "max-width": "0",
+        "opacity": "0"
+      },
+      "to": {
+        "max-width": "1em",
+        "opacity": "1"
+      }
+    },
+    "@keyframes ui-col-out": {
+      "from": {
+        "max-width": "1em",
+        "opacity": "1"
+      },
+      "to": {
+        "max-width": "0",
+        "opacity": "0"
+      }
+    }
+  },
+  "meta": {
+    "cavemio": {
+      "component": "stepper-input",
+      "exportName": "StepperInput",
+      "categories": [
+        "forms"
+      ],
+      "isNew": false,
+      "usage": "import { StepperInput } from \"@/components/stepper-input\";\n\n<StepperInput\n  label=\"Workspace seats\"\n  defaultValue={5}\n  min={1}\n  max={50}\n  unit=\"seats\"\n  onValueChange={(seats) => updateSeats(seats)}\n/>",
+      "accessibility": "- Uses NumberRoll internally so numbers roll in the exact direction of travel (increment rolls up, decrement rolls down).\n- Hold-to-accelerate uses touch-safe pointer listeners and clears all timers on pointer cancel or unmount.\n- Arrow keys, PageUp/PageDown, and Home/End support the full WAI-ARIA spinbutton specification.\n- Direct text edit automatically clamps and rounds to the specified step precision to eliminate floating-point arithmetic errors.\n- Reduced motion replaces the bumper shake and roll animations with instant updates.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "label",
+            "type": "string",
+            "description": "– · Accessible name for the stepper, announced to assistive technologies."
+          },
+          {
+            "name": "value",
+            "type": "number",
+            "description": "– · The controlled numeric value."
+          },
+          {
+            "name": "defaultValue",
+            "type": "number",
+            "description": "0 · Initial numeric value when uncontrolled."
+          },
+          {
+            "name": "onValueChange",
+            "type": "(value: number) => void",
+            "description": "– · Callback invoked when the value changes."
+          },
+          {
+            "name": "min",
+            "type": "number",
+            "description": "-Infinity · Minimum allowed value."
+          },
+          {
+            "name": "max",
+            "type": "number",
+            "description": "Infinity · Maximum allowed value."
+          },
+          {
+            "name": "step",
+            "type": "number",
+            "description": "1 · Amount to increment or decrement on single steps."
+          },
+          {
+            "name": "largeStep",
+            "type": "number",
+            "description": "– · Step multiplier for PageUp/PageDown and sustained acceleration (defaults to step * 10)."
+          },
+          {
+            "name": "unit",
+            "type": "string",
+            "description": "– · Optional text suffix displayed beside the value (e.g. \"seats\", \"px\", \"%\")."
+          },
+          {
+            "name": "format",
+            "type": "Intl.NumberFormatOptions",
+            "description": "– · Formatting options forwarded to NumberRoll."
+          },
+          {
+            "name": "variant",
+            "type": "\"pill\" | \"field\"",
+            "description": "\"pill\" · Border radius style: pill (rounded-full) or field (rounded-lg)."
+          },
+          {
+            "name": "size",
+            "type": "\"sm\" | \"default\"",
+            "description": "\"default\" · Control height and typography size: sm (28px) or default (36px)."
+          },
+          {
+            "name": "disabled",
+            "type": "boolean",
+            "description": "false · Disables all interactions and dims the control."
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "description": "– · Name attribute for hidden input submitted with HTML forms."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Billing & seats",
+            "description": "Adjust workspace licenses or team member counts with immediate price calculations."
+          },
+          {
+            "title": "Canvas & design inspectors",
+            "description": "Nudge padding, border-radius, font size, or opacity with hold-to-accelerate speed."
+          },
+          {
+            "title": "E-commerce carts",
+            "description": "Quantity steppers that prevent zero-quantity mistakes and clamp to warehouse inventory."
+          },
+          {
+            "title": "Model parameters",
+            "description": "Tune temperature, top-p, and context window limits with fine-grained decimal steps."
+          }
+        ],
+        "features": [
+          {
+            "title": "Odometer roll direction",
+            "description": "Increments roll upward and decrements roll downward through NumberRoll, maintaining continuous directional feedback."
+          },
+          {
+            "title": "Exponential hold acceleration",
+            "description": "Holds start with a 300ms delay to prevent accidental runs, then step at 90ms, 55ms, and 30ms with automatic 5x/10x multipliers."
+          },
+          {
+            "title": "Elastic bumper feedback",
+            "description": "Hitting the min or max bound produces a brief horizontal elastic shake rather than dead-ending without feedback."
+          },
+          {
+            "title": "Direct editing in place",
+            "description": "Clicking the number reveals a full input without shifting a pixel; Enter or blur parses, clamps, and commits."
+          },
+          {
+            "title": "Floating-point precision",
+            "description": "Handles fractional steps like 0.1 or 0.05 without standard JavaScript floating-point artifacts like 0.30000000000000004."
+          },
+          {
+            "title": "Accessible spinbutton",
+            "description": "Supports ArrowUp/Down, PageUp/Down for large steps, and Home/End for boundary limits, with polite screen-reader announcements."
+          }
+        ],
+        "states": [
+          {
+            "title": "rest",
+            "description": "thin line pill or field container in rest state. Decrement and increment buttons display quiet icons with disabled styling when at bounds."
+          },
+          {
+            "title": "tap",
+            "description": "Single tap or click advances by one step. The digit rolls in the direction the value changed over 260ms."
+          },
+          {
+            "title": "accelerate",
+            "description": "Holding down past 300ms activates rapid stepping, ramping up to 30ms tick intervals with large-step multipliers."
+          },
+          {
+            "title": "limit shake",
+            "description": "Attempting to step past min or max triggers an elastic bumper shake (±3px over 280ms) and disables the button."
+          },
+          {
+            "title": "direct edit",
+            "description": "Clicking the value swaps the odometer for an active text input; Escape cancels back to original value, Enter commits clamped number."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
