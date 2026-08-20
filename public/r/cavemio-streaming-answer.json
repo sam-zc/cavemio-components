@@ -1,0 +1,185 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-streaming-answer",
+  "title": "Streaming answer",
+  "description": "An answer as it arrives, with inline citations, actions, sources and follow-ups.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/streaming-answer.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport {\n  AlertCircle,\n  Copy,\n  RotateCcw,\n  ThumbsDown,\n  ThumbsUp,\n} from \"lucide-react\";\nimport { NumberRoll } from \"./number-roll\";\n\n/* ─────────────────────────────────────────────────────────\n * STREAMING ANSWER: an AI answer as it arrives\n *\n *   StreamingText   the text so far, with inline citation chips;\n *                   only newly arrived words fade in\n *   AnswerActions   copy (blurs into a check that draws itself),\n *                   regenerate, feedback (the thumb fills with a\n *                   small thrown pop) and a sources stack whose\n *                   count rolls\n *   FollowUps       suggested next questions\n *\n * StreamingText renders whatever you pass it: append to `content`\n * as tokens arrive. Blank lines start new paragraphs, and finished\n * paragraphs don't re-render while the last one grows. For Markdown,\n * pass your renderer as children instead of `content`.\n * ───────────────────────────────────────────────────────── */\n\nexport type AnswerCitation = { type: \"citation\"; label: string; href?: string };\nexport type AnswerSegment = string | AnswerCitation;\nexport type AnswerStatus = \"streaming\" | \"done\" | \"stopped\" | \"error\";\nexport type AnswerFeedback = \"up\" | \"down\" | null;\n\nexport interface AnswerSource {\n  name: string;\n  href?: string;\n  /** A favicon or logo, e.g. <img src=\"…/favicon.ico\" alt=\"\" />. */\n  icon?: React.ReactNode;\n  /** Tailwind background class for the dot when there's no icon. */\n  color?: string;\n}\n\nconst FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40\";\nconst DOTS = [\n  \"bg-blue-500\",\n  \"bg-emerald-500\",\n  \"bg-orange-500\",\n  \"bg-violet-500\",\n];\nconst MORPH = \"cubic-bezier(0.16,1,0.3,1)\";\nconst THROW = \"cubic-bezier(0.34,1.36,0.64,1)\";\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\n/** Icons trade places through a blur: the old one shrinks away as the new one grows in. */\nconst swap = (on: boolean, reduced: boolean): React.CSSProperties => ({\n  opacity: on ? 1 : 0,\n  transform: on ? \"none\" : \"scale(0.6)\",\n  filter: on ? \"none\" : \"blur(3px)\",\n  transition: reduced\n    ? \"none\"\n    : `opacity 260ms ${MORPH}, transform 380ms ${MORPH}, filter 260ms ${MORPH}`,\n});\n\n/* ── StreamingText ───────────────────────────────────────── */\n\nexport interface StreamingTextProps extends Omit<\n  React.HTMLAttributes<HTMLDivElement>,\n  \"content\"\n> {\n  /** The answer so far. Append as tokens arrive. */\n  content?: AnswerSegment[];\n  status?: AnswerStatus;\n  /** Shows a retry button when status is \"error\". */\n  onRetry?: () => void;\n  /** Your own renderer (e.g. Markdown) instead of `content`. */\n  children?: React.ReactNode;\n}\n\ntype Token =\n  | { kind: \"word\" | \"space\"; text: string }\n  | { kind: \"cite\"; citation: AnswerCitation };\n\nfunction toParagraphs(content: AnswerSegment[]): Token[][] {\n  const paragraphs: Token[][] = [[]];\n  for (const segment of content) {\n    if (typeof segment !== \"string\") {\n      paragraphs[paragraphs.length - 1].push({\n        kind: \"cite\",\n        citation: segment,\n      });\n      continue;\n    }\n    for (const part of segment.split(/(\\n{2,})/)) {\n      if (/^\\n{2,}$/.test(part)) {\n        paragraphs.push([]);\n        continue;\n      }\n      for (const text of part.split(/(\\s+)/)) {\n        if (text)\n          paragraphs[paragraphs.length - 1].push({\n            kind: /^\\s+$/.test(text) ? \"space\" : \"word\",\n            text,\n          });\n      }\n    }\n  }\n  return paragraphs.filter(\n    (p, i) => p.length > 0 || i === paragraphs.length - 1,\n  );\n}\n\nfunction CitationChip({ citation }: { citation: AnswerCitation }) {\n  const className = `mx-0.5 inline-flex -translate-y-px items-center gap-1 rounded-[5px] border border-border bg-muted px-1.5 py-px align-middle font-mono text-[11px] text-foreground animate-[ui-fade-up_240ms_cubic-bezier(0.23,1,0.32,1)_both] motion-reduce:animate-none ${FOCUS}`;\n  const inner = (\n    <>\n      <span\n        aria-hidden=\"true\"\n        className=\"size-1.5 shrink-0 rounded-full bg-emerald-500\"\n      />\n      {citation.label}\n    </>\n  );\n  return citation.href ? (\n    <a\n      href={citation.href}\n      target=\"_blank\"\n      rel=\"noreferrer\"\n      className={`${className} transition-colors hover:bg-accent`}\n    >\n      {inner}\n    </a>\n  ) : (\n    <span className={className}>{inner}</span>\n  );\n}\n\nconst Caret = () => (\n  <span\n    aria-hidden=\"true\"\n    className=\"ml-0.5 inline-block h-[1.05em] w-[2px] translate-y-[0.18em] bg-foreground animate-[ui-blink_1s_steps(2,start)_infinite] motion-reduce:animate-none\"\n  />\n);\n\n// Words keep a stable key by position, so only words that just arrived mount and fade in.\nconst Paragraph = React.memo(\n  function Paragraph({\n    tokens,\n    caret,\n  }: {\n    tokens: Token[];\n    signature: string;\n    caret: boolean;\n  }) {\n    return (\n      <p>\n        {tokens.map((token, i) =>\n          token.kind === \"cite\" ? (\n            <CitationChip key={i} citation={token.citation} />\n          ) : token.kind === \"space\" ? (\n            token.text\n          ) : (\n            <span\n              key={i}\n              className=\"animate-[ui-fade-in_420ms_ease-out_both] motion-reduce:animate-none\"\n            >\n              {token.text}\n            </span>\n          ),\n        )}\n        {caret && <Caret />}\n      </p>\n    );\n  },\n  (a, b) => a.signature === b.signature && a.caret === b.caret,\n);\n\nexport function StreamingText({\n  content = [],\n  status = \"done\",\n  onRetry,\n  children,\n  className = \"\",\n  ...props\n}: StreamingTextProps) {\n  const streaming = status === \"streaming\";\n  const paragraphs = children === undefined ? toParagraphs(content) : [];\n\n  return (\n    <div\n      aria-busy={streaming}\n      className={`flex flex-col gap-3 text-[13.5px] leading-relaxed text-foreground ${className}`}\n      {...props}\n    >\n      {children ??\n        paragraphs.map((tokens, i) => (\n          <Paragraph\n            key={i}\n            tokens={tokens}\n            signature={tokens\n              .map((t) =>\n                t.kind === \"cite\" ? `\\u0000${t.citation.label}` : t.text,\n              )\n              .join(\"\")}\n            caret={streaming && i === paragraphs.length - 1}\n          />\n        ))}\n\n      {status === \"stopped\" && (\n        <p className=\"text-xs text-muted-foreground animate-[ui-fade-in_300ms_ease-out_both]\">\n          Stopped\n        </p>\n      )}\n\n      {status === \"error\" && (\n        <p className=\"flex items-center gap-1.5 text-xs text-muted-foreground animate-[ui-fade-in_300ms_ease-out_both]\">\n          <AlertCircle\n            aria-hidden=\"true\"\n            className=\"size-3.5 shrink-0 text-red-500\"\n          />\n          The answer was interrupted.\n          {onRetry && (\n            <button\n              type=\"button\"\n              onClick={onRetry}\n              className={`cursor-pointer rounded px-1 font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground ${FOCUS}`}\n            >\n              Retry\n            </button>\n          )}\n        </p>\n      )}\n    </div>\n  );\n}\n\n/* ── AnswerActions ───────────────────────────────────────── */\n\nexport interface AnswerActionsProps extends React.HTMLAttributes<HTMLDivElement> {\n  /** Text the copy button puts on the clipboard. Hides the button when omitted. */\n  copyText?: string;\n  onRegenerate?: () => void;\n  /** Controlled feedback, e.g. restored from your database. */\n  feedback?: AnswerFeedback;\n  defaultFeedback?: AnswerFeedback;\n  onFeedback?: (value: AnswerFeedback) => void;\n  sources?: AnswerSource[];\n  onSourcesClick?: () => void;\n  /** Disables the buttons, e.g. while the answer is still streaming. */\n  disabled?: boolean;\n}\n\nfunction IconButton({\n  label,\n  pressed,\n  disabled,\n  onClick,\n  children,\n}: {\n  label: string;\n  pressed?: boolean;\n  disabled?: boolean;\n  onClick: () => void;\n  children: React.ReactNode;\n}) {\n  return (\n    <button\n      type=\"button\"\n      aria-label={label}\n      aria-pressed={pressed}\n      disabled={disabled}\n      onClick={onClick}\n      className={`cursor-pointer disabled:cursor-default relative flex size-7 items-center justify-center rounded-md transition-colors duration-150 hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40 ${\n        pressed ? \"bg-accent text-foreground\" : \"text-muted-foreground\"\n      } ${FOCUS}`}\n    >\n      {children}\n    </button>\n  );\n}\n\n/** A thumb that fills in with a small thrown pop when chosen, and empties when let go. */\nfunction Thumb({\n  down,\n  filled,\n  reduced,\n}: {\n  down?: boolean;\n  filled: boolean;\n  reduced: boolean;\n}) {\n  const ref = React.useRef<HTMLSpanElement>(null);\n  const first = React.useRef(true);\n  React.useEffect(() => {\n    if (first.current) {\n      first.current = false;\n      return;\n    }\n    if (!filled || reduced) return;\n    ref.current?.animate(\n      [{ transform: \"scale(0.8) rotate(-8deg)\" }, { transform: \"none\" }],\n      { duration: 420, easing: THROW },\n    );\n  }, [filled, reduced]);\n  const Icon = down ? ThumbsDown : ThumbsUp;\n  return (\n    <span ref={ref} className=\"flex\">\n      <Icon\n        className=\"size-3.5\"\n        style={{\n          fill: filled ? \"currentColor\" : \"transparent\",\n          transition: reduced ? \"none\" : `fill 220ms ${MORPH}`,\n        }}\n      />\n    </span>\n  );\n}\n\nexport function AnswerActions({\n  copyText,\n  onRegenerate,\n  feedback,\n  defaultFeedback = null,\n  onFeedback,\n  sources,\n  onSourcesClick,\n  disabled,\n  className = \"\",\n  ...props\n}: AnswerActionsProps) {\n  const reduced = useReducedMotion();\n  const [copied, setCopied] = React.useState(false);\n  const [ownFeedback, setOwnFeedback] =\n    React.useState<AnswerFeedback>(defaultFeedback);\n  const current = feedback !== undefined ? feedback : ownFeedback;\n\n  React.useEffect(() => {\n    if (!copied) return;\n    const timer = window.setTimeout(() => setCopied(false), 1600);\n    return () => window.clearTimeout(timer);\n  }, [copied]);\n\n  const copy = async () => {\n    if (!copyText) return;\n    try {\n      await navigator.clipboard.writeText(copyText);\n      setCopied(true);\n    } catch {\n      // Clipboard can be blocked by the browser; nothing to undo.\n    }\n  };\n\n  const rate = (value: \"up\" | \"down\") => {\n    const next = current === value ? null : value;\n    if (feedback === undefined) setOwnFeedback(next);\n    onFeedback?.(next);\n  };\n\n  const stack = sources && sources.length > 0 && (\n    <>\n      <span className=\"flex items-center -space-x-1.5\" aria-hidden=\"true\">\n        {sources.slice(0, 3).map((s, i) =>\n          s.icon ? (\n            <span\n              key={s.name}\n              className=\"flex size-3.5 items-center justify-center overflow-hidden rounded-full bg-background ring-2 ring-background\"\n            >\n              {s.icon}\n            </span>\n          ) : (\n            <span\n              key={s.name}\n              className={`size-3.5 rounded-full ring-2 ring-background ${s.color ?? DOTS[i % DOTS.length]}`}\n            />\n          ),\n        )}\n      </span>\n      <span className=\"inline-flex items-baseline gap-[0.3em] tabular-nums\">\n        <NumberRoll value={sources.length} duration={600} />\n        {sources.length === 1 ? \"source\" : \"sources\"}\n      </span>\n    </>\n  );\n\n  return (\n    <div\n      className={`flex items-center justify-between gap-4 ${className}`}\n      {...props}\n    >\n      <div className=\"flex items-center gap-1\">\n        {copyText !== undefined && (\n          <IconButton label=\"Copy answer\" disabled={disabled} onClick={copy}>\n            <span\n              aria-hidden=\"true\"\n              className=\"absolute inset-0 flex items-center justify-center\"\n              style={swap(!copied, reduced)}\n            >\n              <Copy className=\"size-3.5\" />\n            </span>\n            <span\n              aria-hidden=\"true\"\n              className=\"absolute inset-0 flex items-center justify-center text-emerald-600 dark:text-emerald-400\"\n              style={swap(copied, reduced)}\n            >\n              <svg viewBox=\"0 0 16 16\" fill=\"none\" className=\"size-3.5\">\n                <path\n                  d=\"M3.5 8.5 6.5 11.5 12.5 4.5\"\n                  stroke=\"currentColor\"\n                  strokeWidth=\"1.8\"\n                  strokeLinecap=\"round\"\n                  strokeLinejoin=\"round\"\n                  pathLength={1}\n                  strokeDasharray={1}\n                  style={{\n                    strokeDashoffset: copied ? 0 : 1,\n                    transition:\n                      copied && !reduced\n                        ? `stroke-dashoffset 380ms ${MORPH} 100ms`\n                        : \"none\",\n                  }}\n                />\n              </svg>\n            </span>\n          </IconButton>\n        )}\n        {onRegenerate && (\n          <IconButton\n            label=\"Regenerate\"\n            disabled={disabled}\n            onClick={onRegenerate}\n          >\n            <RotateCcw className=\"size-3.5\" />\n          </IconButton>\n        )}\n        <IconButton\n          label=\"Helpful\"\n          pressed={current === \"up\"}\n          disabled={disabled}\n          onClick={() => rate(\"up\")}\n        >\n          <Thumb filled={current === \"up\"} reduced={reduced} />\n        </IconButton>\n        <IconButton\n          label=\"Not helpful\"\n          pressed={current === \"down\"}\n          disabled={disabled}\n          onClick={() => rate(\"down\")}\n        >\n          <Thumb down filled={current === \"down\"} reduced={reduced} />\n        </IconButton>\n      </div>\n      {/* Outside the buttons, so their names stay their labels. */}\n      <span role=\"status\" className=\"sr-only\">\n        {copied ? \"Copied\" : \"\"}\n      </span>\n\n      {stack &&\n        (onSourcesClick ? (\n          <button\n            type=\"button\"\n            onClick={onSourcesClick}\n            className={`cursor-pointer flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground ${FOCUS}`}\n          >\n            {stack}\n          </button>\n        ) : (\n          <span className=\"flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground\">\n            {stack}\n          </span>\n        ))}\n    </div>\n  );\n}\n\n/* ── FollowUps ───────────────────────────────────────────── */\n\nexport interface FollowUpsProps extends Omit<\n  React.HTMLAttributes<HTMLDivElement>,\n  \"onSelect\"\n> {\n  items: string[];\n  onSelect?: (item: string) => void;\n  label?: string;\n}\n\nexport function FollowUps({\n  items,\n  onSelect,\n  label = \"Follow-ups\",\n  className = \"\",\n  ...props\n}: FollowUpsProps) {\n  return (\n    <div className={`border-t border-border pt-3 ${className}`} {...props}>\n      <p className=\"mb-1 text-[11.5px] font-medium text-muted-foreground\">\n        {label}\n      </p>\n      <ul className=\"flex flex-col\">\n        {items.map((item) => (\n          <li key={item}>\n            <button\n              type=\"button\"\n              onClick={() => onSelect?.(item)}\n              className={`cursor-pointer -mx-1.5 flex w-[calc(100%+0.75rem)] items-center gap-1.5 rounded-md px-1.5 py-1 text-left text-[12.5px] text-foreground transition-colors duration-150 hover:bg-accent ${FOCUS}`}\n            >\n              <span aria-hidden=\"true\" className=\"text-muted-foreground\">\n                ↳\n              </span>\n              {item}\n            </button>\n          </li>\n        ))}\n      </ul>\n    </div>\n  );\n}\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/number-roll.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * NUMBER ROLL: numbers that change like an odometer\n *\n *   rolling   each digit is a column that rolls to its new\n *             value, in the direction the number moved: going\n *             up, a 9 rolls on to 0 instead of spinning back\n *   places    new places slide open from nothing; lost ones\n *             fold away\n *   format    anything Intl.NumberFormat does: currency,\n *             percent, compact (\"1.2K\"), decimals\n *\n * The real number is always there as text for screen readers\n * and copy and paste; the columns are only what you see.\n * ───────────────────────────────────────────────────────── */\n\nexport interface NumberRollProps extends Omit<\n  React.HTMLAttributes<HTMLSpanElement>,\n  \"children\"\n> {\n  value: number;\n  /** Intl.NumberFormat options, e.g. { style: \"currency\", currency: \"USD\" }. */\n  format?: Intl.NumberFormatOptions;\n  locales?: string | string[];\n  prefix?: string;\n  suffix?: string;\n  /** Start from this value and roll to `value` once mounted, e.g. 0 for stats. */\n  from?: number;\n  /** Roll duration in ms. */\n  duration?: number;\n  /** Always roll this way, e.g. \"down\" for a countdown's seconds, which wrap from 00 to 59. Defaults to the way the number moved. */\n  direction?: \"up\" | \"down\";\n}\n\ntype Column = { key: string; char: string; digit: number | null };\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\nconst SETS = 5; // the strip repeats 0–9 five times so a roll never runs out of digits\nconst MIDDLE = 20;\n/** The strip as one text node, a digit a line: fifty lines, but one element to lay out instead of fifty. */\nconst STRIP = Array.from({ length: SETS * 10 }, (_, i) => i % 10).join(\"\\n\");\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\n/** Digits are keyed by their place counted from the right, so the units column stays the units column. */\nfunction columns(text: string): Column[] {\n  const chars = [...text];\n  const seen = new Map<string, number>();\n  let place = 0;\n  const out: Column[] = [];\n  for (let i = chars.length - 1; i >= 0; i--) {\n    const char = chars[i];\n    if (/\\d/.test(char))\n      out.push({ key: `d${place++}`, char, digit: Number(char) });\n    else {\n      // Symbols are keyed by how many of the same symbol sit to their right, so a comma that shifts is the same comma.\n      const n = seen.get(char) ?? 0;\n      seen.set(char, n + 1);\n      out.push({ key: `s${char}${n}`, char, digit: null });\n    }\n  }\n  return out.reverse();\n}\n\n// Memoised: a parent that re-renders with the same number doesn't rebuild the strips.\nconst Digit = React.memo(function Digit({\n  digit,\n  trend,\n  duration,\n  reduced,\n  rollIn,\n}: {\n  digit: number;\n  trend: number;\n  duration: number;\n  reduced: boolean;\n  rollIn: boolean;\n}) {\n  const [pos, setPos] = React.useState(MIDDLE + (rollIn ? 0 : digit));\n  const [moving, setMoving] = React.useState(false);\n  const posRef = React.useRef(pos);\n  const stripRef = React.useRef<HTMLSpanElement>(null);\n\n  React.useLayoutEffect(() => {\n    const current = posRef.current;\n    const showing = ((current % 10) + 10) % 10;\n    if (showing === digit) return;\n    if (reduced) {\n      posRef.current = MIDDLE + digit;\n      setMoving(false);\n      setPos(MIDDLE + digit);\n      return;\n    }\n    const up = trend > 0 || (trend === 0 && digit > showing);\n    let target = up\n      ? current + ((digit - showing + 10) % 10)\n      : current - ((showing - digit + 10) % 10);\n    // Values arriving faster than a roll (a progress percent) never let it re-centre, so before it runs off the strip,\n    // jump the strip back by whole sets mid-roll (it looks identical) and roll on from there.\n    if (target < 10 || target > SETS * 10 - 11) {\n      const shift = Math.round((target - MIDDLE) / 10) * 10;\n      const strip = stripRef.current;\n      if (strip?.offsetHeight) {\n        let visual = current;\n        try {\n          visual =\n            -new DOMMatrixReadOnly(getComputedStyle(strip).transform).m42 /\n            (strip.offsetHeight / (SETS * 10));\n        } catch {}\n        const transition = strip.style.transition;\n        strip.style.transition = \"none\";\n        strip.style.transform = `translateY(${(-(visual - shift) * 100) / (SETS * 10)}%)`;\n        void strip.offsetHeight;\n        strip.style.transition = transition;\n      }\n      target -= shift;\n    }\n    posRef.current = target;\n    setMoving(true);\n    setPos(target);\n  }, [digit, trend, reduced]);\n\n  // After a roll, quietly re-centre on the middle set so the next roll always has room.\n  const settle = () => {\n    const centred = MIDDLE + (((posRef.current % 10) + 10) % 10);\n    posRef.current = centred;\n    setMoving(false);\n    setPos(centred);\n  };\n\n  return (\n    <span className=\"relative inline-block [clip-path:inset(0)]\">\n      <span className=\"invisible\">{digit}</span>\n      <span\n        ref={stripRef}\n        aria-hidden=\"true\"\n        onTransitionEnd={settle}\n        className=\"absolute inset-x-0 top-0 block whitespace-pre text-center\"\n        style={{\n          transform: `translateY(${(-pos * 100) / (SETS * 10)}%)`,\n          transition: moving ? `transform ${duration}ms ${EASE}` : \"none\",\n        }}\n      >\n        {STRIP}\n      </span>\n    </span>\n  );\n});\n\n/** A place that appeared after the first paint slides open; places that were there from the start just sit. */\nfunction Place({\n  enter,\n  children,\n}: {\n  enter: boolean;\n  children: React.ReactNode;\n}) {\n  const [entering] = React.useState(enter);\n  return (\n    <span\n      className={`inline-block ${entering ? \"[clip-path:inset(0)] animate-[ui-col-in_500ms_cubic-bezier(0.16,1,0.3,1)_both]\" : \"\"}`}\n    >\n      {children}\n    </span>\n  );\n}\n\nexport function NumberRoll({\n  value,\n  format,\n  locales,\n  prefix = \"\",\n  suffix = \"\",\n  from,\n  duration = 900,\n  direction,\n  className = \"\",\n  ...props\n}: NumberRollProps) {\n  const reduced = useReducedMotion();\n  const [shown, setShown] = React.useState(from ?? value);\n  const previous = React.useRef(shown);\n  const mounted = React.useRef(false);\n\n  // Roll from `from` to the real value once on screen (a frame later, so the start is painted).\n  React.useEffect(() => {\n    const frame = requestAnimationFrame(() => setShown(value));\n    return () => cancelAnimationFrame(frame);\n  }, [value]);\n\n  React.useEffect(() => {\n    mounted.current = true;\n  }, []);\n\n  const formatter = React.useMemo(\n    () => new Intl.NumberFormat(locales, format),\n    [locales, format && JSON.stringify(format)],\n  );\n  const text = `${prefix}${formatter.format(shown)}${suffix}`;\n  const cols = React.useMemo(() => columns(text), [text]);\n  const trend =\n    direction === \"up\"\n      ? 1\n      : direction === \"down\"\n        ? -1\n        : Math.sign(shown - previous.current);\n\n  // Places that disappear fold away instead of vanishing.\n  const [leaving, setLeaving] = React.useState<Column[]>([]);\n  const lastCols = React.useRef(cols);\n  React.useLayoutEffect(() => {\n    const gone = lastCols.current.filter(\n      (c) => !cols.some((n) => n.key === c.key),\n    );\n    lastCols.current = cols;\n    previous.current = shown;\n    if (!gone.length || reduced) return;\n    setLeaving(gone);\n    const timer = window.setTimeout(() => setLeaving([]), 420);\n    return () => window.clearTimeout(timer);\n  }, [cols, shown, reduced]);\n\n  return (\n    <span className={`inline-flex tabular-nums ${className}`} {...props}>\n      <span className=\"sr-only\">{`${prefix}${formatter.format(value)}${suffix}`}</span>\n      <span\n        aria-hidden=\"true\"\n        className=\"inline-flex items-baseline whitespace-pre\"\n      >\n        {leaving.map((c) => (\n          <span\n            key={`out-${c.key}`}\n            className=\"inline-block [clip-path:inset(0)] animate-[ui-col-out_400ms_cubic-bezier(0.16,1,0.3,1)_forwards]\"\n          >\n            {c.char}\n          </span>\n        ))}\n        {cols.map((c) => (\n          <Place key={c.key} enter={mounted.current && !reduced}>\n            {c.digit === null ? (\n              c.char\n            ) : (\n              <Digit\n                digit={c.digit}\n                trend={trend}\n                duration={duration}\n                reduced={reduced}\n                rollIn={mounted.current}\n              />\n            )}\n          </Place>\n        ))}\n      </span>\n    </span>\n  );\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {
+    "@keyframes ui-col-in": {
+      "from": {
+        "max-width": "0",
+        "opacity": "0"
+      },
+      "to": {
+        "max-width": "1em",
+        "opacity": "1"
+      }
+    },
+    "@keyframes ui-col-out": {
+      "from": {
+        "max-width": "1em",
+        "opacity": "1"
+      },
+      "to": {
+        "max-width": "0",
+        "opacity": "0"
+      }
+    },
+    "@keyframes ui-fade-up": {
+      "from": {
+        "opacity": "0",
+        "transform": "translateY(4px)"
+      },
+      "to": {
+        "opacity": "1",
+        "transform": "none"
+      }
+    },
+    "@keyframes ui-fade-in": {
+      "from": {
+        "opacity": "0"
+      },
+      "to": {
+        "opacity": "1"
+      }
+    },
+    "@keyframes ui-blink": {
+      "0%, 100%": {
+        "opacity": "1"
+      },
+      "50%": {
+        "opacity": "0"
+      }
+    }
+  },
+  "meta": {
+    "cavemio": {
+      "component": "streaming-answer",
+      "exportName": "StreamingText",
+      "categories": [
+        "ai"
+      ],
+      "isNew": false,
+      "usage": "import { StreamingText, AnswerActions, FollowUps } from \"@/components/streaming-answer\";\n\n<StreamingText\n  content={[\"Signups are up 23%.\", { type: \"citation\", label: \"Q3 report\" }, \" Churn is down.\"]}\n  status=\"streaming\"\n/>\n<AnswerActions className=\"mt-4\" copyText={text} onRegenerate={retry} sources={sources} />\n<FollowUps className=\"mt-4\" items={[\"Which channels bring the most signups\"]} onSelect={ask} />\n\n// Markdown: pass your renderer as children instead of content\n<StreamingText status={status}>\n  <ReactMarkdown>{text}</ReactMarkdown>\n</StreamingText>",
+      "accessibility": "- Words keep a stable key, so only new words mount and fade in; the answer is ordinary text for copying and screen readers.\n- Finished paragraphs are memoised, so long answers stay smooth while streaming.\n- Every icon button has a label and the feedback buttons use aria-pressed; \"Copied\" is announced from a status region beside them.\n- Installs Number roll. With reduced motion, words and citations appear without fading, the caret stops blinking and the actions change in place.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "StreamingText content",
+            "type": "(string | { type: \"citation\"; label; href? })[]",
+            "description": "– · The answer so far. Blank lines start new paragraphs."
+          },
+          {
+            "name": "StreamingText status",
+            "type": "\"streaming\" | \"done\" | \"stopped\" | \"error\"",
+            "description": "\"done\" · Caret while streaming; notes for stopped and error."
+          },
+          {
+            "name": "StreamingText onRetry / children",
+            "type": "() => void / ReactNode",
+            "description": "– · Retry button on error; your own renderer (e.g. Markdown) instead of content."
+          },
+          {
+            "name": "AnswerActions copyText / onRegenerate",
+            "type": "string / () => void",
+            "description": "– · Copy button (omit to hide) and regenerate button."
+          },
+          {
+            "name": "AnswerActions feedback / defaultFeedback / onFeedback",
+            "type": "\"up\" | \"down\" | null",
+            "description": "– · Thumbs up or down; controlled so you can restore it from your database."
+          },
+          {
+            "name": "AnswerActions sources / onSourcesClick / disabled",
+            "type": "AnswerSource[] / () => void / boolean",
+            "description": "– · Source favicons or dots with a count; disable while streaming."
+          },
+          {
+            "name": "FollowUps items / onSelect",
+            "type": "string[] / (item) => void",
+            "description": "– · Suggested next questions."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "AI chat apps",
+            "description": "Show the answer as it arrives from the model."
+          },
+          {
+            "title": "Search and research tools",
+            "description": "Answers with citations that point at their sources."
+          },
+          {
+            "title": "Support bots",
+            "description": "Answers followed by suggested next questions."
+          },
+          {
+            "title": "Documentation assistants",
+            "description": "Answers with the sources they were taken from."
+          }
+        ],
+        "features": [
+          {
+            "title": "Only new words fade in",
+            "description": "Words keep a stable key, so only the newly arrived ones mount and fade in, with a caret at the end."
+          },
+          {
+            "title": "Long answers stay smooth",
+            "description": "Finished paragraphs are memoised and don’t re-render while the last one grows."
+          },
+          {
+            "title": "Citations inside sentences",
+            "description": "Citations land as small chips in the sentence, ready to link to a source."
+          },
+          {
+            "title": "Actions that answer back",
+            "description": "Copy blurs into a drawn check, a thumb fills with a small pop, and the sources count rolls as more arrive."
+          },
+          {
+            "title": "Stopped and interrupted answers",
+            "description": "A quiet “Stopped” note, or “The answer was interrupted” with a Retry button."
+          },
+          {
+            "title": "Your own Markdown renderer",
+            "description": "Pass children instead of content to use any renderer, and add suggested follow-up questions underneath."
+          }
+        ],
+        "states": [
+          {
+            "title": "streaming",
+            "description": "Caret at the end; new words fade in; the paragraph is aria-busy."
+          },
+          {
+            "title": "done",
+            "description": "Plain, selectable text; actions enabled. Copy shrinks away through a blur as a green check draws itself (380ms); a chosen thumb fills (220ms) with a 420ms thrown pop."
+          },
+          {
+            "title": "stopped",
+            "description": "A quiet \"Stopped\" note when the user stopped generation."
+          },
+          {
+            "title": "error",
+            "description": "\"The answer was interrupted.\" with a Retry button."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
