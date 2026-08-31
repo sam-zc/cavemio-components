@@ -3,6 +3,7 @@
 import { useId, useState, type ComponentPropsWithoutRef } from "react";
 
 import { useThemeWipe } from "./use-theme-wipe";
+import { ThemeToggleVariants, type Theme } from "./theme-toggle-variants";
 
 export type ThemeToggleMode = "light" | "dark";
 
@@ -10,6 +11,11 @@ export interface ThemeToggleProps extends Omit<
   ComponentPropsWithoutRef<"button">,
   "children"
 > {
+  variant?: "icon" | "pill" | "segmented";
+  onValueChange?: (theme: Theme) => void;
+  storageKey?: string;
+  attribute?: "class" | "data-theme";
+  reveal?: boolean;
   theme?: ThemeToggleMode;
   defaultTheme?: ThemeToggleMode;
   onThemeChange?: (theme: ThemeToggleMode) => void;
@@ -21,7 +27,7 @@ export interface ThemeToggleProps extends Omit<
 const morph =
   "origin-center [transform-box:view-box] transition-[transform,opacity] duration-[420ms] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none";
 
-export function ThemeToggle({
+function LegacyThemeToggle({
   theme,
   defaultTheme = "light",
   onThemeChange,
@@ -140,4 +146,34 @@ export function ThemeToggle({
       </svg>
     </button>
   );
+}
+
+export function ThemeToggle(props: ThemeToggleProps) {
+  if (
+    props.variant !== undefined ||
+    props.onValueChange ||
+    props.storageKey ||
+    props.attribute ||
+    props.reveal !== undefined
+  ) {
+    const choice = (value: unknown): Theme | undefined =>
+      value === "light" || value === "dark" || value === "system"
+        ? value
+        : undefined;
+    return (
+      <ThemeToggleVariants
+        variant={props.variant}
+        value={choice(props.value)}
+        defaultValue={choice(props.defaultValue)}
+        onValueChange={props.onValueChange}
+        storageKey={props.storageKey}
+        attribute={props.attribute}
+        reveal={props.reveal}
+        className={props.className}
+        style={props.style}
+        id={props.id}
+      />
+    );
+  }
+  return <LegacyThemeToggle {...props} />;
 }
