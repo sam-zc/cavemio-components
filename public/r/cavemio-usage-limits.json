@@ -1,0 +1,154 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-usage-limits",
+  "title": "Usage limits",
+  "description": "What an agent has left: the context window split by what fills it, and each plan limit with its share and a live reset countdown.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/usage-limits.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport { ChevronDown, ChevronRight } from \"lucide-react\";\nimport { NumberRoll } from \"./number-roll\";\n\n/* ─────────────────────────────────────────────────────────\n * USAGE LIMITS: what an agent has left, at a glance\n *\n *   context   one bar for the context window, split by what's\n *             in it (system, tools, files, conversation); the\n *             chevron folds the breakdown open underneath, and\n *             pointing at a part steps the others back\n *   limits    each plan limit as a bar with its share and when\n *             it resets; under a day away it counts down, the\n *             minutes rolling down like a clock\n *   status    a bar turns amber past 80% and red at its limit,\n *             where \"Limit reached\" folds open beside the share\n *   arrive    the bars grow from the left the first time they're\n *             seen and every figure rolls up from zero\n *\n * All of it is real text; the bars are decoration.\n * ───────────────────────────────────────────────────────── */\n\nexport interface ContextPart {\n  id: string;\n  label: string;\n  tokens: number;\n}\n\nexport interface PlanLimit {\n  id: string;\n  label: string;\n  used: number;\n  limit: number;\n  /** When it resets (ms or Date). */\n  resetsAt?: number | Date;\n}\n\nexport interface UsageLimitsProps extends React.HTMLAttributes<HTMLDivElement> {\n  /** The context window, split into what fills it. */\n  context?: { limit: number; parts: ContextPart[] };\n  /** The plan's name, e.g. \"Max\". */\n  plan?: string;\n  limits: PlanLimit[];\n  /** Makes the plan heading a link, e.g. to billing. */\n  onPlanClick?: () => void;\n  defaultOpen?: boolean;\n  locales?: string | string[];\n}\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\nconst FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40\";\nconst COLORS = [\n  \"var(--chart-1, var(--primary))\",\n  \"var(--chart-4, #8b6fe8)\",\n  \"var(--chart-3, #1baf7a)\",\n  \"var(--chart-2, #e8743b)\",\n  \"var(--chart-5, #e0a21b)\",\n];\nconst compact = (n: number, locales?: string | string[]) =>\n  new Intl.NumberFormat(locales, {\n    notation: \"compact\",\n    maximumFractionDigits: 1,\n  }).format(n);\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\nconst tone = (share: number) =>\n  share >= 1 ? \"bg-red-500\" : share >= 0.8 ? \"bg-amber-500\" : \"\";\n\n/** \"Resets in 2 h 46 min\" under a day away, the minutes rolling down; \"Resets Tue 3:00 pm\" further out. */\nfunction Resets({\n  at,\n  now,\n  locales,\n}: {\n  at: number;\n  now: number | null;\n  locales?: string | string[];\n}) {\n  if (now === null) return <span className=\"invisible\">Resets</span>;\n  const left = Math.max(0, at - now);\n  if (left > 86_400_000) {\n    const d = new Date(at);\n    return (\n      <span>\n        Resets{\" \"}\n        {d.toLocaleString(locales ?? \"en-GB\", {\n          weekday: \"short\",\n          hour: \"numeric\",\n          minute: \"2-digit\",\n        })}\n      </span>\n    );\n  }\n  const hours = Math.floor(left / 3_600_000);\n  const minutes = Math.ceil((left % 3_600_000) / 60_000);\n  return (\n    <span className=\"flex items-baseline gap-[0.25em] whitespace-nowrap\">\n      Resets in\n      {hours > 0 && (\n        <>\n          <NumberRoll value={hours} direction=\"down\" duration={700} />h\n        </>\n      )}\n      <NumberRoll value={minutes} direction=\"down\" duration={700} />\n      min\n    </span>\n  );\n}\n\nexport function UsageLimits({\n  context,\n  plan,\n  limits,\n  onPlanClick,\n  defaultOpen = false,\n  locales,\n  className = \"\",\n  ...props\n}: UsageLimitsProps) {\n  const reduced = useReducedMotion();\n  const id = React.useId();\n  const [open, setOpen] = React.useState(defaultOpen);\n  const [visible, setVisible] = React.useState(false);\n  const [focus, setFocus] = React.useState<string | null>(null);\n  const [now, setNow] = React.useState<number | null>(null);\n  const rootRef = React.useRef<HTMLDivElement>(null);\n\n  React.useEffect(() => {\n    const el = rootRef.current;\n    if (!el) return;\n    const observer = new IntersectionObserver(\n      ([entry]) => {\n        if (entry.isIntersecting) {\n          setVisible(true);\n          observer.disconnect();\n        }\n      },\n      { rootMargin: \"0px 0px -10% 0px\" },\n    );\n    observer.observe(el);\n    return () => observer.disconnect();\n  }, []);\n\n  // A clock that ticks on each whole minute, only once mounted (so a server render never reads as \"reset\").\n  React.useEffect(() => {\n    let timer = 0;\n    const tick = () => {\n      setNow(Date.now());\n      timer = window.setTimeout(tick, 60_000 - (Date.now() % 60_000) + 50);\n    };\n    tick();\n    return () => window.clearTimeout(timer);\n  }, []);\n\n  const used = context ? context.parts.reduce((s, p) => s + p.tokens, 0) : 0;\n  const contextShare = context?.limit ? used / context.limit : 0;\n\n  return (\n    <div\n      ref={rootRef}\n      className={`@container w-full rounded-[22px] bg-background shadow-[0_0_0_1px_var(--border)] ${className}`}\n      {...props}\n    >\n      <div className=\"p-4 @md:p-5\">\n        {context && (\n          <section aria-labelledby={`${id}-context`}>\n            <button\n              type=\"button\"\n              aria-expanded={open}\n              aria-controls={`${id}-parts`}\n              onClick={() => setOpen((o) => !o)}\n              className={`cursor-pointer -mx-1.5 flex w-[calc(100%+12px)] items-baseline justify-between gap-3 rounded-lg px-1.5 py-0.5 text-left ${FOCUS}`}\n            >\n              <span\n                id={`${id}-context`}\n                className=\"text-[12.5px] text-muted-foreground @md:text-[13px]\"\n              >\n                Context window\n              </span>\n              <span className=\"flex items-baseline gap-1.5 whitespace-nowrap text-[12px] tabular-nums text-muted-foreground @md:text-[12.5px]\">\n                <span>\n                  <NumberRoll\n                    value={visible ? used : 0}\n                    format={{ notation: \"compact\", maximumFractionDigits: 1 }}\n                    locales={locales}\n                    duration={900}\n                  />{\" \"}\n                  / {compact(context.limit, locales)}\n                </span>\n                <span\n                  className={`font-medium ${contextShare >= 1 ? \"text-red-600 dark:text-red-400\" : contextShare >= 0.8 ? \"text-amber-600\" : \"text-foreground\"}`}\n                >\n                  <NumberRoll\n                    value={visible ? contextShare : 0}\n                    format={{ style: \"percent\" }}\n                    duration={900}\n                  />\n                </span>\n                <ChevronDown\n                  aria-hidden=\"true\"\n                  className=\"size-3.5 self-center\"\n                  style={{\n                    transform: open ? \"rotate(180deg)\" : \"none\",\n                    transition: reduced ? \"none\" : `transform 320ms ${EASE}`,\n                  }}\n                />\n              </span>\n            </button>\n\n            {/* What fills the window: one segment per part, a 2px gap between them. */}\n            <div\n              aria-hidden=\"true\"\n              className=\"mt-2 flex h-1.5 gap-[2px] overflow-hidden rounded-full bg-muted\"\n              onPointerLeave={() => setFocus(null)}\n            >\n              {context.parts.map((p, i) => (\n                <span\n                  key={p.id}\n                  onPointerEnter={() => setFocus(p.id)}\n                  className=\"h-full first:rounded-l-full\"\n                  style={{\n                    width: `${visible ? (p.tokens / context.limit) * 100 : 0}%`,\n                    background: COLORS[i % COLORS.length],\n                    opacity: focus && focus !== p.id ? 0.3 : 1,\n                    transition: reduced\n                      ? \"none\"\n                      : `width 900ms ${EASE} ${i * 70}ms, opacity 240ms ${EASE}`,\n                  }}\n                />\n              ))}\n            </div>\n\n            <div\n              id={`${id}-parts`}\n              inert={!open}\n              className=\"grid\"\n              style={{\n                gridTemplateRows: open ? \"1fr\" : \"0fr\",\n                opacity: open ? 1 : 0,\n                transition: reduced\n                  ? \"none\"\n                  : `grid-template-rows 420ms ${EASE}, opacity ${open ? \"320ms\" : \"140ms\"} ${EASE}`,\n              }}\n            >\n              <ul\n                className=\"min-h-0 overflow-hidden\"\n                onPointerLeave={() => setFocus(null)}\n              >\n                {context.parts.map((p, i) => (\n                  <li\n                    key={p.id}\n                    onPointerEnter={() => setFocus(p.id)}\n                    className=\"flex items-center gap-2 pt-2 text-[12px] transition-opacity duration-200 @md:text-[12.5px]\"\n                    style={{ opacity: focus && focus !== p.id ? 0.45 : 1 }}\n                  >\n                    <span\n                      aria-hidden=\"true\"\n                      className=\"size-[7px] shrink-0 rounded-full\"\n                      style={{ background: COLORS[i % COLORS.length] }}\n                    />\n                    <span className=\"min-w-0 flex-1 truncate text-muted-foreground\">\n                      {p.label}\n                    </span>\n                    <span className=\"tabular-nums text-foreground\">\n                      {compact(p.tokens, locales)}\n                    </span>\n                    <span className=\"w-9 text-right tabular-nums text-muted-foreground\">\n                      {Math.round((p.tokens / context.limit) * 100)}%\n                    </span>\n                  </li>\n                ))}\n              </ul>\n            </div>\n          </section>\n        )}\n\n        <section\n          aria-labelledby={`${id}-plan`}\n          className={\n            context\n              ? \"mt-3.5 border-t border-border pt-3 @md:mt-4 @md:pt-3.5\"\n              : \"\"\n          }\n        >\n          <h3\n            id={`${id}-plan`}\n            className=\"text-[12.5px] font-normal text-muted-foreground @md:text-[13px]\"\n          >\n            {onPlanClick ? (\n              <button\n                type=\"button\"\n                onClick={onPlanClick}\n                className={`cursor-pointer -mx-1.5 flex w-[calc(100%+12px)] items-center justify-between rounded-lg px-1.5 py-0.5 text-left hover:text-foreground ${FOCUS}`}\n              >\n                <span>Plan limits{plan ? ` · ${plan}` : \"\"}</span>\n                <ChevronRight aria-hidden=\"true\" className=\"size-3.5\" />\n              </button>\n            ) : (\n              <span>Plan limits{plan ? ` · ${plan}` : \"\"}</span>\n            )}\n          </h3>\n          <ul className=\"mt-1\">\n            {limits.map((l, i) => {\n              const share = l.limit ? l.used / l.limit : 0;\n              const reached = share >= 1;\n              return (\n                <li key={l.id} className=\"pt-2.5 first:pt-1.5\">\n                  <div className=\"flex items-baseline justify-between gap-3 text-[12.5px] @md:text-[13px]\">\n                    <span className=\"min-w-0 truncate text-foreground\">\n                      {l.label}\n                    </span>\n                    <span className=\"flex shrink-0 items-baseline gap-2.5 text-[11.5px] text-muted-foreground @md:text-[12px]\">\n                      {l.resetsAt !== undefined && (\n                        <Resets\n                          at={+new Date(l.resetsAt)}\n                          now={now}\n                          locales={locales}\n                        />\n                      )}\n                      {/* \"Limit reached\" folds open beside the share rather than replacing it. */}\n                      <span className=\"flex items-baseline\">\n                        <span\n                          className=\"grid\"\n                          style={{\n                            gridTemplateColumns: reached ? \"1fr\" : \"0fr\",\n                            opacity: reached ? 1 : 0,\n                            transition: reduced\n                              ? \"none\"\n                              : `grid-template-columns 420ms ${EASE}, opacity 260ms ${EASE}`,\n                          }}\n                        >\n                          <span className=\"min-w-0 overflow-hidden whitespace-nowrap pr-1.5 font-medium text-red-600 dark:text-red-400 [clip-path:inset(-4px_0)]\">\n                            Limit reached\n                          </span>\n                        </span>\n                        <span\n                          className={`min-w-[2.6em] text-right font-medium tabular-nums ${reached ? \"text-red-600 dark:text-red-400\" : share >= 0.8 ? \"text-amber-600\" : \"text-foreground\"}`}\n                        >\n                          <NumberRoll\n                            value={visible ? Math.min(share, 1) : 0}\n                            format={{ style: \"percent\" }}\n                            duration={900}\n                          />\n                        </span>\n                      </span>\n                    </span>\n                  </div>\n                  <div\n                    aria-hidden=\"true\"\n                    className=\"mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted\"\n                  >\n                    <div\n                      className={`h-full rounded-full transition-colors duration-300 ${tone(share)}`}\n                      style={{\n                        width: `${visible ? Math.max(share > 0 ? 1.5 : 0, Math.min(share, 1) * 100) : 0}%`,\n                        background: tone(share)\n                          ? undefined\n                          : \"var(--chart-1, var(--primary))\",\n                        transition: reduced\n                          ? \"none\"\n                          : `width 900ms ${EASE} ${i * 90}ms, background-color 300ms ${EASE}`,\n                      }}\n                    />\n                  </div>\n                </li>\n              );\n            })}\n          </ul>\n        </section>\n      </div>\n    </div>\n  );\n}\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/number-roll.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * NUMBER ROLL: numbers that change like an odometer\n *\n *   rolling   each digit is a column that rolls to its new\n *             value, in the direction the number moved: going\n *             up, a 9 rolls on to 0 instead of spinning back\n *   places    new places slide open from nothing; lost ones\n *             fold away\n *   format    anything Intl.NumberFormat does: currency,\n *             percent, compact (\"1.2K\"), decimals\n *\n * The real number is always there as text for screen readers\n * and copy and paste; the columns are only what you see.\n * ───────────────────────────────────────────────────────── */\n\nexport interface NumberRollProps extends Omit<\n  React.HTMLAttributes<HTMLSpanElement>,\n  \"children\"\n> {\n  value: number;\n  /** Intl.NumberFormat options, e.g. { style: \"currency\", currency: \"USD\" }. */\n  format?: Intl.NumberFormatOptions;\n  locales?: string | string[];\n  prefix?: string;\n  suffix?: string;\n  /** Start from this value and roll to `value` once mounted, e.g. 0 for stats. */\n  from?: number;\n  /** Roll duration in ms. */\n  duration?: number;\n  /** Always roll this way, e.g. \"down\" for a countdown's seconds, which wrap from 00 to 59. Defaults to the way the number moved. */\n  direction?: \"up\" | \"down\";\n}\n\ntype Column = { key: string; char: string; digit: number | null };\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\nconst SETS = 5; // the strip repeats 0–9 five times so a roll never runs out of digits\nconst MIDDLE = 20;\n/** The strip as one text node, a digit a line: fifty lines, but one element to lay out instead of fifty. */\nconst STRIP = Array.from({ length: SETS * 10 }, (_, i) => i % 10).join(\"\\n\");\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\n/** Digits are keyed by their place counted from the right, so the units column stays the units column. */\nfunction columns(text: string): Column[] {\n  const chars = [...text];\n  const seen = new Map<string, number>();\n  let place = 0;\n  const out: Column[] = [];\n  for (let i = chars.length - 1; i >= 0; i--) {\n    const char = chars[i];\n    if (/\\d/.test(char))\n      out.push({ key: `d${place++}`, char, digit: Number(char) });\n    else {\n      // Symbols are keyed by how many of the same symbol sit to their right, so a comma that shifts is the same comma.\n      const n = seen.get(char) ?? 0;\n      seen.set(char, n + 1);\n      out.push({ key: `s${char}${n}`, char, digit: null });\n    }\n  }\n  return out.reverse();\n}\n\n// Memoised: a parent that re-renders with the same number doesn't rebuild the strips.\nconst Digit = React.memo(function Digit({\n  digit,\n  trend,\n  duration,\n  reduced,\n  rollIn,\n}: {\n  digit: number;\n  trend: number;\n  duration: number;\n  reduced: boolean;\n  rollIn: boolean;\n}) {\n  const [pos, setPos] = React.useState(MIDDLE + (rollIn ? 0 : digit));\n  const [moving, setMoving] = React.useState(false);\n  const posRef = React.useRef(pos);\n  const stripRef = React.useRef<HTMLSpanElement>(null);\n\n  React.useLayoutEffect(() => {\n    const current = posRef.current;\n    const showing = ((current % 10) + 10) % 10;\n    if (showing === digit) return;\n    if (reduced) {\n      posRef.current = MIDDLE + digit;\n      setMoving(false);\n      setPos(MIDDLE + digit);\n      return;\n    }\n    const up = trend > 0 || (trend === 0 && digit > showing);\n    let target = up\n      ? current + ((digit - showing + 10) % 10)\n      : current - ((showing - digit + 10) % 10);\n    // Values arriving faster than a roll (a progress percent) never let it re-centre, so before it runs off the strip,\n    // jump the strip back by whole sets mid-roll (it looks identical) and roll on from there.\n    if (target < 10 || target > SETS * 10 - 11) {\n      const shift = Math.round((target - MIDDLE) / 10) * 10;\n      const strip = stripRef.current;\n      if (strip?.offsetHeight) {\n        let visual = current;\n        try {\n          visual =\n            -new DOMMatrixReadOnly(getComputedStyle(strip).transform).m42 /\n            (strip.offsetHeight / (SETS * 10));\n        } catch {}\n        const transition = strip.style.transition;\n        strip.style.transition = \"none\";\n        strip.style.transform = `translateY(${(-(visual - shift) * 100) / (SETS * 10)}%)`;\n        void strip.offsetHeight;\n        strip.style.transition = transition;\n      }\n      target -= shift;\n    }\n    posRef.current = target;\n    setMoving(true);\n    setPos(target);\n  }, [digit, trend, reduced]);\n\n  // After a roll, quietly re-centre on the middle set so the next roll always has room.\n  const settle = () => {\n    const centred = MIDDLE + (((posRef.current % 10) + 10) % 10);\n    posRef.current = centred;\n    setMoving(false);\n    setPos(centred);\n  };\n\n  return (\n    <span className=\"relative inline-block [clip-path:inset(0)]\">\n      <span className=\"invisible\">{digit}</span>\n      <span\n        ref={stripRef}\n        aria-hidden=\"true\"\n        onTransitionEnd={settle}\n        className=\"absolute inset-x-0 top-0 block whitespace-pre text-center\"\n        style={{\n          transform: `translateY(${(-pos * 100) / (SETS * 10)}%)`,\n          transition: moving ? `transform ${duration}ms ${EASE}` : \"none\",\n        }}\n      >\n        {STRIP}\n      </span>\n    </span>\n  );\n});\n\n/** A place that appeared after the first paint slides open; places that were there from the start just sit. */\nfunction Place({\n  enter,\n  children,\n}: {\n  enter: boolean;\n  children: React.ReactNode;\n}) {\n  const [entering] = React.useState(enter);\n  return (\n    <span\n      className={`inline-block ${entering ? \"[clip-path:inset(0)] animate-[ui-col-in_500ms_cubic-bezier(0.16,1,0.3,1)_both]\" : \"\"}`}\n    >\n      {children}\n    </span>\n  );\n}\n\nexport function NumberRoll({\n  value,\n  format,\n  locales,\n  prefix = \"\",\n  suffix = \"\",\n  from,\n  duration = 900,\n  direction,\n  className = \"\",\n  ...props\n}: NumberRollProps) {\n  const reduced = useReducedMotion();\n  const [shown, setShown] = React.useState(from ?? value);\n  const previous = React.useRef(shown);\n  const mounted = React.useRef(false);\n\n  // Roll from `from` to the real value once on screen (a frame later, so the start is painted).\n  React.useEffect(() => {\n    const frame = requestAnimationFrame(() => setShown(value));\n    return () => cancelAnimationFrame(frame);\n  }, [value]);\n\n  React.useEffect(() => {\n    mounted.current = true;\n  }, []);\n\n  const formatter = React.useMemo(\n    () => new Intl.NumberFormat(locales, format),\n    [locales, format && JSON.stringify(format)],\n  );\n  const text = `${prefix}${formatter.format(shown)}${suffix}`;\n  const cols = React.useMemo(() => columns(text), [text]);\n  const trend =\n    direction === \"up\"\n      ? 1\n      : direction === \"down\"\n        ? -1\n        : Math.sign(shown - previous.current);\n\n  // Places that disappear fold away instead of vanishing.\n  const [leaving, setLeaving] = React.useState<Column[]>([]);\n  const lastCols = React.useRef(cols);\n  React.useLayoutEffect(() => {\n    const gone = lastCols.current.filter(\n      (c) => !cols.some((n) => n.key === c.key),\n    );\n    lastCols.current = cols;\n    previous.current = shown;\n    if (!gone.length || reduced) return;\n    setLeaving(gone);\n    const timer = window.setTimeout(() => setLeaving([]), 420);\n    return () => window.clearTimeout(timer);\n  }, [cols, shown, reduced]);\n\n  return (\n    <span className={`inline-flex tabular-nums ${className}`} {...props}>\n      <span className=\"sr-only\">{`${prefix}${formatter.format(value)}${suffix}`}</span>\n      <span\n        aria-hidden=\"true\"\n        className=\"inline-flex items-baseline whitespace-pre\"\n      >\n        {leaving.map((c) => (\n          <span\n            key={`out-${c.key}`}\n            className=\"inline-block [clip-path:inset(0)] animate-[ui-col-out_400ms_cubic-bezier(0.16,1,0.3,1)_forwards]\"\n          >\n            {c.char}\n          </span>\n        ))}\n        {cols.map((c) => (\n          <Place key={c.key} enter={mounted.current && !reduced}>\n            {c.digit === null ? (\n              c.char\n            ) : (\n              <Digit\n                digit={c.digit}\n                trend={trend}\n                duration={duration}\n                reduced={reduced}\n                rollIn={mounted.current}\n              />\n            )}\n          </Place>\n        ))}\n      </span>\n    </span>\n  );\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {
+    "@keyframes ui-col-in": {
+      "from": {
+        "max-width": "0",
+        "opacity": "0"
+      },
+      "to": {
+        "max-width": "1em",
+        "opacity": "1"
+      }
+    },
+    "@keyframes ui-col-out": {
+      "from": {
+        "max-width": "1em",
+        "opacity": "1"
+      },
+      "to": {
+        "max-width": "0",
+        "opacity": "0"
+      }
+    }
+  },
+  "meta": {
+    "cavemio": {
+      "component": "usage-limits",
+      "exportName": "UsageLimits",
+      "categories": [
+        "ai"
+      ],
+      "isNew": false,
+      "usage": "import { UsageLimits } from \"@/components/usage-limits\";\n\n<UsageLimits\n  plan=\"Max\"\n  context={{ limit: 1000000, parts: [{ id: \"system\", label: \"System prompt\", tokens: 14000 }, { id: \"chat\", label: \"Conversation\", tokens: 548000 }] }}\n  limits={[{ id: \"five-hour\", label: \"5-hour window\", used: 38, limit: 100, resetsAt: resetTime }]}\n/>",
+      "accessibility": "- Every figure is real text: tokens, shares, reset times; the bars are hidden from assistive tech.\n- The context heading is a button with aria-expanded controlling the breakdown, which is inert while folded.\n- Amber and red always come with a figure, and \"Limit reached\" is spelled out.\n- The countdown re-renders once a minute on the whole minute, and only after mounting, so a server render never shows a wrong time.\n- Installs Number roll. It sizes to its own width; with reduced motion bars and figures change in place.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "limits",
+            "type": "PlanLimit[]",
+            "description": "– · { id, label, used, limit, resetsAt? } for each plan limit."
+          },
+          {
+            "name": "context",
+            "type": "{ limit; parts: ContextPart[] }",
+            "description": "– · The context window and what fills it, each part { id, label, tokens }; up to five colours."
+          },
+          {
+            "name": "plan",
+            "type": "string",
+            "description": "– · The plan’s name after \"Plan limits\"."
+          },
+          {
+            "name": "onPlanClick",
+            "type": "() => void",
+            "description": "– · Makes the plan heading a button with an arrow, e.g. to billing."
+          },
+          {
+            "name": "defaultOpen",
+            "type": "boolean",
+            "description": "false · Start with the context breakdown open."
+          },
+          {
+            "name": "locales",
+            "type": "string | string[]",
+            "description": "– · For numbers and the reset day."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "AI chat and coding products",
+            "description": "Show how full the context is and how much of the plan is left."
+          },
+          {
+            "title": "API platforms",
+            "description": "Quotas for requests or tokens, with the time they reset."
+          },
+          {
+            "title": "Billing and settings pages",
+            "description": "Usage against the plan, in one small card."
+          },
+          {
+            "title": "Agent dashboards",
+            "description": "What fills the context window for a running agent."
+          }
+        ],
+        "features": [
+          {
+            "title": "The context split by what fills it",
+            "description": "One bar shows the system prompt, tools, files and conversation, with a 2px gap between the parts."
+          },
+          {
+            "title": "A breakdown on demand",
+            "description": "The chevron folds the list of parts open with tokens and shares. Pointing at a part steps the others back."
+          },
+          {
+            "title": "Plan limits with reset times",
+            "description": "Under a day away it counts down, with the minutes rolling. Further out it gives the day and time."
+          },
+          {
+            "title": "It warns before it runs out",
+            "description": "A bar turns amber past 80% and red at the limit, where “Limit reached” opens beside the share."
+          },
+          {
+            "title": "Every figure is real text",
+            "description": "Tokens, shares and reset times are text for screen readers. The bars are decoration."
+          },
+          {
+            "title": "Safe on the server",
+            "description": "The countdown starts after mount, so a server render never shows a wrong time, and the card sizes to its own width."
+          }
+        ],
+        "states": [
+          {
+            "title": "arrive",
+            "description": "In view for the first time, every bar grows from the left (900ms, staggered) and every figure rolls up from zero."
+          },
+          {
+            "title": "breakdown",
+            "description": "The context heading is a disclosure: the chevron turns and the list of parts folds open (420ms) with each part’s tokens and share. Pointing at a part or its row dims the others."
+          },
+          {
+            "title": "countdown",
+            "description": "A reset under a day away reads \"Resets in 2 h 46 min\"; the clock ticks on each whole minute and the minutes roll down. Further away it reads \"Resets Tue 3:00 pm\"."
+          },
+          {
+            "title": "status",
+            "description": "At 80% a bar and its share turn amber; at 100% they turn red and \"Limit reached\" folds open beside the share."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
