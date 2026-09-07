@@ -1,0 +1,181 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-voice-note",
+  "title": "Voice note",
+  "description": "A voice message you can scrub and read along with: the waveform fills, the time rolls, and the transcript highlights each word as it’s said.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/components/voice-note.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport { ChevronDown } from \"lucide-react\";\nimport { NumberRoll } from \"./number-roll\";\n\n/* ─────────────────────────────────────────────────────────\n * VOICE NOTE: a voice message you can read along with\n *\n *   arrive    the waveform grows out of a flat line, bar after\n *             bar, left to right\n *   play      the triangle splits and squares off into pause (one\n *             shape, two halves); bars fill as it plays and the\n *             time rolls up\n *   scrub     press anywhere on the waveform and drag: the bars\n *             under your finger swell like a lens and the time\n *             follows; let go and it carries on from there\n *   speed     1× rolls to 1.5× and 2×\n *   read      \"Transcript\" folds the words open under the note; a\n *             highlight glides from word to word as they're said,\n *             the words ahead wait in grey, and tapping a word\n *             plays from it\n *   end       it holds full for a beat, then the fill runs back\n *             and pause turns back into play\n *\n * Only one voice note plays at a time on a page.\n * ───────────────────────────────────────────────────────── */\n\nexport interface VoiceNoteWord {\n  /** The word as written, punctuation included. */\n  text: string;\n  /** When it's said, in seconds. */\n  start: number;\n}\n\nexport interface VoiceNoteProps extends Omit<\n  React.HTMLAttributes<HTMLDivElement>,\n  \"children\"\n> {\n  src: string;\n  /** Loudness from 0 to 1, any length; worked out from the audio when left out. */\n  peaks?: number[];\n  /** Seconds, shown before the audio's own length is known. */\n  duration?: number;\n  transcript?: VoiceNoteWord[];\n  defaultTranscriptOpen?: boolean;\n  speeds?: number[];\n  /** Mark it as not listened to yet. */\n  unread?: boolean;\n  /** What it is, for assistive tech, e.g. \"Voice note from Sam\". */\n  label?: string;\n  onPlay?: () => void;\n  onEnded?: () => void;\n}\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\nconst FOCUS =\n  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40\";\nconst BAR = 3;\nconst GAP = 2;\nconst PLAY_EVENT = \"cavemio:voice-note-play\";\n\n// Play and pause as the same two quads: the halves of a triangle, or two bars.\nconst SHAPES = {\n  play: [\n    \"polygon(30% 12%, 58% 30%, 58% 70%, 30% 88%)\",\n    \"polygon(58% 30%, 88% 50%, 88% 50%, 58% 70%)\",\n  ],\n  pause: [\n    \"polygon(22% 14%, 42% 14%, 42% 86%, 22% 86%)\",\n    \"polygon(58% 14%, 78% 14%, 78% 86%, 58% 86%)\",\n  ],\n};\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\nconst clock = (t: number) => {\n  const s = Math.max(0, Math.round(t));\n  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, \"0\")}`;\n};\n\nconst EMPTY_PEAKS: number[] = [];\n\n/** Squeeze or stretch the peaks to n bars, keeping each stretch's loudest moment. */\nfunction resample(source: number[], n: number) {\n  if (!source.length) return Array.from({ length: n }, () => 0);\n  return Array.from({ length: n }, (_, i) => {\n    const a = Math.floor((i * source.length) / n);\n    const b = Math.max(a + 1, Math.floor(((i + 1) * source.length) / n));\n    let top = 0;\n    for (let k = a; k < b && k < source.length; k++)\n      top = Math.max(top, source[k]);\n    return top;\n  });\n}\n\n/** Loudness peaks straight from the audio file, when none were given. */\nasync function decodePeaks(src: string, n = 128, signal?: AbortSignal) {\n  const data = await (await fetch(src, { signal })).arrayBuffer();\n  const Ctx =\n    window.AudioContext ??\n    (window as unknown as { webkitAudioContext: typeof AudioContext })\n      .webkitAudioContext;\n  const ctx = new Ctx();\n  try {\n    const audio = await ctx.decodeAudioData(data);\n    const channel = audio.getChannelData(0);\n    const size = channel.length / n;\n    const rms = Array.from({ length: n }, (_, i) => {\n      let sum = 0;\n      const from = Math.floor(i * size);\n      const to = Math.floor((i + 1) * size);\n      for (let k = from; k < to; k++) sum += channel[k] * channel[k];\n      return Math.sqrt(sum / Math.max(1, to - from));\n    });\n    const top = Math.max(...rms) || 1;\n    return rms.map((v) => Math.min(1, (v / top) ** 0.7));\n  } finally {\n    void ctx.close();\n  }\n}\n\nexport function VoiceNote({\n  src,\n  peaks,\n  duration: durationProp = 0,\n  transcript,\n  defaultTranscriptOpen = false,\n  speeds = [1, 1.5, 2],\n  unread = false,\n  label = \"Voice note\",\n  onPlay,\n  onEnded,\n  className = \"\",\n  ...props\n}: VoiceNoteProps) {\n  const reduced = useReducedMotion();\n  const id = React.useId();\n  const audioRef = React.useRef<HTMLAudioElement>(null);\n  const waveRef = React.useRef<HTMLDivElement>(null);\n  const wordsRef = React.useRef<HTMLParagraphElement>(null);\n  const [duration, setDuration] = React.useState(durationProp);\n  const [time, setTime] = React.useState(0);\n  const [playing, setPlaying] = React.useState(false);\n  const [rewinding, setRewinding] = React.useState(false);\n  const [heard, setHeard] = React.useState(!unread);\n  const [speed, setSpeed] = React.useState(0);\n  const [open, setOpen] = React.useState(defaultTranscriptOpen);\n  const [scrub, setScrub] = React.useState<number | null>(null);\n  const [bars, setBars] = React.useState(0);\n  const [decoded, setDecoded] = React.useState<number[] | null>(null);\n  const [grown, setGrown] = React.useState(false);\n  const [band, setBand] = React.useState({ x: 0, y: 0, w: 0, h: 0, on: false });\n  const resume = React.useRef(false);\n  const derived = React.useRef(\"\");\n\n  const source = React.useMemo(\n    () => peaks ?? decoded ?? EMPTY_PEAKS,\n    [peaks, decoded],\n  );\n  const heights = React.useMemo(() => resample(source, bars), [source, bars]);\n  const length = duration || durationProp || 1;\n  const shown = scrub !== null ? scrub * length : time;\n  const progress = Math.min(1, shown / length);\n  const filled = Math.floor(\n    progress * bars + (playing || scrub !== null ? 0.5 : 0),\n  );\n  const spoken = transcript\n    ? transcript.reduce((at, w, i) => (w.start <= shown + 0.05 ? i : at), -1)\n    : -1;\n  const reading = playing || scrub !== null || (time > 0 && !rewinding);\n  const display = reading ? shown : length;\n\n  // As many bars as fit the width.\n  React.useLayoutEffect(() => {\n    const wave = waveRef.current;\n    if (!wave) return;\n    const measure = () =>\n      setBars(Math.max(12, Math.floor((wave.clientWidth + GAP) / (BAR + GAP))));\n    measure();\n    const observer = new ResizeObserver(measure);\n    observer.observe(wave);\n    return () => observer.disconnect();\n  }, []);\n\n  // No peaks given: read them off the audio itself.\n  React.useEffect(() => {\n    if (peaks) return;\n    const controller = new AbortController();\n    decodePeaks(src, 128, controller.signal)\n      .then((p) => !controller.signal.aborted && setDecoded(p))\n      .catch(() => {});\n    return () => controller.abort();\n  }, [src, peaks]);\n\n  // The bars grow in once there's something to show.\n  React.useEffect(() => {\n    if (!source.length || !bars || grown) return;\n    const frame = requestAnimationFrame(() => setGrown(true));\n    return () => cancelAnimationFrame(frame);\n  }, [source.length, bars, grown]);\n\n  const pause = React.useCallback(() => {\n    audioRef.current?.pause();\n    setPlaying(false);\n  }, []);\n\n  const play = async (from?: number) => {\n    const audio = audioRef.current;\n    if (!audio) return;\n    document.dispatchEvent(new CustomEvent(PLAY_EVENT, { detail: id }));\n    if (from !== undefined) {\n      audio.currentTime = from;\n      setTime(from);\n    }\n    audio.playbackRate = speeds[speed] ?? 1;\n    setRewinding(false);\n    setPlaying(true);\n    setHeard(true);\n    try {\n      await audio.play();\n      onPlay?.();\n    } catch {\n      setPlaying(false);\n    }\n  };\n\n  // Another voice note started: this one stops.\n  React.useEffect(() => {\n    const onOther = (e: Event) => {\n      if ((e as CustomEvent<string>).detail !== id) pause();\n    };\n    document.addEventListener(PLAY_EVENT, onOther);\n    return () => document.removeEventListener(PLAY_EVENT, onOther);\n  }, [id, pause]);\n\n  // While it plays, follow the audio, but only re-render when a bar, a second or a word changes.\n  React.useEffect(() => {\n    if (!playing) return;\n    let frame = 0;\n    const tick = () => {\n      const audio = audioRef.current;\n      if (audio) {\n        const t = audio.currentTime;\n        const word = transcript\n          ? transcript.reduce((at, w, i) => (w.start <= t + 0.05 ? i : at), -1)\n          : -1;\n        const key = `${Math.floor((t / length) * bars)}|${Math.floor(t)}|${word}`;\n        if (key !== derived.current) {\n          derived.current = key;\n          setTime(t);\n        }\n      }\n      frame = requestAnimationFrame(tick);\n    };\n    frame = requestAnimationFrame(tick);\n    return () => cancelAnimationFrame(frame);\n  }, [playing, length, bars, transcript]);\n\n  // At the end: hold full for a beat, then run the fill back to the start.\n  const finish = () => {\n    setPlaying(false);\n    setTime(length);\n    onEnded?.();\n    if (audioRef.current) audioRef.current.currentTime = 0;\n    setRewinding(true);\n    if (reduced) return setTime(0);\n    const begin = performance.now() + 500;\n    const step = (now: number) => {\n      const k = Math.min(1, Math.max(0, (now - begin) / 600));\n      setTime(length * (1 - (1 - (1 - k) ** 3)));\n      if (k < 1) requestAnimationFrame(step);\n    };\n    requestAnimationFrame(step);\n  };\n\n  const fraction = (clientX: number) => {\n    const r = waveRef.current?.getBoundingClientRect();\n    return r ? Math.min(1, Math.max(0, (clientX - r.left) / r.width)) : 0;\n  };\n  const seek = (t: number) => {\n    const next = Math.min(length, Math.max(0, t));\n    if (audioRef.current) audioRef.current.currentTime = next;\n    setRewinding(false);\n    setTime(next);\n  };\n\n  // The current word's highlight, measured where the word sits.\n  React.useLayoutEffect(() => {\n    const el = wordsRef.current?.querySelector<HTMLElement>(\n      `[data-w=\"${spoken}\"]`,\n    );\n    setBand((b) =>\n      el && open\n        ? {\n            x: el.offsetLeft,\n            y: el.offsetTop,\n            w: el.offsetWidth,\n            h: el.offsetHeight,\n            on: true,\n          }\n        : { ...b, on: false },\n    );\n  }, [spoken, open]);\n\n  const lens = (i: number) => {\n    if (scrub === null || reduced) return 1;\n    const d = i - scrub * bars;\n    return 1 + 0.5 * Math.exp(-(d * d) / 8);\n  };\n\n  return (\n    <div\n      role=\"group\"\n      aria-label={label}\n      className={`@container w-full rounded-[20px] border border-border bg-card p-2 pr-2.5 text-card-foreground ${className}`}\n      {...props}\n    >\n      <audio\n        ref={audioRef}\n        src={src}\n        preload=\"metadata\"\n        onLoadedMetadata={(e) =>\n          Number.isFinite(e.currentTarget.duration) &&\n          setDuration(e.currentTarget.duration)\n        }\n        onEnded={finish}\n        onPause={() =>\n          scrub === null && !audioRef.current?.ended && setPlaying(false)\n        }\n      />\n\n      {/* The button and the speed line up with the waveform, the time sits under it. */}\n      <div className=\"flex items-start gap-2.5\">\n        <button\n          type=\"button\"\n          aria-label={playing ? \"Pause\" : \"Play\"}\n          onClick={() => (playing ? pause() : play())}\n          className={`cursor-pointer relative -mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95 ${FOCUS}`}\n        >\n          <span aria-hidden=\"true\" className=\"relative size-3.5\">\n            {[0, 1].map((half) => (\n              <span\n                key={half}\n                className=\"absolute inset-0 bg-current\"\n                style={{\n                  clipPath: (playing ? SHAPES.pause : SHAPES.play)[half],\n                  transition: reduced ? \"none\" : `clip-path 320ms ${EASE}`,\n                }}\n              />\n            ))}\n          </span>\n        </button>\n\n        <div className=\"min-w-0 flex-1\">\n          <div\n            ref={waveRef}\n            role=\"slider\"\n            tabIndex={0}\n            aria-label=\"Position\"\n            aria-valuemin={0}\n            aria-valuemax={Math.round(length)}\n            aria-valuenow={Math.round(shown)}\n            aria-valuetext={`${clock(shown)} of ${clock(length)}`}\n            onPointerDown={(e) => {\n              if (e.button !== 0) return;\n              e.currentTarget.setPointerCapture(e.pointerId);\n              resume.current = playing;\n              if (playing) audioRef.current?.pause();\n              setScrub(fraction(e.clientX));\n            }}\n            onPointerMove={(e) =>\n              scrub !== null && setScrub(fraction(e.clientX))\n            }\n            onPointerUp={() => {\n              if (scrub === null) return;\n              const t = scrub * length;\n              setScrub(null);\n              if (resume.current) play(t);\n              else seek(t);\n            }}\n            onPointerCancel={() => {\n              setScrub(null);\n              if (resume.current) play();\n            }}\n            onKeyDown={(e) => {\n              const moves: Record<string, number> = {\n                ArrowLeft: -2,\n                ArrowDown: -2,\n                ArrowRight: 2,\n                ArrowUp: 2,\n              };\n              if (e.key in moves) seek(shown + moves[e.key]);\n              else if (e.key === \"Home\") seek(0);\n              else if (e.key === \"End\") seek(length - 0.05);\n              else return;\n              e.preventDefault();\n            }}\n            className={`flex h-8 cursor-pointer touch-pan-y select-none items-center rounded-[6px] ${FOCUS}`}\n            style={{ gap: GAP }}\n          >\n            {heights.map((h, i) => (\n              <span\n                key={i}\n                aria-hidden=\"true\"\n                className={`shrink-0 rounded-full ${i < filled ? \"bg-foreground\" : \"bg-muted-foreground/35\"}`}\n                style={{\n                  width: BAR,\n                  height: grown ? `${Math.max(3 / 32, h) * 100}%` : \"3px\",\n                  transform: `scaleY(${lens(i)})`,\n                  transition: reduced\n                    ? \"none\"\n                    : `height 520ms ${EASE} ${grown && !playing ? Math.min(i * 7, 420) : 0}ms, transform 160ms ${EASE}, background-color 160ms`,\n                }}\n              />\n            ))}\n          </div>\n          <div className=\"mt-0.5 flex h-5 items-center gap-1.5 text-[11.5px] tabular-nums text-muted-foreground\">\n            <span aria-hidden=\"true\">\n              <NumberRoll\n                value={Math.floor(Math.round(display) / 60)}\n                duration={400}\n              />\n              :\n              <NumberRoll\n                value={Math.round(display) % 60}\n                format={{ minimumIntegerDigits: 2 }}\n                duration={400}\n              />\n            </span>\n            <span\n              aria-hidden=\"true\"\n              className=\"size-1.5 rounded-full bg-primary\"\n              style={{\n                transform: heard ? \"scale(0)\" : \"scale(1)\",\n                opacity: heard ? 0 : 1,\n                transition: reduced\n                  ? \"none\"\n                  : `transform 300ms ${EASE}, opacity 300ms`,\n              }}\n            />\n            {transcript && (\n              <button\n                type=\"button\"\n                aria-expanded={open}\n                aria-controls={`${id}-transcript`}\n                onClick={() => setOpen((o) => !o)}\n                className={`cursor-pointer ml-auto inline-flex h-5 items-center gap-0.5 rounded-full px-1.5 text-[11.5px] text-muted-foreground transition-colors hover:text-foreground ${FOCUS}`}\n              >\n                Transcript\n                <ChevronDown\n                  aria-hidden=\"true\"\n                  className=\"size-3\"\n                  style={{\n                    transform: open ? \"rotate(180deg)\" : \"none\",\n                    transition: reduced ? \"none\" : `transform 300ms ${EASE}`,\n                  }}\n                />\n              </button>\n            )}\n          </div>\n        </div>\n\n        <button\n          type=\"button\"\n          aria-label={`Playback speed, ${speeds[speed]}×`}\n          onClick={() => {\n            const next = (speed + 1) % speeds.length;\n            setSpeed(next);\n            if (audioRef.current) audioRef.current.playbackRate = speeds[next];\n          }}\n          className={`cursor-pointer mt-1 inline-flex h-6 min-w-10 shrink-0 items-center justify-center rounded-full border border-border px-2 text-[11.5px] font-medium tabular-nums text-foreground transition-colors hover:bg-accent ${FOCUS}`}\n        >\n          <span aria-hidden=\"true\">\n            <NumberRoll\n              value={speeds[speed]}\n              format={{ maximumFractionDigits: 2 }}\n              duration={450}\n            />\n            ×\n          </span>\n        </button>\n      </div>\n\n      {transcript && (\n        <div\n          id={`${id}-transcript`}\n          className=\"grid\"\n          style={{\n            gridTemplateRows: open ? \"1fr\" : \"0fr\",\n            transition: reduced ? \"none\" : `grid-template-rows 420ms ${EASE}`,\n          }}\n        >\n          <div className=\"overflow-hidden\" inert={!open || undefined}>\n            <p\n              ref={wordsRef}\n              className=\"relative mx-1 mb-1 mt-2 border-t border-border pt-2.5 text-[13px] leading-[1.6]\"\n              style={{\n                opacity: open ? 1 : 0,\n                transition: reduced ? \"none\" : `opacity 300ms ${EASE}`,\n              }}\n            >\n              <span\n                aria-hidden=\"true\"\n                className=\"absolute left-0 top-0 rounded-[5px] bg-primary/[0.12]\"\n                style={{\n                  transform: `translate(${band.x - 3}px, ${band.y}px)`,\n                  width: band.w + 6,\n                  height: band.h,\n                  opacity: band.on ? 1 : 0,\n                  transition: reduced\n                    ? \"none\"\n                    : `transform 260ms ${EASE}, width 260ms ${EASE}, opacity 200ms`,\n                }}\n              />\n              {transcript.map((w, i) => (\n                <React.Fragment key={i}>\n                  {i > 0 && \" \"}\n                  <span\n                    data-w={i}\n                    onClick={() => play(w.start)}\n                    className={`relative cursor-pointer rounded-[4px] transition-colors duration-200 hover:text-foreground ${\n                      spoken === -1 || i <= spoken\n                        ? \"text-foreground\"\n                        : \"text-muted-foreground\"\n                    }`}\n                  >\n                    {w.text}\n                  </span>\n                </React.Fragment>\n              ))}\n            </p>\n          </div>\n        </div>\n      )}\n    </div>\n  );\n}\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "registry/components/number-roll.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\n/* ─────────────────────────────────────────────────────────\n * NUMBER ROLL: numbers that change like an odometer\n *\n *   rolling   each digit is a column that rolls to its new\n *             value, in the direction the number moved: going\n *             up, a 9 rolls on to 0 instead of spinning back\n *   places    new places slide open from nothing; lost ones\n *             fold away\n *   format    anything Intl.NumberFormat does: currency,\n *             percent, compact (\"1.2K\"), decimals\n *\n * The real number is always there as text for screen readers\n * and copy and paste; the columns are only what you see.\n * ───────────────────────────────────────────────────────── */\n\nexport interface NumberRollProps extends Omit<\n  React.HTMLAttributes<HTMLSpanElement>,\n  \"children\"\n> {\n  value: number;\n  /** Intl.NumberFormat options, e.g. { style: \"currency\", currency: \"USD\" }. */\n  format?: Intl.NumberFormatOptions;\n  locales?: string | string[];\n  prefix?: string;\n  suffix?: string;\n  /** Start from this value and roll to `value` once mounted, e.g. 0 for stats. */\n  from?: number;\n  /** Roll duration in ms. */\n  duration?: number;\n  /** Always roll this way, e.g. \"down\" for a countdown's seconds, which wrap from 00 to 59. Defaults to the way the number moved. */\n  direction?: \"up\" | \"down\";\n}\n\ntype Column = { key: string; char: string; digit: number | null };\n\nconst EASE = \"cubic-bezier(0.16,1,0.3,1)\";\nconst SETS = 5; // the strip repeats 0–9 five times so a roll never runs out of digits\nconst MIDDLE = 20;\n/** The strip as one text node, a digit a line: fifty lines, but one element to lay out instead of fifty. */\nconst STRIP = Array.from({ length: SETS * 10 }, (_, i) => i % 10).join(\"\\n\");\n\nconst reducedQuery = \"(prefers-reduced-motion: reduce)\";\nconst subscribeReduced = (onChange: () => void) => {\n  const query = window.matchMedia(reducedQuery);\n  query.addEventListener(\"change\", onChange);\n  return () => query.removeEventListener(\"change\", onChange);\n};\nconst useReducedMotion = () =>\n  React.useSyncExternalStore(\n    subscribeReduced,\n    () => window.matchMedia(reducedQuery).matches,\n    () => false,\n  );\n\n/** Digits are keyed by their place counted from the right, so the units column stays the units column. */\nfunction columns(text: string): Column[] {\n  const chars = [...text];\n  const seen = new Map<string, number>();\n  let place = 0;\n  const out: Column[] = [];\n  for (let i = chars.length - 1; i >= 0; i--) {\n    const char = chars[i];\n    if (/\\d/.test(char))\n      out.push({ key: `d${place++}`, char, digit: Number(char) });\n    else {\n      // Symbols are keyed by how many of the same symbol sit to their right, so a comma that shifts is the same comma.\n      const n = seen.get(char) ?? 0;\n      seen.set(char, n + 1);\n      out.push({ key: `s${char}${n}`, char, digit: null });\n    }\n  }\n  return out.reverse();\n}\n\n// Memoised: a parent that re-renders with the same number doesn't rebuild the strips.\nconst Digit = React.memo(function Digit({\n  digit,\n  trend,\n  duration,\n  reduced,\n  rollIn,\n}: {\n  digit: number;\n  trend: number;\n  duration: number;\n  reduced: boolean;\n  rollIn: boolean;\n}) {\n  const [pos, setPos] = React.useState(MIDDLE + (rollIn ? 0 : digit));\n  const [moving, setMoving] = React.useState(false);\n  const posRef = React.useRef(pos);\n  const stripRef = React.useRef<HTMLSpanElement>(null);\n\n  React.useLayoutEffect(() => {\n    const current = posRef.current;\n    const showing = ((current % 10) + 10) % 10;\n    if (showing === digit) return;\n    if (reduced) {\n      posRef.current = MIDDLE + digit;\n      setMoving(false);\n      setPos(MIDDLE + digit);\n      return;\n    }\n    const up = trend > 0 || (trend === 0 && digit > showing);\n    let target = up\n      ? current + ((digit - showing + 10) % 10)\n      : current - ((showing - digit + 10) % 10);\n    // Values arriving faster than a roll (a progress percent) never let it re-centre, so before it runs off the strip,\n    // jump the strip back by whole sets mid-roll (it looks identical) and roll on from there.\n    if (target < 10 || target > SETS * 10 - 11) {\n      const shift = Math.round((target - MIDDLE) / 10) * 10;\n      const strip = stripRef.current;\n      if (strip?.offsetHeight) {\n        let visual = current;\n        try {\n          visual =\n            -new DOMMatrixReadOnly(getComputedStyle(strip).transform).m42 /\n            (strip.offsetHeight / (SETS * 10));\n        } catch {}\n        const transition = strip.style.transition;\n        strip.style.transition = \"none\";\n        strip.style.transform = `translateY(${(-(visual - shift) * 100) / (SETS * 10)}%)`;\n        void strip.offsetHeight;\n        strip.style.transition = transition;\n      }\n      target -= shift;\n    }\n    posRef.current = target;\n    setMoving(true);\n    setPos(target);\n  }, [digit, trend, reduced]);\n\n  // After a roll, quietly re-centre on the middle set so the next roll always has room.\n  const settle = () => {\n    const centred = MIDDLE + (((posRef.current % 10) + 10) % 10);\n    posRef.current = centred;\n    setMoving(false);\n    setPos(centred);\n  };\n\n  return (\n    <span className=\"relative inline-block [clip-path:inset(0)]\">\n      <span className=\"invisible\">{digit}</span>\n      <span\n        ref={stripRef}\n        aria-hidden=\"true\"\n        onTransitionEnd={settle}\n        className=\"absolute inset-x-0 top-0 block whitespace-pre text-center\"\n        style={{\n          transform: `translateY(${(-pos * 100) / (SETS * 10)}%)`,\n          transition: moving ? `transform ${duration}ms ${EASE}` : \"none\",\n        }}\n      >\n        {STRIP}\n      </span>\n    </span>\n  );\n});\n\n/** A place that appeared after the first paint slides open; places that were there from the start just sit. */\nfunction Place({\n  enter,\n  children,\n}: {\n  enter: boolean;\n  children: React.ReactNode;\n}) {\n  const [entering] = React.useState(enter);\n  return (\n    <span\n      className={`inline-block ${entering ? \"[clip-path:inset(0)] animate-[ui-col-in_500ms_cubic-bezier(0.16,1,0.3,1)_both]\" : \"\"}`}\n    >\n      {children}\n    </span>\n  );\n}\n\nexport function NumberRoll({\n  value,\n  format,\n  locales,\n  prefix = \"\",\n  suffix = \"\",\n  from,\n  duration = 900,\n  direction,\n  className = \"\",\n  ...props\n}: NumberRollProps) {\n  const reduced = useReducedMotion();\n  const [shown, setShown] = React.useState(from ?? value);\n  const previous = React.useRef(shown);\n  const mounted = React.useRef(false);\n\n  // Roll from `from` to the real value once on screen (a frame later, so the start is painted).\n  React.useEffect(() => {\n    const frame = requestAnimationFrame(() => setShown(value));\n    return () => cancelAnimationFrame(frame);\n  }, [value]);\n\n  React.useEffect(() => {\n    mounted.current = true;\n  }, []);\n\n  const formatter = React.useMemo(\n    () => new Intl.NumberFormat(locales, format),\n    [locales, format && JSON.stringify(format)],\n  );\n  const text = `${prefix}${formatter.format(shown)}${suffix}`;\n  const cols = React.useMemo(() => columns(text), [text]);\n  const trend =\n    direction === \"up\"\n      ? 1\n      : direction === \"down\"\n        ? -1\n        : Math.sign(shown - previous.current);\n\n  // Places that disappear fold away instead of vanishing.\n  const [leaving, setLeaving] = React.useState<Column[]>([]);\n  const lastCols = React.useRef(cols);\n  React.useLayoutEffect(() => {\n    const gone = lastCols.current.filter(\n      (c) => !cols.some((n) => n.key === c.key),\n    );\n    lastCols.current = cols;\n    previous.current = shown;\n    if (!gone.length || reduced) return;\n    setLeaving(gone);\n    const timer = window.setTimeout(() => setLeaving([]), 420);\n    return () => window.clearTimeout(timer);\n  }, [cols, shown, reduced]);\n\n  return (\n    <span className={`inline-flex tabular-nums ${className}`} {...props}>\n      <span className=\"sr-only\">{`${prefix}${formatter.format(value)}${suffix}`}</span>\n      <span\n        aria-hidden=\"true\"\n        className=\"inline-flex items-baseline whitespace-pre\"\n      >\n        {leaving.map((c) => (\n          <span\n            key={`out-${c.key}`}\n            className=\"inline-block [clip-path:inset(0)] animate-[ui-col-out_400ms_cubic-bezier(0.16,1,0.3,1)_forwards]\"\n          >\n            {c.char}\n          </span>\n        ))}\n        {cols.map((c) => (\n          <Place key={c.key} enter={mounted.current && !reduced}>\n            {c.digit === null ? (\n              c.char\n            ) : (\n              <Digit\n                digit={c.digit}\n                trend={trend}\n                duration={duration}\n                reduced={reduced}\n                rollIn={mounted.current}\n              />\n            )}\n          </Place>\n        ))}\n      </span>\n    </span>\n  );\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "css": {
+    "@keyframes ui-col-in": {
+      "from": {
+        "max-width": "0",
+        "opacity": "0"
+      },
+      "to": {
+        "max-width": "1em",
+        "opacity": "1"
+      }
+    },
+    "@keyframes ui-col-out": {
+      "from": {
+        "max-width": "1em",
+        "opacity": "1"
+      },
+      "to": {
+        "max-width": "0",
+        "opacity": "0"
+      }
+    }
+  },
+  "meta": {
+    "cavemio": {
+      "component": "voice-note",
+      "exportName": "VoiceNote",
+      "categories": [
+        "ai"
+      ],
+      "isNew": false,
+      "usage": "import { VoiceNote } from \"@/components/voice-note\";\n\n<VoiceNote\n  src=\"/notes/sam.mp3\"\n  label=\"Voice note from Sam\"\n  unread\n  transcript={[{ text: \"Hey,\", start: 0.1 }, { text: \"quick\", start: 0.8 }, /* … */]}\n/>",
+      "accessibility": "- The waveform is a slider: arrow keys move two seconds, Home and End go to the ends, and it reads its position as \"0:04 of 0:11\".\n- The play button says Play or Pause, the speed pill says its speed, and the transcript is plain text in the page.\n- Starting one voice note pauses any other on the page.\n- Peaks given up front avoid downloading the whole file just to draw it; without them the audio is decoded once with Web Audio (the file has to be same-origin or allow CORS).\n- Installs Number roll. With reduced motion the bars, icon, highlight and fold change in place.",
+      "previewNote": "Interactive local fixture. Data and async results are simulated in the preview; the caller supplies application services.",
+      "documentation": {
+        "props": [
+          {
+            "name": "src",
+            "type": "string",
+            "description": "– · The audio file."
+          },
+          {
+            "name": "peaks",
+            "type": "number[]",
+            "description": "– · Loudness from 0 to 1, any length; resampled to the bars that fit. Without them the file is fetched and decoded to work them out."
+          },
+          {
+            "name": "duration",
+            "type": "number",
+            "description": "– · Seconds, shown until the audio’s own length is known."
+          },
+          {
+            "name": "transcript",
+            "type": "{ text: string; start: number }[]",
+            "description": "– · The words in order with when each is said. Adds the Transcript fold."
+          },
+          {
+            "name": "defaultTranscriptOpen",
+            "type": "boolean",
+            "description": "false · Start with the transcript open."
+          },
+          {
+            "name": "speeds",
+            "type": "number[]",
+            "description": "[1, 1.5, 2] · What the speed pill steps through."
+          },
+          {
+            "name": "unread",
+            "type": "boolean",
+            "description": "false · Show the dot until it’s played."
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "description": "\"Voice note\" · Names the group for assistive tech, e.g. \"Voice note from Sam\"."
+          },
+          {
+            "name": "onPlay / onEnded",
+            "type": "() => void",
+            "description": "– · When it starts playing, and when it reaches the end."
+          }
+        ],
+        "useCases": [
+          {
+            "title": "Chat and messaging apps",
+            "description": "Voice messages that can be scrubbed and read along with."
+          },
+          {
+            "title": "Voicemail inboxes",
+            "description": "Messages with a transcript, so they can be skimmed."
+          },
+          {
+            "title": "Call recordings and interviews",
+            "description": "Audio with a transcript that follows the playback."
+          },
+          {
+            "title": "Community and social apps",
+            "description": "Audio replies in a thread."
+          }
+        ],
+        "features": [
+          {
+            "title": "A waveform you can scrub",
+            "description": "Press and drag and the bars under your finger swell. Letting go carries on from there."
+          },
+          {
+            "title": "Play, pause and speed",
+            "description": "The icon morphs between play and pause, and the speed steps through 1×, 1.5× and 2× without changing the pitch."
+          },
+          {
+            "title": "A transcript that follows",
+            "description": "A highlight glides from word to word as they are said. Tap a word to play from there."
+          },
+          {
+            "title": "Quick to show",
+            "description": "Pass the waveform peaks up front and the file does not have to be downloaded just to draw it."
+          },
+          {
+            "title": "One at a time",
+            "description": "Starting one voice note pauses any other on the page."
+          },
+          {
+            "title": "Unread and keyboard",
+            "description": "A dot marks unplayed notes. The waveform is a slider where arrow keys move two seconds."
+          }
+        ],
+        "states": [
+          {
+            "title": "arrive",
+            "description": "The bars grow from 3px to their loudness (520ms), 7ms apart from left to right."
+          },
+          {
+            "title": "play / pause",
+            "description": "One icon of two quads: the halves of the triangle slide and square off into the two pause bars (clip-path, 320ms). Bars fill left to right; the time counts up in rolling digits."
+          },
+          {
+            "title": "scrub",
+            "description": "Pressing pauses it; the bars near the pointer scale up to 1.5× with a soft falloff (160ms) and the time shows where you are; releasing seeks there and plays on if it was playing."
+          },
+          {
+            "title": "speed",
+            "description": "1× → 1.5× → 2× roll in place; the pitch stays the same."
+          },
+          {
+            "title": "transcript",
+            "description": "Folds open under the note (grid rows, 420ms). The current word’s highlight glides to the next word (260ms); words already said are in ink, the rest in grey. Tapping a word plays from its start."
+          },
+          {
+            "title": "end",
+            "description": "Holds full for 500ms, then the fill runs back to the start (600ms) and the time rolls back to the length."
+          },
+          {
+            "title": "unread",
+            "description": "A small dot by the time; it shrinks away the first time it plays."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}
