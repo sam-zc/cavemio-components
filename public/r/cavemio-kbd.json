@@ -1,0 +1,75 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cavemio-kbd",
+  "title": "Kbd",
+  "author": "Cavemio",
+  "description": "Platform-aware keyboard keycaps with live press feedback and optional shortcut callbacks.",
+  "files": [
+    {
+      "path": "registry/components/kbd.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport interface KbdProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {\n  /** Individual keycaps, e.g. [\"mod\", \"k\"] or \"mod+shift+p\". Display only. */\n  keys?: string[] | string;\n  /** Reflect physical keys while held, without claiming their keyboard events. */\n  live?: boolean;\n  /** Size of individual keycaps supplied by keys (or live hotkey feedback). */\n  size?: \"sm\" | \"md\";\n  /** Key combined with Cmd or Ctrl, e.g. \"k\". Empty/omitted disables the shortcut. */\n  hotkey?: string;\n  /** Optional action label displayed beside the keycap in a full-size surface. */\n  label?: React.ReactNode;\n  /** Called once by a click, Enter/Space, or the matching global shortcut. */\n  onTrigger?: (\n    event: KeyboardEvent | React.MouseEvent<HTMLButtonElement>,\n  ) => void;\n  /** Stop clicks and matching shortcuts before they reach ancestor handlers. */\n  stopPropagation?: boolean;\n  /** Button ref, available when onTrigger is supplied. */\n  ref?: React.Ref<HTMLButtonElement>;\n}\n\nconst subscribePlatform = () => () => {};\nconst isMac = () =>\n  /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);\nconst keycap =\n  \"inline-flex h-5 min-w-5 shrink-0 items-center justify-center gap-0.5 whitespace-nowrap rounded bg-background px-1.5 [font-family:inherit] text-[11px] font-medium leading-none text-muted-foreground shadow-[inset_0_0_0_1px_var(--border)]\";\n\nconst labeledSurface =\n  \"inline-flex h-8 items-center justify-center gap-6 whitespace-nowrap rounded-lg bg-transparent pl-2.5 pr-1.5 [font-family:inherit] text-[14px] font-normal text-foreground/80 shadow-[inset_0_0_0_1px_var(--border)]\";\n\nconst aliases: Record<string, string> = {\n  cmd: \"meta\",\n  command: \"meta\",\n  \"⌘\": \"meta\",\n  ctrl: \"control\",\n  \"⌃\": \"control\",\n  option: \"alt\",\n  \"⌥\": \"alt\",\n  \"⇧\": \"shift\",\n  esc: \"escape\",\n  return: \"enter\",\n  \"↵\": \"enter\",\n  spacebar: \" \",\n  space: \" \",\n  \"␣\": \" \",\n  up: \"arrowup\",\n  \"↑\": \"arrowup\",\n  down: \"arrowdown\",\n  \"↓\": \"arrowdown\",\n  left: \"arrowleft\",\n  \"←\": \"arrowleft\",\n  right: \"arrowright\",\n  \"→\": \"arrowright\",\n  \"⌫\": \"backspace\",\n  \"⇥\": \"tab\",\n};\nfunction normalizeKey(value: string) {\n  const lower = value === \" \" ? value : value.trim().toLowerCase();\n  return aliases[lower] ?? lower;\n}\nfunction resolvedKey(key: string, mac: boolean) {\n  return key === \"mod\" ? (mac ? \"meta\" : \"control\") : key;\n}\nfunction keyLabel(key: string, mac: boolean, spoken = false): string {\n  const resolved = resolvedKey(key, mac);\n  const words: Record<string, string> = {\n    meta: mac ? \"Command\" : \"Windows\",\n    control: \"Control\",\n    alt: mac ? \"Option\" : \"Alt\",\n    shift: \"Shift\",\n    enter: \"Enter\",\n    escape: \"Escape\",\n    backspace: \"Backspace\",\n    tab: \"Tab\",\n    \" \": \"Space\",\n    arrowup: \"Up arrow\",\n    arrowdown: \"Down arrow\",\n    arrowleft: \"Left arrow\",\n    arrowright: \"Right arrow\",\n  };\n  if (spoken) return words[resolved] ?? key.toUpperCase();\n  const symbols: Record<string, string> = {\n    meta: mac ? \"⌘\" : \"Win\",\n    control: mac ? \"⌃\" : \"Ctrl\",\n    alt: mac ? \"⌥\" : \"Alt\",\n    shift: mac ? \"⇧\" : \"Shift\",\n    enter: mac ? \"↵\" : \"Enter\",\n    escape: \"Esc\",\n    backspace: mac ? \"⌫\" : \"Backspace\",\n    tab: mac ? \"⇥\" : \"Tab\",\n    \" \": \"Space\",\n    arrowup: \"↑\",\n    arrowdown: \"↓\",\n    arrowleft: \"←\",\n    arrowright: \"→\",\n  };\n  return symbols[resolved] ?? key.toUpperCase();\n}\n\nfunction KeySequence({\n  keys,\n  mac,\n  live,\n  size,\n}: {\n  keys: string[];\n  mac: boolean | null;\n  live: boolean;\n  size: \"sm\" | \"md\";\n}) {\n  const [held, setHeld] = React.useState<string[]>([]);\n  React.useEffect(() => {\n    if (!live) return;\n    const physicalKeys = new Map<string, string>();\n    const clear = () => {\n      physicalKeys.clear();\n      setHeld([]);\n    };\n    const update = (event: KeyboardEvent) => {\n      if (event.isComposing || event.key === \"Unidentified\") return;\n      const key = normalizeKey(event.key);\n      const code = event.code || key;\n      if (event.type === \"keydown\") physicalKeys.set(code, key);\n      else physicalKeys.delete(code);\n      // macOS can omit letter keyup events during Command chords.\n      if (event.type === \"keyup\" && key === \"meta\") physicalKeys.clear();\n      const modifiers: Record<string, boolean> = {\n        meta: event.metaKey,\n        control: event.ctrlKey,\n        alt: event.altKey,\n        shift: event.shiftKey,\n      };\n      for (const [code, value] of physicalKeys) {\n        if (value in modifiers && !modifiers[value]) physicalKeys.delete(code);\n      }\n      const next = [\n        ...new Set([\n          ...physicalKeys.values(),\n          ...Object.keys(modifiers).filter((key) => modifiers[key]),\n        ]),\n      ];\n      setHeld((previous) =>\n        previous.length === next.length &&\n        previous.every((key) => next.includes(key))\n          ? previous\n          : next,\n      );\n    };\n    const visibility = () => {\n      if (document.hidden) clear();\n    };\n    window.addEventListener(\"keydown\", update, true);\n    window.addEventListener(\"keyup\", update, true);\n    window.addEventListener(\"blur\", clear);\n    document.addEventListener(\"visibilitychange\", visibility);\n    return () => {\n      window.removeEventListener(\"keydown\", update, true);\n      window.removeEventListener(\"keyup\", update, true);\n      window.removeEventListener(\"blur\", clear);\n      document.removeEventListener(\"visibilitychange\", visibility);\n    };\n  }, [live]);\n\n  return (\n    <span className=\"inline-flex items-center gap-1\">\n      <span className=\"sr-only\">\n        {keys\n          .map((key) =>\n            mac === null && key === \"mod\"\n              ? \"Command or Control\"\n              : keyLabel(key, mac === true, true),\n          )\n          .join(\" + \")}\n      </span>\n      {keys.map((key, index) => {\n        const pressed = live && held.includes(resolvedKey(key, mac === true));\n        return (\n          <span\n            key={`${index}:${key}`}\n            aria-hidden=\"true\"\n            data-kbd-key={key}\n            data-pressed={pressed}\n            className={`inline-grid shrink-0 items-center justify-items-center rounded-md bg-background [font-family:inherit] font-medium leading-none transition-[translate,box-shadow,color] duration-100 motion-reduce:translate-y-0 motion-reduce:transition-none ${\n              size === \"sm\"\n                ? \"h-5 min-w-5 px-1 text-[11px]\"\n                : \"h-6 min-w-6 px-1 text-[12px]\"\n            } ${\n              pressed\n                ? \"translate-y-px text-foreground shadow-[inset_0_0_0_1px_var(--border)]\"\n                : \"translate-y-0 text-muted-foreground shadow-[inset_0_0_0_1px_var(--border),inset_0_-1px_0_var(--border)]\"\n            }`}\n          >\n            <span className={mac === null ? \"invisible\" : undefined}>\n              {keyLabel(key, mac !== false)}\n            </span>\n          </span>\n        );\n      })}\n    </span>\n  );\n}\n\n/** A passive keycap, or a native shortcut button when onTrigger is provided. */\nexport function Kbd({\n  keys,\n  live = false,\n  size = \"md\",\n  hotkey = \"\",\n  label,\n  onTrigger,\n  stopPropagation = false,\n  disabled = false,\n  children,\n  className = \"\",\n  onClick,\n  ref,\n  ...props\n}: KbdProps) {\n  const mac = React.useSyncExternalStore<boolean | null>(\n    subscribePlatform,\n    isMac,\n    () => null,\n  );\n  const key = hotkey.trim();\n  const sequence =\n    keys !== undefined\n      ? (Array.isArray(keys) ? keys : keys.split(\"+\"))\n          .map(normalizeKey)\n          .filter(Boolean)\n      : live && key\n        ? [\"mod\", normalizeKey(key)]\n        : null;\n  React.useEffect(() => {\n    if (!key || !onTrigger || disabled) return;\n    const handleKey = (event: KeyboardEvent) => {\n      if (\n        event.defaultPrevented ||\n        event.isComposing ||\n        event.key.toLowerCase() !== key.toLowerCase() ||\n        !(event.metaKey || event.ctrlKey) ||\n        event.altKey ||\n        event.shiftKey\n      )\n        return;\n      event.preventDefault();\n      if (stopPropagation) event.stopPropagation();\n      if (!event.repeat) onTrigger(event);\n    };\n    // Capture only when propagation is explicitly suppressed, before React ancestors.\n    document.addEventListener(\"keydown\", handleKey, stopPropagation);\n    return () =>\n      document.removeEventListener(\"keydown\", handleKey, stopPropagation);\n  }, [key, onTrigger, disabled, stopPropagation]);\n\n  const content = (\n    <>\n      {children}\n      {sequence ? (\n        <KeySequence\n          key={JSON.stringify([sequence, live, disabled])}\n          keys={sequence}\n          mac={mac}\n          live={live && !disabled}\n          size={size}\n        />\n      ) : (\n        key && (\n          <>\n            {/* Keep unknown platform labels hidden; size only the displayed chord. */}\n            <span\n              className={`inline-flex items-center justify-center gap-0.5 ${mac === null ? \"invisible\" : \"\"}`}\n              aria-hidden=\"true\"\n            >\n              <span>{mac === false ? \"Ctrl\" : \"⌘\"}</span>\n              {mac === false && <span>+</span>}\n              <span>{key.toUpperCase()}</span>\n            </span>\n            <span className=\"sr-only\">\n              {mac === null\n                ? \"Command or Control\"\n                : mac\n                  ? \"Command\"\n                  : \"Control\"}{\" \"}\n              + {key.toUpperCase()}\n            </span>\n          </>\n        )\n      )}\n    </>\n  );\n  const hasLabel = label != null;\n  const face = (\n    <>\n      {hasLabel && (\n        <span className=\"inline-flex items-center gap-2\">{label}</span>\n      )}\n      {(sequence || key || children || !hasLabel) && (\n        <kbd\n          className={\n            hasLabel && !sequence\n              ? keycap\n              : \"inline-flex items-center gap-0.5 [font-family:inherit]\"\n          }\n        >\n          {content}\n        </kbd>\n      )}\n    </>\n  );\n  if (!onTrigger && hasLabel) {\n    return (\n      <span className={`${labeledSurface} ${className}`} {...props}>\n        {face}\n      </span>\n    );\n  }\n  if (!onTrigger) {\n    return (\n      <kbd\n        className={`${sequence ? \"inline-flex items-center gap-1\" : keycap} ${className}`}\n        {...props}\n      >\n        {content}\n      </kbd>\n    );\n  }\n  return (\n    <button\n      {...props}\n      ref={ref}\n      type={props.type ?? \"button\"}\n      disabled={disabled}\n      aria-keyshortcuts={key ? `Meta+${key} Control+${key}` : undefined}\n      className={`${hasLabel ? labeledSurface : sequence ? \"inline-flex items-center gap-1 rounded-md\" : keycap} relative cursor-pointer hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 after:absolute ${hasLabel ? \"after:-inset-y-1.5 after:inset-x-0\" : \"after:-inset-y-3 after:-inset-x-2\"} ${className}`}\n      onClick={(event) => {\n        if (stopPropagation) event.stopPropagation();\n        onClick?.(event);\n        if (!event.defaultPrevented) onTrigger(event);\n      }}\n    >\n      {face}\n    </button>\n  );\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "meta": {
+    "license": "MIT",
+    "cavemio": {
+      "component": "kbd",
+      "exportName": "Kbd",
+      "usage": "import { Kbd } from \"@/components/kbd\";\n\n<Kbd hotkey=\"k\" onTrigger={() => setOpen(true)} stopPropagation aria-label=\"Open commands\" />",
+      "accessibility": "Semantic keycaps; interactive shortcuts use a native button with Enter/Space activation, focus feedback, disabled support, and aria-keyshortcuts. Repeated and composing key events do not trigger callbacks.",
+      "previewNote": "Hold keys to see live feedback. Reduced motion keeps color and shadow feedback without movement; demo shortcuts stay local.",
+      "categories": [
+        "interactions"
+      ],
+      "documentation": {
+        "useCases": [],
+        "features": [],
+        "states": [],
+        "props": [
+          {
+            "name": "keys",
+            "type": "string[] | string",
+            "description": "Optional. Individual keys as an array or plus-separated string, e.g. mod+shift+p. Display only; hotkey controls callback binding."
+          },
+          {
+            "name": "live",
+            "type": "boolean",
+            "description": "Optional, defaults to false. Track held keys with 1px press feedback. Does not claim keyboard events; disabled suppresses tracking."
+          },
+          {
+            "name": "size",
+            "type": "\"sm\" | \"md\"",
+            "description": "Optional, defaults to md. Individual keycap size for keys or live hotkey feedback."
+          },
+          {
+            "name": "hotkey",
+            "type": "string",
+            "description": "Optional. Key combined with Cmd or Ctrl, e.g. \"k\". Empty/omitted disables the shortcut."
+          },
+          {
+            "name": "label",
+            "type": "React.ReactNode",
+            "description": "Optional. Action label displayed beside the keycap in a full-size surface."
+          },
+          {
+            "name": "onTrigger",
+            "type": "( event: KeyboardEvent | React.MouseEvent<HTMLButtonElement>, ) => void",
+            "description": "Optional. Called once by a click, Enter/Space, or the matching global shortcut."
+          },
+          {
+            "name": "stopPropagation",
+            "type": "boolean",
+            "description": "Optional. Stop clicks and matching shortcuts before they reach ancestor handlers."
+          },
+          {
+            "name": "ref",
+            "type": "React.Ref<HTMLButtonElement>",
+            "description": "Optional. Button ref, available when onTrigger is supplied."
+          }
+        ]
+      }
+    }
+  },
+  "type": "registry:component"
+}

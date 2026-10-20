@@ -1,0 +1,9 @@
+node_modules
+.next
+dist
+storybook-static
+public/r
+public/previews
+bun.lock
+next-env.d.ts
+public/catalog.json

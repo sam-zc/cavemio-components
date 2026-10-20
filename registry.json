@@ -1,0 +1,1458 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "cavemio",
+  "homepage": "http://localhost:3000",
+  "items": [
+    {
+      "name": "cavemio-answer-paper",
+      "type": "registry:component",
+      "title": "Answer Paper",
+      "description": "Drag the paper’s bottom handle to shorten an answer or restore its detail.",
+      "dependencies": ["motion@14.2.0"],
+      "files": [
+        {
+          "path": "registry/components/cavemio-answer-paper.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "meta": {
+        "cavemio": {
+          "component": "answer-paper",
+          "exportName": "CavemioAnswerPaper",
+          "usage": "import { CavemioAnswerPaper } from \"@/components/cavemio-answer-paper\";\n\n<CavemioAnswerPaper paperColor=\"#fffdf8\" paperRadius={26} levels={[{ id: \"short\", label: \"Brief\", readTime: 1, content: <p>The short answer.</p> }, { id: \"full\", label: \"Full answer\", readTime: 10, content: <p>Your complete answer and supporting details go here.</p> }]} />",
+          "accessibility": "The bottom handle is a keyboard-accessible slider. Up/Left shorten, Down/Right expand, Home selects the shortest version, and End restores the full answer. Inactive content is inert and hidden from assistive technology. Reduced motion disables spring and word movement, blur, and scale transitions.",
+          "previewNote": "The demo reproduces the supplied video’s four prepared answer versions. The component displays caller-provided summaries; it does not generate AI text or make network requests.",
+          "categories": ["ai", "interactions"],
+          "documentation": {
+            "useCases": [],
+            "features": [],
+            "states": [],
+            "props": [
+              {
+                "name": "levels",
+                "type": "readonly AnswerPaperLevel[]",
+                "description": "Required. Answer versions ordered from shortest to longest."
+              },
+              {
+                "name": "level",
+                "type": "number",
+                "description": "Optional. Controlled index into levels."
+              },
+              {
+                "name": "defaultLevel",
+                "type": "number",
+                "description": "Optional. Starts with the longest answer when omitted."
+              },
+              {
+                "name": "onLevelChange",
+                "type": "(index: number) => void",
+                "description": "Optional. Called with the selected answer level index."
+              },
+              {
+                "name": "paperColor",
+                "type": "CSSProperties[\"backgroundColor\"]",
+                "description": "Optional. Background color of the paper."
+              },
+              {
+                "name": "paperRadius",
+                "type": "CSSProperties[\"borderRadius\"]",
+                "description": "Optional. Border radius of the paper."
+              },
+              {
+                "name": "textColor",
+                "type": "CSSProperties[\"color\"]",
+                "description": "Optional. Color of the answer text."
+              },
+              {
+                "name": "handleColor",
+                "type": "CSSProperties[\"color\"]",
+                "description": "Optional. Color of the drag handle."
+              },
+              {
+                "name": "disabled",
+                "type": "boolean",
+                "description": "Optional. Disable user interaction."
+              },
+              {
+                "name": "ariaLabel",
+                "type": "string",
+                "description": "Optional. Accessible name for the component."
+              },
+              {
+                "name": "className",
+                "type": "string",
+                "description": "Optional. Additional CSS classes for the root element."
+              },
+              {
+                "name": "style",
+                "type": "CSSProperties",
+                "description": "Optional. Inline styles for the root element."
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "cavemio-inline-rewrite",
+      "type": "registry:component",
+      "title": "Inline Rewrite",
+      "description": "Drag a dial to rewrite a paragraph in place, with shared words gliding into position.",
+      "dependencies": [],
+      "files": [
+        {
+          "path": "registry/components/inline-rewrite.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/number-roll.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/text-morph.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "css": {
+        "@keyframes ui-sheen": {
+          "from": {
+            "mask-position": "150% 0"
+          },
+          "to": {
+            "mask-position": "-50% 0"
+          }
+        },
+        "@keyframes ui-col-in": {
+          "from": {
+            "max-width": "0",
+            "opacity": "0"
+          },
+          "to": {
+            "max-width": "1em",
+            "opacity": "1"
+          }
+        },
+        "@keyframes ui-col-out": {
+          "from": {
+            "max-width": "1em",
+            "opacity": "1"
+          },
+          "to": {
+            "max-width": "0",
+            "opacity": "0"
+          }
+        }
+      },
+      "meta": {
+        "license": "MIT",
+        "cavemio": {
+          "component": "inline-rewrite",
+          "exportName": "InlineRewrite",
+          "usage": "import { InlineRewrite } from \"@/components/inline-rewrite\";\n\n<InlineRewrite label=\"Length\" description=\"Adjust how much detail the paragraph includes.\" defaultValue={1} versions={[{ label: \"Shorter\", text: \"Fresh beans, delivered.\" }, { label: \"Original\", text: \"Fresh beans from small roasters, delivered every two weeks.\" }]} />",
+          "accessibility": "The visible label names the keyboard-accessible slider; arrow keys, Home and End select versions. Optional description text appears in an info tooltip on hover or focus and describes the slider for assistive technology. Status updates are announced politely. Reduced motion changes text in place and disables slider movement.",
+          "previewNote": "Uses local demo data; no AI service or network requests.",
+          "categories": ["ai", "text"],
+          "documentation": {
+            "useCases": [],
+            "features": [],
+            "states": [],
+            "props": [
+              {
+                "name": "versions",
+                "type": "RewriteVersion[]",
+                "description": "Required. Available rewrite versions, including their labels and text."
+              },
+              {
+                "name": "value",
+                "type": "number",
+                "description": "Optional. The chosen version's index."
+              },
+              {
+                "name": "defaultValue",
+                "type": "number",
+                "description": "Optional. Initial selection when uncontrolled."
+              },
+              {
+                "name": "onValueChange",
+                "type": "(index: number) => void",
+                "description": "Optional. Called when the selection changes."
+              },
+              {
+                "name": "originalIndex",
+                "type": "number",
+                "description": "Optional. The version the counts compare against. Defaults to the one chosen first."
+              },
+              {
+                "name": "onRewrite",
+                "type": "(request: RewriteRequest) => Promise<string>",
+                "description": "Optional. Asynchronous rewrite handler. Resolve with the replacement text."
+              },
+              {
+                "name": "label",
+                "type": "string",
+                "description": "Optional. Visible heading and accessible name for the slider, e.g. \"Tone\"."
+              },
+              {
+                "name": "description",
+                "type": "string",
+                "description": "Optional. Help text, shown beside the heading in an info tooltip."
+              },
+              {
+                "name": "highlight",
+                "type": "boolean",
+                "description": "Optional. Let new words glow for a moment after each rewrite."
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "cavemio-message-edit",
+      "type": "registry:component",
+      "title": "Message Edit",
+      "description": "Edit and resend a message in place, then step between its previous versions.",
+      "dependencies": ["lucide-react"],
+      "files": [
+        {
+          "path": "registry/components/message-edit.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/number-roll.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "css": {
+        "@keyframes ui-fade-in": {
+          "from": {
+            "opacity": "0"
+          },
+          "to": {
+            "opacity": "1"
+          }
+        },
+        "@keyframes ui-col-in": {
+          "from": {
+            "max-width": "0",
+            "opacity": "0"
+          },
+          "to": {
+            "max-width": "1em",
+            "opacity": "1"
+          }
+        },
+        "@keyframes ui-col-out": {
+          "from": {
+            "max-width": "1em",
+            "opacity": "1"
+          },
+          "to": {
+            "max-width": "0",
+            "opacity": "0"
+          }
+        }
+      },
+      "meta": {
+        "license": "MIT",
+        "cavemio": {
+          "component": "message-edit",
+          "exportName": "MessageEdit",
+          "usage": "import { MessageEdit } from \"@/components/message-edit\";\n\n<MessageEdit text={message} onSubmit={setMessage} />",
+          "accessibility": "Enter sends, Shift+Enter inserts a line, and Escape cancels. Focus returns to the edit button. Copy status and version changes are announced politely. Reduced motion disables morphs.",
+          "previewNote": "Uses local demo data; no AI service or network requests.",
+          "categories": ["ai"],
+          "documentation": {
+            "useCases": [],
+            "features": [],
+            "states": [],
+            "props": [
+              {
+                "name": "text",
+                "type": "string",
+                "description": "Required. Current message text."
+              },
+              {
+                "name": "onSubmit",
+                "type": "(text: string) => void",
+                "description": "Required. Called with the edited text; replace the message and regenerate from it."
+              },
+              {
+                "name": "disabled",
+                "type": "boolean",
+                "description": "Optional. Disable editing, e.g. while an answer streams."
+              },
+              {
+                "name": "disabledReason",
+                "type": "string",
+                "description": "Optional. Explanation shown when editing is unavailable."
+              },
+              {
+                "name": "versions",
+                "type": "{ index: number; count: number; onIndexChange: (index: number) => void; }",
+                "description": "Optional. Branches of this message, shown as \"2 / 3\"."
+              },
+              {
+                "name": "children",
+                "type": "React.ReactNode",
+                "description": "Optional. How the sent message renders; defaults to the text."
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "cavemio-response-versions",
+      "type": "registry:component",
+      "title": "Response Versions",
+      "description": "Step between regenerated answers with \"2 / 3\", and regenerate without losing the old ones.",
+      "dependencies": ["lucide-react"],
+      "files": [
+        {
+          "path": "registry/components/response-versions.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/number-roll.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "css": {
+        "@keyframes ui-col-in": {
+          "from": {
+            "max-width": "0",
+            "opacity": "0"
+          },
+          "to": {
+            "max-width": "1em",
+            "opacity": "1"
+          }
+        },
+        "@keyframes ui-col-out": {
+          "from": {
+            "max-width": "1em",
+            "opacity": "1"
+          },
+          "to": {
+            "max-width": "0",
+            "opacity": "0"
+          }
+        }
+      },
+      "meta": {
+        "license": "MIT",
+        "cavemio": {
+          "component": "response-versions",
+          "exportName": "ResponseVersions",
+          "usage": "import { ResponseVersions } from \"@/components/response-versions\";\n\n<ResponseVersions count={versions.length} index={index} onIndexChange={setIndex} onRegenerate={regenerate} regenerating={busy}>\n  {versions[index]}\n</ResponseVersions>",
+          "accessibility": "Native previous/next buttons are disabled at the ends. The version counter is announced politely. Leaving content is inert and hidden from assistive technology. Regenerate is disabled while busy; reduced motion swaps content immediately and disables the spinner and counter movement.",
+          "previewNote": "A separate assistant-answer wrapper sharing Number Roll with Message Edit. Demo regeneration is simulated locally. The caller owns version history, selected index, and generation requests.",
+          "categories": ["ai"],
+          "documentation": {
+            "useCases": [],
+            "features": [],
+            "states": [],
+            "props": [
+              {
+                "name": "count",
+                "type": "number",
+                "description": "Required. Total number of response versions."
+              },
+              {
+                "name": "index",
+                "type": "number",
+                "description": "Required. Zero-based index of the version shown."
+              },
+              {
+                "name": "onIndexChange",
+                "type": "(index: number) => void",
+                "description": "Required. Called with the zero-based index to display."
+              },
+              {
+                "name": "onRegenerate",
+                "type": "() => void",
+                "description": "Optional. Called when a new response is requested."
+              },
+              {
+                "name": "regenerating",
+                "type": "boolean",
+                "description": "Optional. Whether a new response is being generated."
+              },
+              {
+                "name": "children",
+                "type": "React.ReactNode",
+                "description": "Required. The current version's content."
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "cavemio-drop-zone-membrane",
+      "type": "registry:component",
+      "title": "Drop Zone Membrane",
+      "description": "A responsive membrane drop zone with shadcn attachments, upload progress, processing, retry and cancellation.",
+      "dependencies": [
+        "lucide-react",
+        "@base-ui/react@^1.9.0",
+        "class-variance-authority@^0.7.1",
+        "cn@^0.4.0",
+        "motion@14.2.0"
+      ],
+      "files": [
+        {
+          "path": "registry/components/drop-zone-membrane.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/use-membrane.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/ui-interaction-motion.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/text-morph.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/membrane-attachment.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/attachment.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/attachment-button.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/number-roll.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "css": {
+        "@utility shimmer": {
+          "mask-image": "linear-gradient(110deg, #000 35%, #0006 50%, #000 65%)",
+          "mask-size": "250% 100%",
+          "animation": "attachment-shimmer 2s linear infinite",
+          "@media (prefers-reduced-motion: reduce)": {
+            "animation": "none",
+            "mask-image": "none"
+          }
+        },
+        "@keyframes attachment-shimmer": {
+          "from": {
+            "mask-position": "150% 0"
+          },
+          "to": {
+            "mask-position": "-50% 0"
+          }
+        },
+        "@keyframes ui-col-in": {
+          "from": {
+            "max-width": "0",
+            "opacity": "0"
+          },
+          "to": {
+            "max-width": "1em",
+            "opacity": "1"
+          }
+        },
+        "@keyframes ui-col-out": {
+          "from": {
+            "max-width": "1em",
+            "opacity": "1"
+          },
+          "to": {
+            "max-width": "0",
+            "opacity": "0"
+          }
+        }
+      },
+      "meta": {
+        "license": "MIT",
+        "cavemio": {
+          "component": "drop-zone-membrane",
+          "exportName": "DropZoneMembrane",
+          "usage": "import { DropZoneMembrane } from \"@/components/drop-zone-membrane\";\n\n<DropZoneMembrane accept=\"image/*,.pdf\" maxSize={10_000_000} maxFiles={2} onFilesChange={setFiles} onUpload={uploadFile} />",
+          "accessibility": "Native button supports Enter and Space to browse, and focused paste. File updates are announced politely; progress bars are labelled; retry and remove actions name their file. Files appear directly as attachment cards. Reduced motion disables membrane bending, card entry motion and shimmer. Attachment icons and labels animate within a persistent card, and reduced motion uses immediate state changes. Upload and retry actions transfer focus to the stable remove button.",
+          "previewNote": "The preview simulates upload progress locally; supply onUpload for a real service. Without it, selected files remain ready to upload.",
+          "categories": ["interactions"],
+          "documentation": {
+            "useCases": [],
+            "features": [],
+            "states": [],
+            "props": [
+              {
+                "name": "onUpload",
+                "type": "DropZoneMembraneUpload",
+                "description": "Optional. Uploads one file: report progress, honour the signal, resolve when done or throw to show an error with Retry."
+              },
+              {
+                "name": "autoUpload",
+                "type": "boolean",
+                "description": "Optional. Start uploads on selection. False exposes an Upload action on each ready file."
+              },
+              {
+                "name": "onFilesChange",
+                "type": "(files: File[]) => void",
+                "description": "Optional. The files currently in the list, after every add and remove."
+              },
+              {
+                "name": "accept",
+                "type": "string",
+                "description": "Optional. Like an input's accept: MIME types, wildcards and extensions, e.g. \"image/*,.pdf\"."
+              },
+              {
+                "name": "maxSize",
+                "type": "number",
+                "description": "Optional. Largest file in bytes."
+              },
+              {
+                "name": "maxFiles",
+                "type": "number",
+                "description": "Optional. Maximum number of files accepted in the list."
+              },
+              {
+                "name": "multiple",
+                "type": "boolean",
+                "description": "Optional. One file at a time: a new drop replaces it."
+              },
+              {
+                "name": "title",
+                "type": "string",
+                "description": "Optional. The resting label."
+              },
+              {
+                "name": "hint",
+                "type": "string",
+                "description": "Optional. File requirements in the tray footer, e.g. \"PNG, JPG or PDF, up to 10 MB\"."
+              },
+              {
+                "name": "disabled",
+                "type": "boolean",
+                "description": "Optional. Disable user interaction."
+              },
+              {
+                "name": "ref",
+                "type": "React.Ref<DropZoneMembraneHandle>",
+                "description": "Optional. Ref exposing the file-picker controls."
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "cavemio-step-timeline",
+      "type": "registry:component",
+      "title": "Step Timeline",
+      "description": "An expanding step selector with timed progress and accessible manual navigation.",
+      "author": "Cavemio",
+      "files": [
+        {
+          "path": "registry/components/step-timeline.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/lifecycle-motion.ts",
+          "type": "registry:component"
+        }
+      ],
+      "meta": {
+        "license": "MIT",
+        "cavemio": {
+          "component": "step-timeline",
+          "exportName": "StepTimeline",
+          "usage": "import { StepTimeline } from \"@/components/step-timeline\";\n\n<StepTimeline steps={steps} value={stage} onValueChange={setStage} />",
+          "accessibility": "Native buttons with pressed and expanded states, arrow/Home/End navigation, disabled support, and a pause control. Playback pauses on hover, keyboard focus, offscreen, and hidden tabs. Reduced motion disables timed progression and transitions.",
+          "previewNote": "An expanding stage selector with controlled selection and optional autoplay.",
+          "categories": ["blocks", "interactions"],
+          "documentation": {
+            "useCases": [],
+            "features": [],
+            "states": [],
+            "props": [
+              {
+                "name": "steps",
+                "type": "readonly TimelineStep[]",
+                "description": "Required. Nonempty steps with unique, stable IDs."
+              },
+              {
+                "name": "value",
+                "type": "string",
+                "description": "Optional. Controlled selected step ID."
+              },
+              {
+                "name": "defaultValue",
+                "type": "string",
+                "description": "Optional. Initial selection when uncontrolled."
+              },
+              {
+                "name": "onValueChange",
+                "type": "(value: string) => void",
+                "description": "Optional. Called when the selection changes."
+              },
+              {
+                "name": "autoPlay",
+                "type": "boolean",
+                "description": "Optional. Opt in to timed progression."
+              },
+              {
+                "name": "duration",
+                "type": "number",
+                "description": "Optional. Duration of each timeline step in milliseconds."
+              },
+              {
+                "name": "disabled",
+                "type": "boolean",
+                "description": "Optional. Disable user interaction."
+              },
+              {
+                "name": "ariaLabel",
+                "type": "string",
+                "description": "Optional. Accessible name for the component."
+              },
+              {
+                "name": "className",
+                "type": "string",
+                "description": "Optional. Additional CSS classes for the root element."
+              },
+              {
+                "name": "style",
+                "type": "CSSProperties",
+                "description": "Optional. Inline styles for the root element."
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "cavemio-request-lifecycle-preview",
+      "type": "registry:component",
+      "title": "Request Lifecycle Preview",
+      "description": "A persistent request card with Asked, Planned, Shipped and Answered scenes.",
+      "author": "Cavemio",
+      "files": [
+        {
+          "path": "registry/components/request-lifecycle-preview.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/lifecycle-motion.ts",
+          "type": "registry:component"
+        }
+      ],
+      "meta": {
+        "license": "MIT",
+        "cavemio": {
+          "component": "request-lifecycle-preview",
+          "exportName": "RequestLifecyclePreview",
+          "usage": "import { RequestLifecyclePreview } from \"@/components/request-lifecycle-preview\";\n\n<RequestLifecyclePreview stage={stage} data={requestData} />",
+          "accessibility": "Inactive scenes are inert and hidden from assistive technology. Reduced motion disables movement, fades and vote counting. Layout measures wrapping content to avoid clipping.",
+          "previewNote": "Four lifecycle scenes with local demo content. Supply your own data and connect the selected stage to your application.",
+          "categories": ["blocks"],
+          "documentation": {
+            "useCases": [],
+            "features": [],
+            "states": [],
+            "props": [
+              {
+                "name": "stage",
+                "type": "RequestLifecycleStage",
+                "description": "Required. Current stage of the request lifecycle."
+              },
+              {
+                "name": "data",
+                "type": "RequestLifecycleData",
+                "description": "Required. Request title and description, votes, voters, activity, roadmap, release, and email content."
+              },
+              {
+                "name": "labels",
+                "type": "{ pending?: string; planned?: string; completed?: string; votes?: string; emailed?: string; voters?: string; justNow?: string; }",
+                "description": "Optional. Translations for lifecycle status and supporting labels."
+              },
+              {
+                "name": "className",
+                "type": "string",
+                "description": "Optional. Additional CSS classes for the root element."
+              },
+              {
+                "name": "style",
+                "type": "CSSProperties",
+                "description": "Optional. Inline styles for the root element."
+              },
+              {
+                "name": "ariaLabel",
+                "type": "string",
+                "description": "Optional. Accessible name for the component."
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "cavemio-clarifying-question",
+      "type": "registry:component",
+      "title": "Clarifying Question",
+      "description": "The agent pauses to ask. Pick with a click or a number key, or type your own; it folds into a one-line receipt.",
+      "dependencies": ["lucide-react"],
+      "files": [
+        {
+          "path": "registry/components/clarifying-question.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/number-roll.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/text-morph.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "css": {
+        "@keyframes ui-fade-in": {
+          "from": {
+            "opacity": "0"
+          },
+          "to": {
+            "opacity": "1"
+          }
+        },
+        "@keyframes ui-ping": {
+          "from": {
+            "transform": "scale(1)",
+            "opacity": "0.55"
+          },
+          "to": {
+            "transform": "scale(2.6)",
+            "opacity": "0"
+          }
+        },
+        "@keyframes ui-sheen": {
+          "from": {
+            "mask-position": "150% 0"
+          },
+          "to": {
+            "mask-position": "-50% 0"
+          }
+        },
+        "@keyframes ui-col-in": {
+          "from": {
+            "max-width": "0",
+            "opacity": "0"
+          },
+          "to": {
+            "max-width": "1em",
+            "opacity": "1"
+          }
+        },
+        "@keyframes ui-col-out": {
+          "from": {
+            "max-width": "1em",
+            "opacity": "1"
+          },
+          "to": {
+            "max-width": "0",
+            "opacity": "0"
+          }
+        }
+      },
+      "meta": {
+        "license": "MIT",
+        "cavemio": {
+          "component": "clarifying-question",
+          "exportName": "ClarifyingQuestion",
+          "usage": "import { ClarifyingQuestion } from \"@/components/clarifying-question\";\n\n<ClarifyingQuestion question=\"Which shop is this plan for?\" options={[{ id: \"main\", label: \"Main Street\" }, { id: \"harbour\", label: \"Harbour Road\" }]} onAnswer={handleAnswer} />",
+          "accessibility": "Options are labelled radio buttons or checkboxes. Arrow keys move between rows; number keys pick options. Enter submits custom text and Escape returns to options. Answered options are inert and a status region announces the receipt. Reduced motion disables folding, the status pulse, and text/counter movement.",
+          "previewNote": "Reuses Number Roll and Text Morph. Demo answers stay local; connect onAnswer and onSkip to your application or AI tool output.",
+          "categories": ["ai"],
+          "documentation": {
+            "useCases": [],
+            "features": [],
+            "states": [],
+            "props": [
+              {
+                "name": "question",
+                "type": "string",
+                "description": "Required. Question displayed to the user."
+              },
+              {
+                "name": "detail",
+                "type": "string",
+                "description": "Optional. Supporting explanation below the question."
+              },
+              {
+                "name": "options",
+                "type": "QuestionOption[]",
+                "description": "Required. Available choices with stable IDs and labels."
+              },
+              {
+                "name": "multiple",
+                "type": "boolean",
+                "description": "Optional. Allow several answers, confirmed with Continue."
+              },
+              {
+                "name": "allowOther",
+                "type": "boolean",
+                "description": "Optional. Offer \"Something else\" with a field."
+              },
+              {
+                "name": "otherLabel",
+                "type": "string",
+                "description": "Optional. Label for the custom-answer choice."
+              },
+              {
+                "name": "answer",
+                "type": "QuestionAnswer | null",
+                "description": "Optional. The answer once given, e.g. the tool's output; shows the folded line."
+              },
+              {
+                "name": "onAnswer",
+                "type": "(answer: QuestionAnswer) => void",
+                "description": "Required. Called with the selected or custom answer."
+              },
+              {
+                "name": "onSkip",
+                "type": "() => void",
+                "description": "Optional. Shows Skip; the agent continues with its own choice."
+              },
+              {
+                "name": "skipped",
+                "type": "boolean",
+                "description": "Optional. Whether the question has been skipped."
+              },
+              {
+                "name": "skippedText",
+                "type": "string",
+                "description": "Optional. Text displayed for a skipped question."
+              },
+              {
+                "name": "autoFocus",
+                "type": "boolean",
+                "description": "Optional. Move focus into the question when it appears."
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "cavemio-command-palette",
+      "type": "registry:component",
+      "title": "Command Palette",
+      "description": "Search commands from a compact keyboard shortcut trigger with fuzzy matching, nested actions, and a moving result highlight.",
+      "files": [
+        {
+          "path": "registry/components/command-palette.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/text-morph.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/kbd.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "meta": {
+        "license": "MIT",
+        "cavemio": {
+          "component": "command-palette",
+          "exportName": "CommandPalette",
+          "usage": "import { CommandPalette } from \"@/components/command-palette\";\n\n<CommandPalette items={[{ id: \"home\", label: \"Home\", href: \"/\" }]} />",
+          "accessibility": "Modal dialog with combobox/listbox semantics, keyboard navigation, focus return, inert background, and live reduced motion. Commands receive an abort signal; stale completions cannot close a new session.",
+          "previewNote": "Demo commands run locally; callers supply items and navigation callbacks.",
+          "categories": ["interactions"],
+          "documentation": {
+            "useCases": [],
+            "features": [],
+            "states": [],
+            "props": [
+              {
+                "name": "items",
+                "type": "CommandItem[]",
+                "description": "Required. Commands and groups available in the palette."
+              },
+              {
+                "name": "placeholder",
+                "type": "string",
+                "description": "Optional. Placeholder shown in the search field."
+              },
+              {
+                "name": "searchLabel",
+                "type": "string",
+                "description": "Optional. Accessible name of the search field."
+              },
+              {
+                "name": "hotkey",
+                "type": "string",
+                "description": "Optional. The letter that opens it with ⌘ (or Ctrl). Empty string turns the hotkey off."
+              },
+              {
+                "name": "open",
+                "type": "boolean",
+                "description": "Optional. Controlled open state of the palette."
+              },
+              {
+                "name": "defaultOpen",
+                "type": "boolean",
+                "description": "Optional. Initial open state when uncontrolled."
+              },
+              {
+                "name": "onOpenChange",
+                "type": "(open: boolean) => void",
+                "description": "Optional. Called when the palette opens or closes."
+              },
+              {
+                "name": "showTrigger",
+                "type": "boolean",
+                "description": "Optional. Show the command menu trigger. Without it, open with the hotkey or the open prop."
+              },
+              {
+                "name": "triggerLabel",
+                "type": "string",
+                "description": "Optional. The pill's words."
+              },
+              {
+                "name": "triggerIcon",
+                "type": "React.ReactNode",
+                "description": "Optional. Leading trigger icon. Defaults to search; pass null to omit it."
+              },
+              {
+                "name": "filters",
+                "type": "CommandFilter[]",
+                "description": "Optional. Caller-owned active search scopes. The caller also filters items."
+              },
+              {
+                "name": "filtersLabel",
+                "type": "string",
+                "description": "Optional. Accessible name for the active search filters."
+              },
+              {
+                "name": "onFilterRemove",
+                "type": "(id: string) => void",
+                "description": "Optional. Called with the ID of a removed filter."
+              },
+              {
+                "name": "footer",
+                "type": "React.ReactNode",
+                "description": "Optional. Help copy, links, or actions alongside the keyboard hints."
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "cavemio-kbd",
+      "type": "registry:component",
+      "title": "Kbd",
+      "description": "Platform-aware keyboard keycaps with live press feedback and optional shortcut callbacks.",
+      "author": "Cavemio",
+      "files": [
+        {
+          "path": "registry/components/kbd.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "meta": {
+        "license": "MIT",
+        "cavemio": {
+          "component": "kbd",
+          "exportName": "Kbd",
+          "usage": "import { Kbd } from \"@/components/kbd\";\n\n<Kbd hotkey=\"k\" onTrigger={() => setOpen(true)} stopPropagation aria-label=\"Open commands\" />",
+          "accessibility": "Semantic keycaps; interactive shortcuts use a native button with Enter/Space activation, focus feedback, disabled support, and aria-keyshortcuts. Repeated and composing key events do not trigger callbacks.",
+          "previewNote": "Hold keys to see live feedback. Reduced motion keeps color and shadow feedback without movement; demo shortcuts stay local.",
+          "categories": ["interactions"],
+          "documentation": {
+            "useCases": [],
+            "features": [],
+            "states": [],
+            "props": [
+              {
+                "name": "keys",
+                "type": "string[] | string",
+                "description": "Optional. Individual keys as an array or plus-separated string, e.g. mod+shift+p. Display only; hotkey controls callback binding."
+              },
+              {
+                "name": "live",
+                "type": "boolean",
+                "description": "Optional, defaults to false. Track held keys with 1px press feedback. Does not claim keyboard events; disabled suppresses tracking."
+              },
+              {
+                "name": "size",
+                "type": "\"sm\" | \"md\"",
+                "description": "Optional, defaults to md. Individual keycap size for keys or live hotkey feedback."
+              },
+              {
+                "name": "hotkey",
+                "type": "string",
+                "description": "Optional. Key combined with Cmd or Ctrl, e.g. \"k\". Empty/omitted disables the shortcut."
+              },
+              {
+                "name": "label",
+                "type": "React.ReactNode",
+                "description": "Optional. Action label displayed beside the keycap in a full-size surface."
+              },
+              {
+                "name": "onTrigger",
+                "type": "( event: KeyboardEvent | React.MouseEvent<HTMLButtonElement>, ) => void",
+                "description": "Optional. Called once by a click, Enter/Space, or the matching global shortcut."
+              },
+              {
+                "name": "stopPropagation",
+                "type": "boolean",
+                "description": "Optional. Stop clicks and matching shortcuts before they reach ancestor handlers."
+              },
+              {
+                "name": "ref",
+                "type": "React.Ref<HTMLButtonElement>",
+                "description": "Optional. Button ref, available when onTrigger is supplied."
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "cavemio-text-morph",
+      "type": "registry:component",
+      "title": "Text Morph",
+      "description": "Animate changing text with shared letters that move into place, soft arrivals, and a smoothly resizing width.",
+      "dependencies": [],
+      "files": [
+        {
+          "path": "registry/components/text-morph.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "meta": {
+        "license": "MIT",
+        "cavemio": {
+          "component": "text-morph",
+          "exportName": "TextMorph",
+          "usage": "import { TextMorph } from \"@/components/text-morph\";\n\n<TextMorph>{saved ? \"Saved\" : \"Save\"}</TextMorph>",
+          "accessibility": "The readable text stays available to assistive technology while decorative glyphs are hidden. Reduced motion swaps the label in place and clears outgoing glyphs. Use animateWidth={false} for wrapping text.",
+          "previewNote": "Demo values are local; no network requests.",
+          "documentation": {
+            "useCases": [
+              {
+                "title": "Button labels",
+                "description": "Move between Save, Saving and Saved in the same button."
+              },
+              {
+                "title": "Hero headlines",
+                "description": "Change one word while keeping the rest of a sentence anchored."
+              },
+              {
+                "title": "Status labels",
+                "description": "Let a badge explain a change without a sudden text swap."
+              },
+              {
+                "title": "Plan names",
+                "description": "Update a selected plan or billing label in place."
+              }
+            ],
+            "features": [
+              {
+                "title": "Shared letters keep their place",
+                "description": "Matching characters stay mounted and move to their next position."
+              },
+              {
+                "title": "A soft entrance and exit",
+                "description": "New letters arrive with a short stagger; outgoing characters lift and fade."
+              },
+              {
+                "title": "The width follows the words",
+                "description": "The surrounding inline box resizes as the label changes."
+              },
+              {
+                "title": "Readable without motion",
+                "description": "A real text layer remains available, with a static reduced-motion presentation."
+              }
+            ],
+            "states": [
+              {
+                "title": "Shared letters",
+                "description": "Matching glyphs move between their previous and new positions."
+              },
+              {
+                "title": "New and leaving letters",
+                "description": "New characters enter; removed characters blur and fade away."
+              },
+              {
+                "title": "Unrelated labels",
+                "description": "Labels with little overlap transition as whole groups."
+              },
+              {
+                "title": "Reduced motion",
+                "description": "Text updates immediately without spatial animation."
+              }
+            ],
+            "props": [
+              {
+                "name": "children",
+                "type": "string",
+                "description": "The current label. Change it to start a morph."
+              },
+              {
+                "name": "duration",
+                "type": "number · 460",
+                "description": "Duration in milliseconds."
+              },
+              {
+                "name": "direction",
+                "type": "\"up\" | \"down\"",
+                "description": "The direction new characters enter from. Defaults to up."
+              },
+              {
+                "name": "animateWidth",
+                "type": "boolean · true",
+                "description": "Animate the inline width; disable for multi-line text."
+              }
+            ]
+          },
+          "categories": ["text"]
+        }
+      }
+    },
+    {
+      "name": "cavemio-number-roll",
+      "type": "registry:component",
+      "title": "Number Roll",
+      "description": "Numbers that move with their value. Each changing digit rolls into place, with support for currency, compact notation, and live counters.",
+      "dependencies": [],
+      "files": [
+        {
+          "path": "registry/components/number-roll.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "meta": {
+        "license": "MIT",
+        "cavemio": {
+          "component": "number-roll",
+          "exportName": "NumberRoll",
+          "usage": "import { NumberRoll } from \"@/components/number-roll\";\n\n<NumberRoll value={1248} locales=\"en-US\" />\n<NumberRoll\n  value={49}\n  format={{ style: \"currency\", currency: \"USD\" }}\n/>",
+          "accessibility": "The full formatted value is available as real text to screen readers. Decorative digit columns are hidden. Tabular figures keep the digits aligned; reduced motion disables digit rolling.",
+          "previewNote": "Demo values are local; no network requests.",
+          "documentation": {
+            "useCases": [
+              {
+                "title": "Pricing pages",
+                "description": "Animate a price when the billing period or plan changes."
+              },
+              {
+                "title": "Live dashboards",
+                "description": "Keep changing metrics readable as new data arrives."
+              },
+              {
+                "title": "Landing page stats",
+                "description": "Roll a number from an initial value when the component mounts."
+              },
+              {
+                "title": "Countdowns and timers",
+                "description": "Use a fixed downward direction for decreasing values."
+              }
+            ],
+            "features": [
+              {
+                "title": "Digits follow the value",
+                "description": "Each column rolls in the direction the number moves."
+              },
+              {
+                "title": "Room for another digit",
+                "description": "New places expand into the number and removed places fold away."
+              },
+              {
+                "title": "Formatting built in",
+                "description": "Pass Intl.NumberFormat options for currency, percentages and compact values."
+              },
+              {
+                "title": "Real text underneath",
+                "description": "Assistive technology and copy-and-paste receive the formatted value."
+              }
+            ],
+            "states": [
+              {
+                "title": "Rolling",
+                "description": "Changed digits roll to their next value; unchanged places stay still."
+              },
+              {
+                "title": "Growing",
+                "description": "Additional digit places open when the value grows."
+              },
+              {
+                "title": "Shrinking",
+                "description": "Places no longer needed collapse from the number."
+              },
+              {
+                "title": "Initial count-up",
+                "description": "Supply from to animate from a starting number after mount."
+              }
+            ],
+            "props": [
+              {
+                "name": "value",
+                "type": "number",
+                "description": "The number to display."
+              },
+              {
+                "name": "format",
+                "type": "Intl.NumberFormatOptions",
+                "description": "Currency, percent, decimals, compact notation or grouping."
+              },
+              {
+                "name": "locales",
+                "type": "string | string[]",
+                "description": "Locale used to format the number."
+              },
+              {
+                "name": "prefix / suffix",
+                "type": "string",
+                "description": "Text placed before or after the formatted number."
+              },
+              {
+                "name": "from",
+                "type": "number",
+                "description": "Optional starting value for the initial count-up."
+              },
+              {
+                "name": "duration",
+                "type": "number · 900",
+                "description": "Roll duration in milliseconds."
+              },
+              {
+                "name": "direction",
+                "type": "\"up\" | \"down\"",
+                "description": "Override the direction inferred from value changes."
+              }
+            ]
+          },
+          "categories": ["text"]
+        }
+      },
+      "css": {
+        "@keyframes ui-col-in": {
+          "from": {
+            "max-width": "0",
+            "opacity": "0"
+          },
+          "to": {
+            "max-width": "1em",
+            "opacity": "1"
+          }
+        },
+        "@keyframes ui-col-out": {
+          "from": {
+            "max-width": "1em",
+            "opacity": "1"
+          },
+          "to": {
+            "max-width": "0",
+            "opacity": "0"
+          }
+        }
+      }
+    },
+    {
+      "name": "cavemio-select",
+      "type": "registry:component",
+      "title": "Select",
+      "description": "Choose from an expanding pill with a gliding highlight, keyboard navigation, and a morphing label.",
+      "files": [
+        {
+          "path": "registry/components/select.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/field.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/pill-select.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/text-morph.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/ui-interaction-motion.ts",
+          "type": "registry:component"
+        }
+      ],
+      "meta": {
+        "license": "MIT",
+        "cavemio": {
+          "component": "select",
+          "exportName": "Select",
+          "usage": "import { Select } from \"@/components/select\";\n\n<Select label=\"Plan\" options={[{ value: \"personal\", label: \"Personal\" }, { value: \"team\", label: \"Team\" }]} defaultValue=\"personal\" />",
+          "accessibility": "Labeled listbox with arrow keys, Home/End, typeahead, Enter/Space selection, Escape dismissal, focus restoration, and live reduced-motion support.",
+          "previewNote": "Try choosing a plan, typing to find a language, and scrolling the long list.",
+          "categories": ["interactions"],
+          "documentation": {
+            "props": [
+              {
+                "name": "options",
+                "type": "SelectOption[]",
+                "description": "Choices with unique value, label, and optional description."
+              },
+              {
+                "name": "label",
+                "type": "string",
+                "description": "Visible label and accessible name."
+              },
+              {
+                "name": "value",
+                "type": "string | null",
+                "description": "Controlled selection; use onValueChange to update it."
+              },
+              {
+                "name": "defaultValue",
+                "type": "string | null",
+                "description": "Initial uncontrolled selection."
+              },
+              {
+                "name": "onValueChange",
+                "type": "(value: string) => void",
+                "description": "Called when a different option is selected."
+              },
+              {
+                "name": "hint / error",
+                "type": "ReactNode",
+                "description": "Supporting text or validation feedback linked to the control."
+              },
+              {
+                "name": "disabled",
+                "type": "boolean",
+                "description": "Prevents opening and selection."
+              },
+              {
+                "name": "hideLabel",
+                "type": "boolean",
+                "description": "Visually hides the label while retaining its accessible name."
+              },
+              {
+                "name": "block",
+                "type": "boolean",
+                "description": "Fill available width; defaults to true. Compact pills morph their label."
+              },
+              {
+                "name": "size",
+                "type": "\"sm\" | \"md\"",
+                "description": "Compact toolbar or regular field height."
+              },
+              {
+                "name": "align / width",
+                "type": "\"start\" | \"end\" / number",
+                "description": "Popup alignment and preferred width, constrained to viewport."
+              },
+              {
+                "name": "display / renderValue",
+                "type": "function",
+                "description": "Customize selected text or render an icon/value."
+              },
+              {
+                "name": "className",
+                "type": "string",
+                "description": "Styles the field wrapper."
+              }
+            ],
+            "useCases": [],
+            "features": [],
+            "states": []
+          }
+        }
+      }
+    },
+    {
+      "name": "cavemio-theme-toggle",
+      "type": "registry:component",
+      "title": "Theme Toggle",
+      "description": "Switch between a sun and crescent moon inside one circular button.",
+      "files": [
+        {
+          "path": "registry/components/theme-toggle.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/use-theme-wipe.ts",
+          "type": "registry:component"
+        }
+      ],
+      "meta": {
+        "cavemio": {
+          "component": "theme-toggle",
+          "exportName": "ThemeToggle",
+          "usage": "\"use client\";\n\nimport { useState } from \"react\";\nimport { ThemeToggle } from \"@/components/theme-toggle\";\n\n// Your CSS must define light/dark colors for this attribute.\nexport function AppearanceToggle() {\n  const [theme, setTheme] = useState<\"light\" | \"dark\">(\"light\");\n  return (\n    <ThemeToggle\n      theme={theme}\n      pageTransition=\"circular\"\n      onThemeChange={(next) => {\n        document.documentElement.dataset.theme = next;\n        setTheme(next);\n      }}\n    />\n  );\n}",
+          "accessibility": "Native button with a destination label, pressed state, keyboard activation, visible focus, disabled behavior, and live reduced-motion support.",
+          "previewNote": "Optional pageTransition=\"circular\" reveals the new page theme from the button while the icon morphs. Apply your theme class, data attribute, or synchronous React state inside onThemeChange; the component does not define colors or persist preferences. Without the option, only the icon animates. Unsupported browsers, reduced motion, hidden documents, and failed captures switch immediately. Resize or enabling reduced motion settles an active wipe; repeated activation keeps the latest choice. An iframe only animates its own document. Deferred provider updates and router transitions need app coordination; use pageTransition=\"none\" until integrated. With a strict style CSP, pass an allowed nonce. The demo starts with the wipe enabled. Use the With wipe and Without wipe tabs to compare. On the website, the demo changes the entire site theme and stays synchronized with the header.",
+          "categories": ["interactions"],
+          "documentation": {
+            "props": [
+              {
+                "name": "theme",
+                "type": "\"light\" | \"dark\"",
+                "description": "Controlled appearance; pair with onThemeChange."
+              },
+              {
+                "name": "defaultTheme",
+                "type": "\"light\" | \"dark\"",
+                "description": "Initial uncontrolled appearance. Defaults to light."
+              },
+              {
+                "name": "onThemeChange",
+                "type": "(theme: \"light\" | \"dark\") => void",
+                "description": "Receives the next appearance when activated. The host owns document theme and persistence."
+              },
+              {
+                "name": "pageTransition",
+                "type": "\"none\" | \"circular\"",
+                "description": "Defaults to none. Circular opts into a 620ms document reveal and keeps button scale stable. onThemeChange must apply theme styles synchronously; reduced motion or unavailable transitions switch immediately."
+              },
+              {
+                "name": "size",
+                "type": "number",
+                "description": "Button diameter in pixels. Defaults to 48, with a minimum 44px hit area."
+              },
+              {
+                "name": "disabled",
+                "type": "boolean",
+                "description": "Disables pointer and keyboard activation."
+              },
+              {
+                "name": "className / style",
+                "type": "string / CSSProperties",
+                "description": "Customize the button surface and dimensions."
+              },
+              {
+                "name": "aria-label",
+                "type": "string",
+                "description": "Override the default destination label. Native button props are forwarded."
+              },
+              {
+                "name": "nonce",
+                "type": "string",
+                "description": "Optional CSP nonce for the temporary transition stylesheet. Use your server-generated allowed style nonce."
+              }
+            ],
+            "useCases": [],
+            "features": [],
+            "states": []
+          }
+        }
+      }
+    }
+  ]
+}
