@@ -8,6 +8,7 @@ const config: StorybookConfig = {
   addons: ["@storybook/addon-docs"],
   framework: "@storybook/react-vite",
   staticDirs: [
+    { from: "../tests/fixtures/video", to: "/video-fixtures" },
     { from: "../public/fonts", to: "/fonts" },
     { from: "../public/lifecycle", to: "/lifecycle" },
   ],

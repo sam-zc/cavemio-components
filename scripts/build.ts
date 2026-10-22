@@ -4,7 +4,9 @@ import {
   mkdir,
   readdir,
   copyFile,
+  access,
 } from "node:fs/promises";
+import { dirname, resolve, relative } from "node:path";
 import { createHash } from "node:crypto";
 import { build } from "esbuild";
 import { execFileSync } from "node:child_process";
@@ -93,11 +95,18 @@ for (const definition of registry.items) {
     },
     bundle: true,
     minify: true,
-    format: "iife",
+    format: meta.component === "video-player" ? "esm" : "iife",
+    splitting: meta.component === "video-player",
     jsx: "automatic",
     define: { "process.env.NODE_ENV": '"production"' },
-    outfile: `public/previews/${item.name}.js`,
-    legalComments: "none",
+    ...(meta.component === "video-player"
+      ? {
+          outdir: "public/previews",
+          entryNames: item.name,
+          chunkNames: `${item.name}-[name]-[hash]`,
+        }
+      : { outfile: `public/previews/${item.name}.js` }),
+    legalComments: meta.component === "video-player" ? "external" : "none",
   });
   nativeEntries.push({
     component: meta.component,
@@ -109,10 +118,11 @@ for (const definition of registry.items) {
       nativeSourcePaths.add(input);
   }
   // Keep existing distribution paths while omitting extracted comment text.
-  await writeFile(`public/previews/${item.name}.js.LEGAL.txt`, "");
+  if (meta.component !== "video-player")
+    await writeFile(`public/previews/${item.name}.js.LEGAL.txt`, "");
   await writeFile(
     `public/previews/${item.name}.html`,
-    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="cavemio-source-sha256" content="${sourceSha256}"><title>${item.title}</title><link rel="stylesheet" href="./styles.css"></head><body><main id="root"></main><script defer src="./${item.name}.js"></script></body></html>`,
+    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="cavemio-source-sha256" content="${sourceSha256}"><title>${item.title}</title><link rel="stylesheet" href="./styles.css"></head><body><main id="root"></main><script ${meta.component === "video-player" ? 'type="module"' : "defer"} src="./${item.name}.js"></script></body></html>`,
   );
   items.push({
     ...meta,
@@ -130,11 +140,35 @@ await writeFile(
   "public/catalog.json",
   JSON.stringify(catalogSchema.parse({ version: 2, items }), null, 2) + "\n",
 );
-const notices = "";
+const notices = await readFile("preview/video-player-notices.txt", "utf8");
 await writeFile("public/previews/THIRD_PARTY_NOTICES.txt", notices);
 // Build-time source installation for native website previews; never runtime TSX.
 const packageJson = JSON.parse(await readFile("package.json", "utf8"));
 const nativeDependencies: Record<string, string> = {};
+// Bundler metafiles omit type-only modules. Native installed source must also
+// close over those imports so downstream TypeScript consumers can compile it.
+for (const path of nativeSourcePaths) {
+  for (const imported of ts.preProcessFile(await readFile(path, "utf8"))
+    .importedFiles) {
+    if (!imported.fileName.startsWith(".")) continue;
+    const base = resolve(dirname(path), imported.fileName);
+    for (const suffix of ["", ".ts", ".tsx", "/index.ts", "/index.tsx"]) {
+      const candidate = relative(process.cwd(), base + suffix).replaceAll(
+        "\\",
+        "/",
+      );
+      if (!/^(preview|registry\/components)\/.*\.tsx?$/.test(candidate))
+        continue;
+      try {
+        await access(candidate);
+        nativeSourcePaths.add(candidate);
+        break;
+      } catch {
+        /* Try the next source extension. */
+      }
+    }
+  }
+}
 const nativeFiles = await Promise.all(
   [...nativeSourcePaths].sort().map(async (path) => {
     const content = await readFile(path, "utf8");

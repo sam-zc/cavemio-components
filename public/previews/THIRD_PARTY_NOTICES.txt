@@ -1,0 +1,24 @@
+Animated Video Player
+
+Original Cavemio component source: MIT, see the project LICENSE.
+
+Runtime dependencies retain their own licenses:
+Shaka Player: Copyright Google LLC, Apache-2.0. https://github.com/shaka-project/shaka-player/blob/main/LICENSE
+HLS.js: Copyright Dailymotion and contributors, Apache-2.0. https://github.com/video-dev/hls.js/blob/master/LICENSE
+GSAP: Copyright GreenSock. Standard no-charge license: https://gsap.com/standard-license/
+Lucide: ISC license. https://lucide.dev/license
+React: Copyright Meta Platforms, Inc. and affiliates. MIT license. https://github.com/facebook/react/blob/main/LICENSE
+
+Bundled license notices for the player are retained in the neighboring .LEGAL.txt files.
+Dependencies are installed from their npm packages; the component registry does not copy their source.
+
+Demo media: Sintel and Big Buck Bunny, Blender Foundation, CC BY 3.0.
+https://studio.blender.org/films/ https://creativecommons.org/licenses/by/3.0/
+Angel One and encrypted test configurations are linked from Shaka's public test catalog:
+https://github.com/shaka-project/shaka-player/blob/main/demo/common/assets.js
+Media is requested from original hosts and is not redistributed in the component.
+Local test-pattern fixtures are generated using FFmpeg lavfi; they contain no third-party footage.
+
+Default demo: Sprite Fright, (CC) Blender Foundation | studio.blender.org, via the public Mux HLS stream.
+https://stream.mux.com/VZtzUzGRv02OhRnZCxcNg49OilvolTqdnFLEqBsTwaxU.m3u8
+Attribution and terms: https://studio.blender.org/projects/sprite-fright/pages/about/

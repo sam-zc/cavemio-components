@@ -6,7 +6,33 @@ Editable React components distributed through a shadcn-compatible registry. Comp
 
 For development, start with [CONTRIBUTING.md](CONTRIBUTING.md) or [AGENTS.md](AGENTS.md). The [documentation index](docs/README.md) links the [six-component audit](docs/component-patterns.md), [motion guide](docs/motion.md), [typography and effects](docs/typography-and-effects.md), and [repo-local skills](docs/skills.md).
 
-## Develop with Storybook
+## Animated Video Player
+
+An adaptive HLS/DASH player with a thin control row, individual gooey hover surfaces,
+and cinematic expansion that preserves the same video element. Shaka is the default;
+HLS.js and native playback are explicit alternatives. Seven examples cover formats,
+quality, diagnostics, engines, motion and authorized DRM testing.
+
+```tsx
+import { VideoPlayer } from "@/components/video-player";
+
+<VideoPlayer
+  src="https://storage.googleapis.com/shaka-demo-assets/sintel/dash.mpd"
+  type="dash"
+  title="Sintel"
+  muted
+/>;
+```
+
+[Storybook](http://127.0.0.1:6006/?path=/story/components-video-player--default) ·
+[Full API and integration guide](docs/video-player.md) ·
+[Verification and limits](docs/video-player-verification.md).
+
+Install `@cavemio/video-player` using the configured namespace described below.
+The new dependencies are GSAP, Shaka Player and HLS.js; only the selected streaming
+engine is initialized. Cavemio source is MIT; dependencies retain their own licenses.
+
+## Storybook development
 
 Use Node 24+ and Bun 1.4.3.
 

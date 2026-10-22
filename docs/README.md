@@ -1,5 +1,8 @@
 # Developer documentation
 
+- [Animated Video Player](video-player.md): API, adapters, DRM, motion, accessibility, diagnostics, and installation.
+- [Video player verification](video-player-verification.md): measured results and platform limits.
+
 Start with [AGENTS.md](../AGENTS.md) for agent instructions or [CONTRIBUTING.md](../CONTRIBUTING.md) for the contributor workflow. [The main README](../README.md) covers usage and installation.
 
 For structural work, start with [architecture](architecture.md), [domain terms](../GLOSSARY.md), and [ADR 0001](adr/0001-source-distribution-and-verification.md). The [workflow decisions](ecosystem-review.md) record authoring and verification choices.

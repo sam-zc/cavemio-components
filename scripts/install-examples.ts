@@ -4,6 +4,11 @@ export const installExamples: Record<
   string,
   { render: string; animations: string[] }
 > = {
+  "video-player": {
+    render:
+      '<VideoPlayer src="https://storage.googleapis.com/shaka-demo-assets/sintel/dash.mpd" type="dash" title="Sintel" muted enableDiagnostics />',
+    animations: [],
+  },
   "theme-toggle": {
     render:
       '<ThemeToggle defaultTheme="light" pageTransition="circular" onThemeChange={(mode) => { document.documentElement.dataset.theme = mode; }} />',

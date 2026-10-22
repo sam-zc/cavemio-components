@@ -1,6 +1,6 @@
 # Verification
 
-Use checks that match the change. `bun run test` covers install-contract tests; `bun run test:browser` runs the real-browser regressions. Build success alone does not verify motion.
+Use checks that match the change. `bun run test` covers install-contract and video utility tests; `bun run test:browser` runs the real-browser regressions. Build success alone does not verify motion.
 
 ## Commands and order
 
@@ -37,7 +37,7 @@ bun run serve
 CAVEMIO_REGISTRY_URL=http://127.0.0.1:4001/ npm run verify:install
 ```
 
-Use **npm** for this last script: it intentionally creates npm consumers and requires npm's executable path. The default matrix has **15 fresh-consumer cases**: fourteen isolated items and one combined installation through the shadcn `@cavemio` namespace. `--installer official` checks direct registry URLs; `--installer both` runs both addressing modes (30 cases). Each case checks source/helpers, dependencies, CSS, consumer aliases, preservation of source/configuration, TypeScript, and a production build of its usage example. Temporary consumers are removed after each case and in `finally`.
+Use **npm** for this last script: it intentionally creates npm consumers and requires npm's executable path. The default matrix has **16 fresh-consumer cases**: fifteen isolated items and one combined installation through the shadcn `@cavemio` namespace. `--installer official` checks direct registry URLs; `--installer both` runs both addressing modes (32 cases). Each case checks source/helpers, dependencies, CSS, consumer aliases, preservation of source/configuration, TypeScript, and a production build of its usage example. Temporary consumers are removed after each case and in `finally`.
 
 ```sh
 # Inspect the matrix without installing anything.
@@ -91,6 +91,8 @@ HTML reports and failure screenshots/traces live in ignored `playwright-report/`
 [Check workflow](../.github/workflows/check.yml) installs locked dependencies, runs format/type/lint/install-contract checks, builds the registry, builds Storybook, and runs Chromium regressions. It uploads browser evidence on failure, has read-only repository permissions, and does not commit, push, or publish artifacts. A successful local run verifies the same commands, not that the hosted workflow has executed.
 
 ## Regression map
+
+Animated Video Player adds [a dedicated suite](../tests/browser/video-player.spec.ts): local generated DASH/HLS/MP4 media, controls, quality, failures/retry, actual MediaSource ownership, cinematic geometry and playback continuity, mobile touch, controlled playback and multiple instances. `VIDEO_PUBLIC_SMOKE=1 bun run test:browser --grep video-player` includes external Shaka/HLS.js playback, authorized Clear Key EME and visual captures. Without that flag, public-network cases are skipped. See [results and limitations](video-player-verification.md).
 
 | Changed area                          | Committed checks                                                                                                                                                                                                                                                                                |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

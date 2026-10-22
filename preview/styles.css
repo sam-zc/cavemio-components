@@ -94,6 +94,12 @@
 .primitive-tabs button[aria-selected="true"] {
   color: var(--primary-foreground);
 }
+.video-player-demo-tabs > .primitive-tabs {
+  position: relative;
+  bottom: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
 .primitive-tab-highlight {
   position: absolute;
   top: 3px;

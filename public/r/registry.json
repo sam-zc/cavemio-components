@@ -1453,6 +1453,191 @@
           }
         }
       }
+    },
+    {
+      "name": "cavemio-video-player",
+      "type": "registry:component",
+      "title": "Animated Video Player",
+      "description": "Real adaptive streaming with quiet controls, liquid surfaces, and cinematic expansion that keeps the video playing.",
+      "dependencies": [
+        "gsap@^3.15.0",
+        "shaka-player@^5.3.1",
+        "hls.js@^1.7.3",
+        "lucide-react@^1.57.0"
+      ],
+      "files": [
+        {
+          "path": "registry/components/video-player.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/video-player-types.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/video-player-utils.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/video-player-store.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/video-player-context.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/video-player-controls.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/video-player-motion.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/video-player-diagnostics.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/video-player-native.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/video-player-shaka.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "registry/components/video-player-hls.ts",
+          "type": "registry:component"
+        }
+      ],
+      "meta": {
+        "license": "MIT",
+        "cavemio": {
+          "component": "video-player",
+          "exportName": "VideoPlayer",
+          "categories": ["interactions"],
+          "usage": "import { VideoPlayer } from \"@/components/video-player\";\n\n<VideoPlayer\n  src=\"https://storage.googleapis.com/shaka-demo-assets/sintel/dash.mpd\"\n  type=\"dash\"\n  title=\"Sintel\"\n  muted\n/>;",
+          "accessibility": "Native labeled buttons and sliders, focus-preserving keyboard menus, scoped shortcuts, touch controls, cinematic focus containment and restoration, live reduced motion. On the focused frame: Space/K play, arrows seek/volume, M mute, F fullscreen, C captions. Shortcuts do not consume input fields or button keys.",
+          "previewNote": "Seven interactive examples cover formats, quality, diagnostics, engine comparison, motion and authorized DRM tests. Public media loads from its original host. DRM success is shown only after the protected stream plays. Browser fullscreen/PiP and commercial CDMs depend on device support. See the source registry documentation and docs/video-player.md for full integration and verification guidance.",
+          "documentation": {
+            "props": [
+              {
+                "name": "src / source",
+                "type": "string / VideoSource",
+                "description": "URL or typed source including format, poster, and caller-provided Shaka DRM configuration. Explicit type is required for extensionless HLS/DASH URLs. Keep DRM configuration referentially stable."
+              },
+              {
+                "name": "type",
+                "type": "hls | dash | mp4",
+                "description": "Optional format hint; otherwise detected from the URL extension."
+              },
+              {
+                "name": "engine",
+                "type": "shaka | hls | native · shaka",
+                "description": "Lazy-load one engine. HLS.js accepts HLS only and falls back to native HLS when MSE is unavailable. Engine changes reload media and restore time for the same URL."
+              },
+              {
+                "name": "poster / title",
+                "type": "string",
+                "description": "Poster URL and accessible video title. Source poster takes precedence."
+              },
+              {
+                "name": "autoPlay / muted / loop",
+                "type": "boolean · false",
+                "description": "Browser media preferences. Autoplay can be rejected by browser policy; user play remains available."
+              },
+              {
+                "name": "playing / onPlayingChange",
+                "type": "boolean / (playing: boolean) => void",
+                "description": "Optional controlled playback intent and actual media-event callback. Omit playing for local control."
+              },
+              {
+                "name": "controls",
+                "type": "boolean · true",
+                "description": "Show the default control composition. Set false and compose exported controls or use onReady for a custom interface."
+              },
+              {
+                "name": "enableGooey",
+                "type": "boolean · true",
+                "description": "SVG filtering applies only to decorative surfaces. False uses a static, unfiltered fallback."
+              },
+              {
+                "name": "enableAnimations / reducedMotion",
+                "type": "boolean · true / boolean · false",
+                "description": "GSAP motion toggle and reduced-motion preview. OS reduced-motion settings always take precedence; changes settle active motion."
+              },
+              {
+                "name": "enableDiagnostics",
+                "type": "boolean · false",
+                "description": "Lazy-load genuine engine/browser metrics and a bounded event timeline. Polls at 1Hz only while the panel is visible; copy exports sanitized JSON."
+              },
+              {
+                "name": "enablePictureInPicture / enableFullscreen",
+                "type": "boolean · true",
+                "description": "Enable PiP and fullscreen controls. The main fullscreen button animates viewport expansion; Settings offers browser fullscreen where supported. Unavailable browser actions are disabled and failed requests are announced."
+              },
+              {
+                "name": "onReady",
+                "type": "(player: VideoPlayerHandle) => void",
+                "description": "Receives normalized play, pause, seek, quality, audio, captions, volume, speed, and retry actions."
+              },
+              {
+                "name": "onError",
+                "type": "(error: PlayerError) => void",
+                "description": "Sanitized error code/category with fatal and retryable flags. Raw URLs, DRM payloads, and tokens are omitted."
+              },
+              {
+                "name": "className / style / children",
+                "type": "string / CSSProperties / ReactNode",
+                "description": "Wrapper customization and composable overlay content. useVideoPlayer/useVideoState expose normalized controls and state."
+              }
+            ],
+            "useCases": [
+              {
+                "title": "HLS and DASH",
+                "description": "Use Shaka for adaptive HLS/DASH and protected streams. Select HLS.js explicitly for HLS. Native playback has fewer quality and diagnostic capabilities."
+              },
+              {
+                "title": "Compose a player",
+                "description": "Set controls={false} and render VideoControls, VideoPlayButton, VideoSeekbar, VideoVolume, or VideoSettings as children. useVideoState selects stable fields; useVideoPlayer exposes normalized actions."
+              },
+              {
+                "title": "Protected playback",
+                "description": "Pass source.drm.servers keyed by com.widevine.alpha, com.microsoft.playready, or com.apple.fps. Advanced Shaka configuration supports certificates and license headers. Use HTTPS, authorized assets, and runtime credentials. FairPlay requires device-specific packaging and certificates; the demo does not certify it."
+              }
+            ],
+            "features": [
+              {
+                "title": "One persistent video",
+                "description": "GSAP interpolates the existing frame geometry into the top layer. No media reload occurs during cinematic expansion. Browser fullscreen is a separate API."
+              },
+              {
+                "title": "Observable playback",
+                "description": "Real bandwidth estimates, rendition bitrate, frame drops, buffer ranges and errors. N/A identifies unavailable measurements. Hidden diagnostics stop polling."
+              },
+              {
+                "title": "Source installation",
+                "description": "React 19, TypeScript, Tailwind CSS 4 and shadcn theme tokens are required. All helpers ship in this registry item; only the selected streaming engine loads at runtime in a splitting bundler."
+              }
+            ],
+            "states": [
+              {
+                "title": "Adaptive or fixed quality",
+                "description": "Auto enables ABR. Manual requests retain buffered segments, so the active rendition may change later. Changing audio returns to Auto to avoid pinning an incompatible variant."
+              },
+              {
+                "title": "Buffering and recovery",
+                "description": "Media/engine events drive loading feedback. Shaka requests retry up to three times with backoff; HLS.js allows two additional fatal recovery attempts. Retry starts a fresh session."
+              },
+              {
+                "title": "Browser limitations and troubleshooting",
+                "description": "Check CORS on manifests, segments, captions and licenses, HTTPS, codecs, MSE/EME support, and autoplay policy. Diagnostics omit credentials. Iframe permission policy can block fullscreen/PiP/DRM; test natively."
+              }
+            ]
+          }
+        }
+      }
     }
   ]
 }
