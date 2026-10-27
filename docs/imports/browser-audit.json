@@ -1,0 +1,1660 @@
+{
+  "checked": "2026-10-28",
+  "scope": "Original reference demos; supersedes simplified fixtures",
+  "scenes": 179,
+  "modes": 418,
+  "entries": [
+    {
+      "component": "button",
+      "modes": ["Showcase", "Async state", "Sizes"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/button-*.png"
+    },
+    {
+      "component": "button-group",
+      "modes": ["Connected", "Solid", "Vertical"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/button-group-*.png"
+    },
+    {
+      "component": "split-button",
+      "modes": ["Primary", "Secondary", "Destructive"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/split-button-*.png"
+    },
+    {
+      "component": "copy-button",
+      "modes": ["Icon Only", "With Label", "Outline", "Sizes"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/copy-button-*.png"
+    },
+    {
+      "component": "action-button",
+      "modes": ["Async", "Controlled", "Destructive"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/action-button-*.png"
+    },
+    {
+      "component": "expanding-button-group",
+      "modes": ["Toolbar", "Tones", "Confirm"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/expanding-button-group-*.png"
+    },
+    {
+      "component": "floating-button-group",
+      "modes": ["Canvas", "Stepper", "Actions"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/floating-button-group-*.png"
+    },
+    {
+      "component": "icon-morph",
+      "modes": ["Modes", "Buttons", "Controls"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/icon-morph-*.png"
+    },
+    {
+      "component": "input",
+      "modes": ["Fields", "Error", "Sizes"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/input-*.png"
+    },
+    {
+      "component": "textarea",
+      "modes": ["Grow", "Limit", "Error"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/textarea-*.png"
+    },
+    {
+      "component": "password-input",
+      "modes": ["Sign in", "New password"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/password-input-*.png"
+    },
+    {
+      "component": "search-input",
+      "modes": ["Shortcut", "Loading"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/search-input-*.png"
+    },
+    {
+      "component": "select",
+      "modes": ["Field", "Inline"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/select-*.png"
+    },
+    {
+      "component": "multi-select",
+      "modes": ["Filter", "Long list"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/multi-select-*.png"
+    },
+    {
+      "component": "date-picker",
+      "modes": ["Due date", "Limits"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/date-picker-*.png"
+    },
+    {
+      "component": "checkbox",
+      "modes": ["Single", "Group"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/checkbox-*.png"
+    },
+    {
+      "component": "radio-group",
+      "modes": ["Cards", "List"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/radio-group-*.png"
+    },
+    {
+      "component": "switch",
+      "modes": ["Settings", "Async", "Sizes"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/switch-*.png"
+    },
+    {
+      "component": "slider",
+      "modes": ["Single", "Range"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/slider-*.png"
+    },
+    {
+      "component": "segmented-control",
+      "modes": ["Views", "Icons", "Block"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/segmented-control-*.png"
+    },
+    {
+      "component": "tooltip",
+      "modes": ["Toolbar", "Sides"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/tooltip-*.png"
+    },
+    {
+      "component": "popover",
+      "modes": ["Form", "Details"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/popover-*.png"
+    },
+    {
+      "component": "hover-card",
+      "modes": ["Profile", "Link"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/hover-card-*.png"
+    },
+    {
+      "component": "dropdown-menu",
+      "modes": ["Actions", "View options"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/dropdown-menu-*.png"
+    },
+    {
+      "component": "context-menu",
+      "modes": ["Files"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/context-menu-*.png"
+    },
+    {
+      "component": "dialog",
+      "modes": ["Confirm", "Long"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/dialog-*.png"
+    },
+    {
+      "component": "sheet",
+      "modes": ["Right", "Bottom"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/sheet-*.png"
+    },
+    {
+      "component": "badge",
+      "modes": ["Status", "Counts"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/badge-*.png"
+    },
+    {
+      "component": "avatar",
+      "modes": ["People", "Group"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/avatar-*.png"
+    },
+    {
+      "component": "spinner",
+      "modes": ["Variants"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/spinner-*.png"
+    },
+    {
+      "component": "progress",
+      "modes": ["Upload", "Ring", "Unknown"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/progress-*.png"
+    },
+    {
+      "component": "skeleton",
+      "modes": ["Card", "List"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/skeleton-*.png"
+    },
+    {
+      "component": "empty-state",
+      "modes": ["First run", "No results", "Connect", "All done"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/empty-state-*.png"
+    },
+    {
+      "component": "alert",
+      "modes": ["Tones", "Sync", "Dismiss"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/alert-*.png"
+    },
+    {
+      "component": "kbd",
+      "modes": ["Shortcuts"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/kbd-*.png"
+    },
+    {
+      "component": "tabs",
+      "modes": ["Underline", "Pills"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/tabs-*.png"
+    },
+    {
+      "component": "accordion",
+      "modes": ["Rows", "Cards"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/accordion-*.png"
+    },
+    {
+      "component": "collapsible",
+      "modes": ["List", "Details"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/collapsible-*.png"
+    },
+    {
+      "component": "breadcrumb",
+      "modes": ["Short", "Long"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/breadcrumb-*.png"
+    },
+    {
+      "component": "pagination",
+      "modes": ["Pages"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/pagination-*.png"
+    },
+    {
+      "component": "toggle-group",
+      "modes": ["Formatting", "Filters"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/toggle-group-*.png"
+    },
+    {
+      "component": "steps",
+      "modes": ["Horizontal", "Vertical"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/steps-*.png"
+    },
+    {
+      "component": "text-morph",
+      "modes": ["Labels", "Headline"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/text-morph-*.png"
+    },
+    {
+      "component": "status-button",
+      "modes": ["Save", "Copy", "Error"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/status-button-*.png"
+    },
+    {
+      "component": "number-roll",
+      "modes": ["Try it", "Currency", "Compact", "Live"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/number-roll-*.png"
+    },
+    {
+      "component": "pricing-toggle",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/pricing-toggle-*.png"
+    },
+    {
+      "component": "waitlist-field",
+      "modes": ["Join", "Error", "Joined"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/waitlist-field-*.png"
+    },
+    {
+      "component": "code-input",
+      "modes": ["Try it", "Autofill", "Wrong code"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/code-input-*.png"
+    },
+    {
+      "component": "steps-form",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/steps-form-*.png"
+    },
+    {
+      "component": "date-range-picker",
+      "modes": ["Analytics", "Stay"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/date-range-picker-*.png"
+    },
+    {
+      "component": "morphing-nav",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/morphing-nav-*.png"
+    },
+    {
+      "component": "feature-tabs",
+      "modes": ["Autoplay", "Manual"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/feature-tabs-*.png"
+    },
+    {
+      "component": "scroll-story",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/scroll-story-*.png"
+    },
+    {
+      "component": "stats-band",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/stats-band-*.png"
+    },
+    {
+      "component": "announcement-pill",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/announcement-pill-*.png"
+    },
+    {
+      "component": "testimonials",
+      "modes": ["Autoplay", "Manual"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/testimonials-*.png"
+    },
+    {
+      "component": "faq-accordion",
+      "modes": ["Single", "Multiple"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/faq-accordion-*.png"
+    },
+    {
+      "component": "logo-marquee",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/logo-marquee-*.png"
+    },
+    {
+      "component": "expanding-gallery",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/expanding-gallery-*.png"
+    },
+    {
+      "component": "card-deck",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/card-deck-*.png"
+    },
+    {
+      "component": "workflow-canvas",
+      "modes": ["Ready", "Needs retry"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/workflow-canvas-*.png"
+    },
+    {
+      "component": "image-compare",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/image-compare-*.png"
+    },
+    {
+      "component": "magnifying-dock",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/magnifying-dock-*.png"
+    },
+    {
+      "component": "hold-to-confirm",
+      "modes": ["Archive", "Fails once"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/hold-to-confirm-*.png"
+    },
+    {
+      "component": "swipe-actions",
+      "modes": ["Inbox", "Fails once"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/swipe-actions-*.png"
+    },
+    {
+      "component": "drop-zone",
+      "modes": ["Upload", "Fails once", "Single file"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/drop-zone-*.png"
+    },
+    {
+      "component": "drop-zone-membrane",
+      "modes": ["Upload", "Fails once", "Single file"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [
+        {
+          "mode": "Upload",
+          "note": "Accessible Browse files label retained."
+        },
+        {
+          "mode": "Fails once",
+          "note": "Accessible Browse files label retained."
+        },
+        {
+          "mode": "Single file",
+          "note": "Accessible Browse files label retained."
+        }
+      ],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/drop-zone-membrane-*.png"
+    },
+    {
+      "component": "wheel-picker",
+      "modes": ["Alarm", "Timer", "Date"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/wheel-picker-*.png"
+    },
+    {
+      "component": "morphing-chart",
+      "modes": ["Revenue", "Today", "Visitors"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/morphing-chart-*.png"
+    },
+    {
+      "component": "range-ruler",
+      "modes": ["filter", "latency", "budget"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/range-ruler-*.png"
+    },
+    {
+      "component": "ratio-balancer",
+      "modes": ["compute", "budget", "traffic"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/ratio-balancer-*.png"
+    },
+    {
+      "component": "split-pane",
+      "modes": ["code-preview", "docs-editor", "logs"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/split-pane-*.png"
+    },
+    {
+      "component": "tag-input",
+      "modes": ["Invite", "Paste a list", "Labels", "Seat limit"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/tag-input-*.png"
+    },
+    {
+      "component": "avatar-cropper",
+      "modes": ["Profile photo", "Editing", "Workspace logo", "Save fails"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/avatar-cropper-*.png"
+    },
+    {
+      "component": "week-calendar",
+      "modes": ["Plan your week", "Overlaps", "Day view", "Save fails"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/week-calendar-*.png"
+    },
+    {
+      "component": "inline-edit",
+      "modes": ["Rename", "Server says no", "Renamed elsewhere"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/inline-edit-*.png"
+    },
+    {
+      "component": "combobox",
+      "modes": ["Repositories", "Assignee", "Labels"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/combobox-*.png"
+    },
+    {
+      "component": "cron-input",
+      "modes": ["Cron", "Plain English", "Time zones"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/cron-input-*.png"
+    },
+    {
+      "component": "time-range-picker",
+      "modes": ["Live", "Drag to zoom", "Type a range"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/time-range-picker-*.png"
+    },
+    {
+      "component": "json-inspector",
+      "modes": ["Webhook", "Search", "Diff", "Broken"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/json-inspector-*.png"
+    },
+    {
+      "component": "stepper-input",
+      "modes": ["Seat count", "Radius scale", "Bounded limit"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/stepper-input-*.png"
+    },
+    {
+      "component": "sparkline",
+      "modes": ["Table cell", "Stat strip", "Bar variant"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/sparkline-*.png"
+    },
+    {
+      "component": "privacy-mask",
+      "modes": ["API key", "Balance", "Hold to reveal"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/privacy-mask-*.png"
+    },
+    {
+      "component": "data-table",
+      "modes": ["Customers", "Live updates", "Bulk actions", "Phone cards"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/data-table-*.png"
+    },
+    {
+      "component": "kanban-board",
+      "modes": ["Pipeline", "Issues", "Column limit", "Save fails"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/kanban-board-*.png"
+    },
+    {
+      "component": "filter-bar",
+      "modes": ["Issues", "Describe it", "Customers", "Editing"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/filter-bar-*.png"
+    },
+    {
+      "component": "tree-view",
+      "modes": ["Workspace", "Files", "Rules", "Save fails"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/tree-view-*.png"
+    },
+    {
+      "component": "doc-comments",
+      "modes": ["Review", "New comment", "Crowded margin", "Save fails"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/doc-comments-*.png"
+    },
+    {
+      "component": "api-keys",
+      "modes": ["Keys", "First key", "Errors"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/api-keys-*.png"
+    },
+    {
+      "component": "team-members",
+      "modes": ["Members", "Seat limit", "Errors"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/team-members-*.png"
+    },
+    {
+      "component": "settings-form",
+      "modes": ["Settings", "Server says no"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/settings-form-*.png"
+    },
+    {
+      "component": "auth-card",
+      "modes": ["Password", "Code", "Magic link"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/auth-card-*.png"
+    },
+    {
+      "component": "webhooks",
+      "modes": ["Endpoints", "First endpoint"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/webhooks-*.png"
+    },
+    {
+      "component": "domain-connect",
+      "modes": ["Connect", "Waiting", "Wrong record", "Live"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/domain-connect-*.png"
+    },
+    {
+      "component": "log-stream",
+      "modes": ["Live", "Burst", "History"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [
+        {
+          "mode": "Live",
+          "note": "Live timestamps and event counts vary between captures."
+        },
+        {
+          "mode": "Burst",
+          "note": "Live timestamps and event counts vary between captures."
+        },
+        {
+          "mode": "History",
+          "note": "Live timestamps and event counts vary between captures."
+        }
+      ],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/log-stream-*.png"
+    },
+    {
+      "component": "csv-import",
+      "modes": ["Import", "Server refuses some"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/csv-import-*.png"
+    },
+    {
+      "component": "notification-inbox",
+      "modes": ["Inbox", "Live", "Caught up"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/notification-inbox-*.png"
+    },
+    {
+      "component": "integrations",
+      "modes": ["Integrations", "Errors"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/integrations-*.png"
+    },
+    {
+      "component": "status-bars",
+      "modes": ["Operational", "Incident", "Outage"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/status-bars-*.png"
+    },
+    {
+      "component": "command-palette",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [
+        {
+          "mode": "Default",
+          "note": "Explicit trigger label and spoken keyboard shortcut retained; visible Search\u2026 matches."
+        }
+      ],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/command-palette-*.png"
+    },
+    {
+      "component": "toast-stack",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/toast-stack-*.png"
+    },
+    {
+      "component": "live-activity",
+      "modes": ["Agent", "Upload"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/live-activity-*.png"
+    },
+    {
+      "component": "live-cursors",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/live-cursors-*.png"
+    },
+    {
+      "component": "live-map",
+      "modes": ["Signups", "Orders"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/live-map-*.png"
+    },
+    {
+      "component": "theme-toggle",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/theme-toggle-*.png"
+    },
+    {
+      "component": "pricing-calculator",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/pricing-calculator-*.png"
+    },
+    {
+      "component": "comparison-table",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/comparison-table-*.png"
+    },
+    {
+      "component": "onboarding-checklist",
+      "modes": ["Fresh", "Nearly done"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/onboarding-checklist-*.png"
+    },
+    {
+      "component": "sortable-list",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/sortable-list-*.png"
+    },
+    {
+      "component": "changelog-timeline",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/changelog-timeline-*.png"
+    },
+    {
+      "component": "changelog-trace",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/changelog-trace-*.png"
+    },
+    {
+      "component": "changelog-scrubber",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/changelog-scrubber-*.png"
+    },
+    {
+      "component": "cookie-banner",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/cookie-banner-*.png"
+    },
+    {
+      "component": "newsletter-footer",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/newsletter-footer-*.png"
+    },
+    {
+      "component": "prompt-composer",
+      "modes": ["Live", "With files", "Rate limited"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/prompt-composer-*.png"
+    },
+    {
+      "component": "agent-composer",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/agent-composer-*.png"
+    },
+    {
+      "component": "mention-menu",
+      "modes": ["Try it", "With context"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/mention-menu-*.png"
+    },
+    {
+      "component": "attachment-chip",
+      "modes": ["Live", "Image", "Error"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/attachment-chip-*.png"
+    },
+    {
+      "component": "mode-switcher",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/mode-switcher-*.png"
+    },
+    {
+      "component": "model-picker",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/model-picker-*.png"
+    },
+    {
+      "component": "voice-input",
+      "modes": ["Live", "In a composer", "Blocked", "Error"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/voice-input-*.png"
+    },
+    {
+      "component": "voice-note",
+      "modes": ["Chat", "Voicemail"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/voice-note-*.png"
+    },
+    {
+      "component": "thinking-indicator",
+      "modes": ["Orbit", "Dots", "Pulse", "Scan", "Done"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/thinking-indicator-*.png"
+    },
+    {
+      "component": "thinking-trace",
+      "modes": ["Steps", "Reasoning", "Search", "Tools", "Error"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/thinking-trace-*.png"
+    },
+    {
+      "component": "tool-call",
+      "modes": ["Live", "Error", "Denied", "Custom output"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/tool-call-*.png"
+    },
+    {
+      "component": "clarifying-question",
+      "modes": ["Single", "Multiple", "Answered"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/clarifying-question-*.png"
+    },
+    {
+      "component": "approval-card",
+      "modes": ["Pending", "Destructive", "Approved", "Denied", "Expired"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/approval-card-*.png"
+    },
+    {
+      "component": "plan",
+      "modes": ["Live", "Failed", "Settled"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/plan-*.png"
+    },
+    {
+      "component": "web-research",
+      "modes": ["Live", "Done", "Failed"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/web-research-*.png"
+    },
+    {
+      "component": "command-output",
+      "modes": ["Passing", "Failing"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/command-output-*.png"
+    },
+    {
+      "component": "task-progress",
+      "modes": ["Live", "Done", "Error", "Cancelled"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/task-progress-*.png"
+    },
+    {
+      "component": "task-log",
+      "modes": ["Live", "Done"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/task-log-*.png"
+    },
+    {
+      "component": "streaming-answer",
+      "modes": ["Streaming", "Stopped", "Error"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/streaming-answer-*.png"
+    },
+    {
+      "component": "code-block",
+      "modes": ["Streaming", "Folded", "Apply"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/code-block-*.png"
+    },
+    {
+      "component": "citation",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/citation-*.png"
+    },
+    {
+      "component": "response-versions",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/response-versions-*.png"
+    },
+    {
+      "component": "selection-actions",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/selection-actions-*.png"
+    },
+    {
+      "component": "inline-rewrite",
+      "modes": ["Length", "Tone"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/inline-rewrite-*.png"
+    },
+    {
+      "component": "diff-review",
+      "modes": ["Text", "Code"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/diff-review-*.png"
+    },
+    {
+      "component": "action-receipt",
+      "modes": ["Live", "Stacked", "Failed"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/action-receipt-*.png"
+    },
+    {
+      "component": "chat-notice",
+      "modes": ["Error", "Offline", "Rate limit", "Long chat"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/chat-notice-*.png"
+    },
+    {
+      "component": "usage-meter",
+      "modes": ["Normal", "Low", "Out", "Ring"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/usage-meter-*.png"
+    },
+    {
+      "component": "usage-limits",
+      "modes": ["Normal", "Near the limit", "Reached"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/usage-limits-*.png"
+    },
+    {
+      "component": "chat-scroll",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/chat-scroll-*.png"
+    },
+    {
+      "component": "message-edit",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/message-edit-*.png"
+    },
+    {
+      "component": "chat-history",
+      "modes": ["Live", "Search"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/chat-history-*.png"
+    },
+    {
+      "component": "earnings-chart",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/earnings-chart-*.png"
+    },
+    {
+      "component": "steps-chart",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [
+        {
+          "mode": "Default",
+          "note": "Local Number Roll retains its digit transition regression fixes."
+        }
+      ],
+      "artifacts": "output/playwright/exact-demos/steps-chart-*.png"
+    },
+    {
+      "component": "revenue-chart",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/revenue-chart-*.png"
+    },
+    {
+      "component": "area-chart",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/area-chart-*.png"
+    },
+    {
+      "component": "trend-chart",
+      "modes": ["Visitors", "Compare", "Zoom", "Unfinished day"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/trend-chart-*.png"
+    },
+    {
+      "component": "combo-chart",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [
+        {
+          "mode": "Default",
+          "note": "Local Number Roll retains its digit transition regression fixes."
+        }
+      ],
+      "artifacts": "output/playwright/exact-demos/combo-chart-*.png"
+    },
+    {
+      "component": "stage-bars",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/stage-bars-*.png"
+    },
+    {
+      "component": "activity-rings",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/activity-rings-*.png"
+    },
+    {
+      "component": "donut-chart",
+      "modes": ["Breakdown", "Budget"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/donut-chart-*.png"
+    },
+    {
+      "component": "activity-heatmap",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/activity-heatmap-*.png"
+    },
+    {
+      "component": "live-line-chart",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/live-line-chart-*.png"
+    },
+    {
+      "component": "agent-playback",
+      "modes": ["Default"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/agent-playback-*.png"
+    },
+    {
+      "component": "wallet",
+      "modes": ["Wallet", "Money in", "Declined"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/wallet-*.png"
+    },
+    {
+      "component": "pricing-plans",
+      "modes": ["Plans", "Current plan", "Declined"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/pricing-plans-*.png"
+    },
+    {
+      "component": "booking",
+      "modes": ["Book a call", "Time taken", "Fully booked"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/booking-*.png"
+    },
+    {
+      "component": "cart",
+      "modes": ["Cart", "Low stock", "Code refused"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/cart-*.png"
+    },
+    {
+      "component": "referral",
+      "modes": ["Friend joins", "Unlock", "Invite limit"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/referral-*.png"
+    },
+    {
+      "component": "feedback",
+      "modes": ["Net promoter", "Stars", "Not sent"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/feedback-*.png"
+    },
+    {
+      "component": "buy-box",
+      "modes": ["Buy", "Sold out", "Sale"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/buy-box-*.png"
+    },
+    {
+      "component": "checkout",
+      "modes": ["Checkout", "Prefilled", "Declined"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/checkout-*.png"
+    },
+    {
+      "component": "order-status",
+      "modes": ["Live", "Delivered", "Cancel"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/order-status-*.png"
+    },
+    {
+      "component": "subscription",
+      "modes": ["Active", "Payment failed", "Paused"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/subscription-*.png"
+    },
+    {
+      "component": "file-share",
+      "modes": ["Share", "Upload drops"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/file-share-*.png"
+    },
+    {
+      "component": "poll",
+      "modes": ["Vote", "Live", "Closed"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/poll-*.png"
+    },
+    {
+      "component": "cookie-consent",
+      "modes": ["Choose", "Not saved"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/cookie-consent-*.png"
+    },
+    {
+      "component": "create-password",
+      "modes": ["Create", "Breached", "Not saved"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/create-password-*.png"
+    },
+    {
+      "component": "verify-code",
+      "modes": ["Verify", "Wrong code", "Resend fails"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/verify-code-*.png"
+    },
+    {
+      "component": "delete-workspace",
+      "modes": ["Delete", "Not deleted"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/delete-workspace-*.png"
+    },
+    {
+      "component": "terms",
+      "modes": ["Read", "Not saved"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/terms-*.png"
+    },
+    {
+      "component": "not-found",
+      "modes": ["Search", "Offline"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/not-found-*.png"
+    },
+    {
+      "component": "waitlist",
+      "modes": ["Join", "Admitted"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/waitlist-*.png"
+    },
+    {
+      "component": "storage",
+      "modes": ["Nearly full", "Plenty of room"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/storage-*.png"
+    },
+    {
+      "component": "username",
+      "modes": ["Pick", "Taken"],
+      "loaded": true,
+      "uncaughtErrors": 0,
+      "controlObservations": [],
+      "motionObservations": [],
+      "artifacts": "output/playwright/exact-demos/username-*.png"
+    }
+  ]
+}

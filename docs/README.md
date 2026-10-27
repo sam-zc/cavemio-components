@@ -1,5 +1,8 @@
 # Developer documentation
 
+- [Animated Video Player](video-player.md): API, adapters, DRM, motion, accessibility, diagnostics, and installation.
+- [Video player verification](video-player-verification.md): measured results and platform limits.
+
 Start with [AGENTS.md](../AGENTS.md) for agent instructions or [CONTRIBUTING.md](../CONTRIBUTING.md) for the contributor workflow. [The main README](../README.md) covers usage and installation.
 
 For structural work, start with [architecture](architecture.md), [domain terms](../GLOSSARY.md), and [ADR 0001](adr/0001-source-distribution-and-verification.md). The [workflow decisions](ecosystem-review.md) record authoring and verification choices.
@@ -35,3 +38,7 @@ See [Select](select.md) for the expanding pill, labeled fields, keyboard listbox
 ## Theme Toggle
 
 See [Theme Toggle](theme-toggle.md) for the sun/moon control, optional circular page wipe, synchronous theme integration, fallback cases, and installation checks.
+
+# Expanded component library
+
+[Component catalog](imports/component-catalog.md) documents the 183-component catalog, categories, shared helpers, preserved fixes, licensing, previews, and verification scope. The existing component-pattern audit remains the behavior reference for the original components.

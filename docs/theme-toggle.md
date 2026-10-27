@@ -1,6 +1,6 @@
 # Theme Toggle
 
-One circular button changes between a sun and a crescent moon. The surface stays in place; rays retract as a moving SVG mask reveals the moon. This is one visual variant with light and dark states.
+One circular button changes between a sun and a crescent moon. The surface stays in place; rays retract as a moving SVG mask reveals the moon. The original API retains this visual variant. The reference API also supplies pill and segmented controls with a System choice.
 
 ## State and ownership
 
@@ -18,7 +18,7 @@ The accessible name describes the destination, `aria-pressed` indicates dark mod
 
 The ray group rotates 45 degrees, shrinks, and fades over 420ms using `cubic-bezier(0.16, 1, 0.3, 1)`. A translating mask and expanding center disk form the crescent. CSS transitions reverse from their current presentation, with no timers, outgoing copies, or animation lock. Media-query utilities settle motion immediately when reduced motion is enabled, including during a transition. Every instance has its own React-generated mask ID.
 
-The button deliberately uses white/black surfaces and opposite glyph colors, independent of brand colors. Focus uses the host ring token. The preview shows the default 48px button on a full white/black surface, with With wipe selected initially and a Without wipe tab. The website binds the demo to its shared theme store, so the entire site and header change together and the choice persists. Standalone/Storybook demos retain local state unless a host supplies controlled theme props; the installed component does not define your theme colors or persist settings.
+The button deliberately uses white/black surfaces and opposite glyph colors, independent of brand colors. Focus uses the host ring token. The reference demo uses the local demo card, synchronized icon, pill and segmented controls, and its circular reveal. It owns its card theme independently of the website. Existing regression stories retain the original API and circular document wipe.
 
 ## Optional circular page wipe
 
@@ -77,3 +77,12 @@ The bundled helper installs a temporary, attribute-scoped stylesheet only during
 - Installation example is registered in [install-examples.ts](../scripts/install-examples.ts).
 
 The [wipe regression](../scripts/verify-theme-toggle-wipe.browser.js) covers real intermediate frames, multiple instances, callback counts, resize, unmount, reduced motion, hidden documents, unsupported APIs, and skipped/failed captures. Browser coverage is Chromium; other engines use feature detection but have not been certified by this suite.
+
+## Reference variants
+
+```tsx
+<ThemeToggle variant="segmented" value={theme} onValueChange={setTheme} />
+<ThemeToggle variant="pill" defaultValue="system" reveal={false} />
+```
+
+Supplying `variant`, `onValueChange`, `storageKey`, `attribute`, or `reveal` selects the reference API. `value` and `defaultValue` accept light, dark, or system. A controlled caller owns the applied theme; uncontrolled variants remember the choice under `storageKey` (default `theme`), follow system changes, and set the root dark class or `data-theme` attribute. `reveal` defaults to true. The bundled MIT [variant helper](../registry/components/theme-toggle-variants.tsx) owns these controls and reuses canonical Text Morph. This API uses a div wrapper; the existing API keeps its native button and theme/onThemeChange/pageTransition behavior.

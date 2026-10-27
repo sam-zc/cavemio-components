@@ -18,6 +18,8 @@ Motion should show what changed, where it came from, and what the user can do ne
 
 Do not add Motion solely for a color change. Do not replace a physical gesture with a duration-based CSS transition. A measured height/width animation is appropriate when surrounding layout must move; compositor-only advice does not prohibit that deliberate use. Measure natural content outside the animated dimension to avoid feedback loops.
 
+[Animated Video Player](video-player.md) owns its motion with GSAP: individual decorative hover/popover surfaces use SVG gooey filters, while cinematic expansion interpolates measured frame geometry without scaling text or remounting the video. The primary fullscreen control uses this expansion. Entry/return each take 900ms with cubic easing (0.7, 0, 0.16, 1), its persistent corner icons crossfade/scale over 450ms, and the backdrop follows frame progress; menu content enters over 240ms and exits over 140ms. Reduced motion settles live transitions. This component does not add another animation owner to the playback engine.
+
 ## Timing families
 
 These are names used in the documentation, **not exported tokens or a new API**. Reuse the nearest component's implementation. Local constants preserve independently installable source; extract shared code only when it removes a real repeated behavior and can be bundled for every consumer.
@@ -92,3 +94,5 @@ TextMorph's empty-label case is a regression reference: a target-text equality c
 ## Acceptance
 
 Inspect start, intermediate, just-before-completion, and settled frames. Reverse while moving. Test after fonts load and after resizing. No transient word reflow caused by animated dimensions, clipped final word, duplicate-key warning, stale ghost, focus loss, or jump to a previous target is acceptable. Use the [verification guide](verification.md) to turn the failure into a browser assertion.
+
+Video timeline engagement takes 300ms with cubic easing (0.25, 0.1, 0.35, 1). Apply the curve forward toward either target; running the entrance timeline backward would start exit at its flat settling tail. The rail keeps its original vertical center while widening and thickening from 4px to 28px. Controls move down 44px using exactly the same eased progress, leaving the expanded glass rail 8px above them. There is no lead, hover-out hold or separate interval on entry or exit. A microtask lets the current pointer event update the shared geometric hover region before dismissal, preserving gaps without a timer. Controls remain above the decorative rail as their hit targets cross during the transition. Fractional geometry prevents center wobble. Reversal starts from current presented progress with proportional remaining duration, resize remeasures the slot, pointer capture tracks changing geometry, and reduced motion settles the same stable DOM immediately.

@@ -2,11 +2,39 @@
 
 Editable React components distributed through a shadcn-compatible registry. Components are copied into the consumer’s project; there is no Cavemio runtime UI package.
 
+The catalog now contains **183 components**, with reusable source, local previews, and complete installation metadata. Existing overlapping implementations retain Cavemio's local fixes. The library uses the reference's eight categories, with 21 blocks listed separately. Every entry has editable source, a local interactive preview, a Storybook story, and bundled dependencies. See [the import guide](docs/imports/component-catalog.md) for provenance, composition, and verification boundaries.
+
 **Free and open source under the [MIT license](LICENSE).** Use, modify, and ship the components in personal or commercial projects without a Cavemio subscription or license key.
 
 For development, start with [CONTRIBUTING.md](CONTRIBUTING.md) or [AGENTS.md](AGENTS.md). The [documentation index](docs/README.md) links the [six-component audit](docs/component-patterns.md), [motion guide](docs/motion.md), [typography and effects](docs/typography-and-effects.md), and [repo-local skills](docs/skills.md).
 
-## Develop with Storybook
+## Animated Video Player
+
+An adaptive HLS/DASH player with a thin control row, individual gooey hover surfaces,
+and cinematic expansion that preserves the same video element. Shaka is the default;
+HLS.js and native playback are explicit alternatives. Seven examples cover formats,
+quality, diagnostics, engines, motion and authorized DRM testing.
+
+```tsx
+import { VideoPlayer } from "@/components/video-player";
+
+<VideoPlayer
+  src="https://storage.googleapis.com/shaka-demo-assets/sintel/dash.mpd"
+  type="dash"
+  title="Sintel"
+  muted
+/>;
+```
+
+[Storybook](http://127.0.0.1:6006/?path=/story/components-video-player--default) ·
+[Full API and integration guide](docs/video-player.md) ·
+[Verification and limits](docs/video-player-verification.md).
+
+Install `@cavemio/video-player` using the configured namespace described below.
+The new dependencies are GSAP, Shaka Player and HLS.js; only the selected streaming
+engine is initialized. Cavemio source is MIT; dependencies retain their own licenses.
+
+## Storybook development
 
 Use Node 24+ and Bun 1.4.3.
 

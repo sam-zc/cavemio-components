@@ -98,6 +98,22 @@ Sources: [component](../registry/components/clarifying-question.tsx), [demo](../
 
 Source: [component](../registry/components/command-palette.tsx). The [component brief](command-palette.md) records its API, states, distribution, and checks. A stable transparent “Search...” command button with a default 16px search icon and a 14px regular label with a filled trailing Kbd shortcut badge expands into a 640px-wide, 14px-radius modal surface over 440ms and closes over 320ms while its input/results retain their target width. On taller viewports, its anchor moves down toward 16% of viewport height (up to 160px) only when the full list and footer still fit, reducing travel without shrinking content. The anchor remains stable across result changes. Content fades in over 240ms after 60ms and out over 100ms; the trigger returns over 140ms after 160ms, just before the 320ms closing veil and focus cleanup complete. The result list resizes over 300ms and one 40px highlight moves over 200ms. Nested pages slide with inert outgoing copies. The highlight lives inside the positioned incoming pane and shares its slide transform. It initializes in the new page’s coordinates without gliding across chips or headers; subsequent within-page selections still glide. Scroll calculations separately include the pane inset. The caller supplies commands, navigation and abortable async work; stale completion cannot close a later session. Compact headings and chip spacing retain 40px rows within a result area capped at 440px. Caller-owned filter chips wrap inside the scrollable body; leading item/trigger icons accept custom logos. A measured footer aligns keyboard hints with optional help actions and wraps at narrow widths. The palette traps focus across the search, Close, removable chips, and footer actions, keeps the background inert through closing, restores the opener, fits the visual viewport, and settles live reduced motion without losing the query.
 
+## Animated Video Player
+
+Seeking uses a 4px rail, grab/grabbing cursors and a 1×36px vertical hover marker instead of a circular thumb. Buffer fills stop at the playhead to avoid alpha overlap. A shared geometric hover region includes gaps in the control row, without a timed hover-out hold. The unboxed position/duration preview follows the pointer and stays within the rail; all player focus rings use the theme’s `ring` token. A measured 300ms expansion holds the rail's vertical center fixed while its width and thickness grow together to a 28px glass rail. Controls slide down 44px using the same eased progress, with no timing lead or delay in either direction, leaving an 8px gap. Both directions use the forward cubic curve (0.25, 0.1, 0.35, 1), rather than reversing its easing tail. The single input, video and controls remain mounted. Mouse hover holds the shared overlay open, pointer exit fades it, and only keyboard focus (not mouse focus), pause, menus or scrubbing pin it visible. Touch has its own inactivity timeout. Reduced motion settles immediately, and touch/captured dragging use current geometry.
+
+The video image has a persistent semantic play/pause button for pointer, touch and keyboard activation in inline and expanded layouts. Control/menu interactions remain independent; decorative control padding passes clicks through to the video.
+
+[Source](../registry/components/video-player.tsx) and [component brief/API](video-player.md).
+The stable frame and video persist through GSAP cinematic expansion. Playback adapters
+own streaming; the UI consumes normalized store state. The desktop controls use one
+thin row with elapsed time, seek rail and remaining time. No full-width pill backdrop
+is shown. Tooltip text retains its natural width and remains unmasked through surface resizing; explicit percentage centering follows label-width changes. One hover/focus tooltip pours out over 450ms, travels and resizes over
+320ms between controls, and sinks back over 290ms after a 120ms exit grace period.
+Filtered background copies form a temporary liquid neck; captions retain their
+natural width and crossfade without scaling. Frosted glass backgrounds pick up the video colors. Volume unfolds a vertical slider above its control without an additional tooltip below the player. Touch uses explicit controls and settings. Motion is live
+reduced-motion aware. The primary fullscreen control animates viewport expansion over 900ms in both directions; persistent outward/inward corner icons blend over 450ms. Cover framing, 20px corners and stable inline-slot control queries prevent letterboxing or breakpoint jumps; browser fullscreen remains in Settings. See [verification](video-player-verification.md).
+
 ## Shared helpers and boundaries
 
 | Helper                                                                   | Consumers in this audit                                                                    | Review consequence                                                                                   |
@@ -127,6 +143,8 @@ Source: [component](../registry/components/command-palette.tsx). The [component 
 See [Select](select.md) for the expanding pill, labeled fields, keyboard listbox behavior, and distribution contract.
 
 ## Theme Toggle
+
+The reference API adds icon, pill, and segmented variants with a System choice, optional persistence, and reveal. It is selected by the variant-specific props and reuses canonical Text Morph. The exact demo synchronizes these controls within its own themed card. The original button API and regressions below remain supported; see [the API notes](theme-toggle.md#reference-variants).
 
 [Canonical source](../registry/components/theme-toggle.tsx) and [component brief](theme-toggle.md). One stable native button contains a masked disk and eight rays. CSS transitions retract/rotate the rays and move a circular cutout over 420ms, reversing from current presentation on interruption. Button dimensions remain fixed, each SVG mask has a unique ID, and live reduced motion settles immediately. Controlled and uncontrolled appearance are supported; the host owns global theming and persistence.
 
