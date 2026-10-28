@@ -1,5 +1,5 @@
 /* Shared preview/website tokens. Installed components consume semantic host variables. */
-@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *, .dark, .dark *));
 
 @theme static {
   --color-cavemio-50: #f7fbe9;

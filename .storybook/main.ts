@@ -1,4 +1,5 @@
 import { fileURLToPath } from "node:url";
+import { existsSync } from "node:fs";
 import type { StorybookConfig } from "@storybook/react-vite";
 import tailwindcss from "@tailwindcss/vite";
 import { mergeConfig, type UserConfig } from "vite";
@@ -8,8 +9,12 @@ const config: StorybookConfig = {
   addons: ["@storybook/addon-docs"],
   framework: "@storybook/react-vite",
   staticDirs: [
+    { from: "../tests/fixtures/video", to: "/video-fixtures" },
     { from: "../public/fonts", to: "/fonts" },
     { from: "../public/lifecycle", to: "/lifecycle" },
+    ...(existsSync(new URL("../public/demos", import.meta.url))
+      ? [{ from: "../public/demos", to: "/demos" }]
+      : []),
   ],
   async viteFinal(config) {
     return mergeConfig(config, {
