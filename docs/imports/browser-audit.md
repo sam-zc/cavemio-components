@@ -25,6 +25,6 @@ The [per-component audit](browser-audit.json) lists every checked mode. New capt
 
 This pass establishes the same original demo configurations and checks their controls, rendering, and declared motion. It does not certify pixel identity at every animation frame or every possible gesture, interruption, theme, locale, and browser. The eleven established Cavemio implementations retain local APIs and regression fixes; the newer Theme Toggle variants extend its API without replacing the original button behavior.
 
-Reference media is cached only for local previews under the separate [media notices](../../preview/reference/MEDIA_NOTICES.md). No real account, payment, email, microphone, or upload service is exercised. The existing Next.js version emits a security-upgrade advisory; compilation and the requested retry succeed.
+Reference media is versioned with the preview assets under the separate [media notes](../../preview/reference/MEDIA_NOTICES.md). No real account, payment, email, microphone, or upload service is exercised. The existing Next.js version emits a security-upgrade advisory; compilation and the requested retry succeed.
 
 No files were staged and no commits were created.

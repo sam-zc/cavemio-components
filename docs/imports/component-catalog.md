@@ -18,7 +18,7 @@ The 179 scene-based components use local demo scenes: 418 modes with the same sa
 
 Demo scenes are standalone ESM fixtures that import canonical registry components. Typed declarations define each React entry boundary. The host supplies React, React DOM, and icons. [Scene metadata](../../preview/reference/scenes.json) records canonical bindings and media paths.
 
-Font licenses accompany font files. Twelve media files are served locally for image cropping and audio playback. Demo media is excluded from installable components.
+Font licenses accompany font files. Twelve versioned media files are served locally for image cropping and audio playback, including in clean checkouts and deployments. Demo media is excluded from installable components.
 
 ## Verification scope
 
